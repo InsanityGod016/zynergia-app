@@ -1,0 +1,15 @@
+{
+  "name": "zynergia-video",
+  "version": "1.0.0",
+  "scripts": {
+    "studio": "remotion studio src/index.jsx",
+    "render": "remotion render src/index.jsx ZynergiaPromo out/zynergia-promo.mp4 --codec=h264",
+    "render:still": "remotion still src/index.jsx ZynergiaPromo out/still.png --frame=0"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.291",
+    "remotion": "4.0.291",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}

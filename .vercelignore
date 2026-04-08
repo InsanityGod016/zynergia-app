@@ -1,0 +1,8 @@
+node_modules
+android
+video
+video2
+*.mp4
+*.csv
+public/animations
+dist/animations
