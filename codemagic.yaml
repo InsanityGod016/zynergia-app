@@ -23,7 +23,7 @@ workflows:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' /tmp/profile.mobileprovision | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          xcode-project use-profiles --path ios/App/App.xcworkspace
+          xcode-project use-profiles
       - name: Build iOS
         script: |
           xcode-project build-ipa \
