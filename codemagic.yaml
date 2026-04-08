@@ -6,9 +6,6 @@ workflows:
     environment:
       groups:
         - ios_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.zynergia.app
       node: latest
     scripts:
       - name: Install dependencies
@@ -24,13 +21,15 @@ workflows:
           keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
           echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          xcode-project use-profiles
+          UUID=$(grep -a -A1 'UUID' /tmp/profile.mobileprovision | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          xcode-project use-profiles --path ios/App/App.xcworkspace
       - name: Build iOS
         script: |
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --scheme App \
+            --config Release
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
