@@ -38,6 +38,7 @@ workflows:
             --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
             --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
             --private-key @file:/tmp/api_key.p8 \
-            --testflight
+            --testflight \
+            --max-find-build-wait 30
     artifacts:
       - build/ios/ipa/*.ipa
