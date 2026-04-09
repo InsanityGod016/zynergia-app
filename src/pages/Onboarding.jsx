@@ -62,11 +62,13 @@ const STEPS = [
   },
 ];
 
-export default function Onboarding({ onComplete }) {
+// mode="intro"   → shows only the 3 info slides (before login, no auth needed)
+// mode="profile" → shows only the profile setup form (after login, new user)
+export default function Onboarding({ onComplete, mode = 'profile' }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(mode === 'intro' ? 0 : 3);
   const [direction, setDirection] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -82,6 +84,11 @@ export default function Onboarding({ onComplete }) {
   const [inviteLoading, setInviteLoading] = useState(false);
 
   const handleNext = () => {
+    if (mode === 'intro' && step === 2) {
+      // Last intro slide → done, go to login
+      onComplete();
+      return;
+    }
     if (step < 3) {
       setDirection(1);
       setStep(s => s + 1);
@@ -89,6 +96,10 @@ export default function Onboarding({ onComplete }) {
   };
 
   const handleSkip = () => {
+    if (mode === 'intro') {
+      onComplete();
+      return;
+    }
     setDirection(1);
     setStep(3);
   };
@@ -169,7 +180,7 @@ export default function Onboarding({ onComplete }) {
     <div className="fixed inset-0 bg-white flex flex-col overflow-hidden">
       {/* Progress dots */}
       <div className="flex items-center justify-center gap-2 pt-14 pb-2 px-5">
-        {[0, 1, 2, 3].map(i => (
+        {(mode === 'intro' ? [0, 1, 2] : [3]).map(i => (
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -332,15 +343,17 @@ export default function Onboarding({ onComplete }) {
               onClick={handleNext}
               className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
             >
-              Siguiente
+              {mode === 'intro' && step === 2 ? 'Comenzar' : 'Siguiente'}
               <ArrowRight className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleSkip}
-              className="w-full py-3 text-[#94A3B8] font-medium text-[15px] text-center"
-            >
-              Ir al perfil
-            </button>
+            {mode === 'intro' && step < 2 && (
+              <button
+                onClick={handleSkip}
+                className="w-full py-3 text-[#94A3B8] font-medium text-[15px] text-center"
+              >
+                Saltar
+              </button>
+            )}
           </>
         ) : (
           <button

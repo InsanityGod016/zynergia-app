@@ -26,11 +26,25 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isAuthenticated, user } = useAuth();
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(null); // null = checking
 
   useEffect(() => {
-    if (user) {
-      setOnboardingDone(!!localStorage.getItem(`zynergia_onboarding_done_${user.id}`));
+    if (!user) return;
+    const localDone = !!localStorage.getItem(`zynergia_onboarding_done_${user.id}`);
+    if (localDone) {
+      setOnboardingDone(true);
+    } else {
+      // Check Supabase: if profile already exists, skip onboarding (new device / cleared cache)
+      import('@/api/db').then(({ db }) => {
+        db.Settings.list().then(settings => {
+          if (settings?.[0]?.user_name) {
+            localStorage.setItem(`zynergia_onboarding_done_${user.id}`, 'true');
+            setOnboardingDone(true);
+          } else {
+            setOnboardingDone(false);
+          }
+        }).catch(() => setOnboardingDone(false));
+      });
     }
   }, [user]);
   const [subscribed, setSubscribed] = useState(null);
@@ -41,7 +55,7 @@ const AuthenticatedApp = () => {
     }
   }, [isAuthenticated, onboardingDone]);
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || (isAuthenticated && onboardingDone === null)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -53,8 +67,8 @@ const AuthenticatedApp = () => {
     return <Login />;
   }
 
-  if (!onboardingDone) {
-    return <Onboarding onComplete={() => setOnboardingDone(true)} />;
+  if (onboardingDone === false) {
+    return <Onboarding mode="profile" onComplete={() => setOnboardingDone(true)} />;
   }
 
   if (subscribed === null) {
@@ -95,6 +109,7 @@ const AuthenticatedApp = () => {
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
+  const [introSeen, setIntroSeen] = useState(() => !!localStorage.getItem('zynergia_intro_seen'));
 
   useEffect(() => {
     StatusBar.setStyle({ style: Style.Default }).catch(() => {});
@@ -126,6 +141,11 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         {!splashDone ? (
           <SplashScreen onComplete={() => setSplashDone(true)} />
+        ) : !introSeen ? (
+          <Onboarding mode="intro" onComplete={() => {
+            localStorage.setItem('zynergia_intro_seen', 'true');
+            setIntroSeen(true);
+          }} />
         ) : (
           <Router>
             <NavigationTracker />

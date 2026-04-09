@@ -58,7 +58,7 @@ export default function TaskCard({ task, contact, product, onComplete, onWhatsAp
             </span>
           </div>
 
-          <p className="text-[12px] font-medium text-[#004AFE] mt-0.5">{getTaskLabel(task)}</p>
+          <p className={`text-[12px] font-medium mt-0.5 ${task.completed ? 'line-through text-[#94A3B8]' : 'text-[#004AFE]'}`}>{getTaskLabel(task)}</p>
           {product && <p className="text-[12px] text-[#94A3B8] mt-0.5 truncate">{product.name}</p>}
 
           <button

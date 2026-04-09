@@ -83,7 +83,7 @@ export default function Tasks() {
       // Time filter
       let passesTimeFilter = false;
       if (timeFilter === 'overdue') {
-        passesTimeFilter = taskDate < today && !task.completed;
+        passesTimeFilter = taskDate < today;
       } else if (timeFilter === 'today') {
         passesTimeFilter = taskDate.toDateString() === today.toDateString();
       } else if (timeFilter === 'week') {
@@ -104,6 +104,10 @@ export default function Tasks() {
       const passesAreaFilter = areaFilter === 'all' || taskArea === areaFilter;
 
       return passesTimeFilter && passesCategoryFilter && passesAreaFilter;
+    }).sort((a, b) => {
+      // Completed tasks always go to the bottom
+      if (a.completed === b.completed) return 0;
+      return a.completed ? 1 : -1;
     });
   }, [tasks, timeFilter, categoryFilter, areaFilter]);
 
