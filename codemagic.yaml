@@ -68,8 +68,8 @@ workflows:
           chmod +x gradlew
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=/tmp/zynergia-new.jks \
-            -Pandroid.injected.signing.store.password=$ANDROID_NEW_PASSWORD \
-            -Pandroid.injected.signing.key.alias=zynergia \
-            -Pandroid.injected.signing.key.password=$ANDROID_NEW_PASSWORD
+            -Pandroid.injected.signing.store.password=$ANDROID_KEY_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
