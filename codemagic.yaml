@@ -62,6 +62,11 @@ workflows:
       - name: Set up Android keystore
         script: |
           echo $ANDROID_KEYSTORE | base64 --decode > /tmp/zynergia.jks
+      - name: Verify keystore (alias + password check)
+        script: |
+          echo "=== Aliases en el keystore ==="
+          keytool -list -keystore /tmp/zynergia.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -v 2>&1 | grep -E "Alias|alias|error|Error|password|incorrect" || true
+          echo "=== Si ves 'Alias name:' arriba, la contraseña es correcta ==="
       - name: Build Android App Bundle
         script: |
           cd android
