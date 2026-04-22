@@ -59,29 +59,28 @@ workflows:
         script: npm run build
       - name: Capacitor sync
         script: npx cap sync android
-      - name: Set up Android keystore
+      - name: Generate new keystore
         script: |
-          echo $ANDROID_KEYSTORE | base64 --decode > /tmp/zynergia.jks
-      - name: Verify keystore (alias + password check)
-        script: |
-          for pwd in "Rafa1604" "Rafa1604$" "Rafael1604" "Rafael1604$" "Rafael160404" "Rafael160404$"; do
-            result=$(keytool -list -keystore /tmp/zynergia.jks -storepass "$pwd" 2>&1)
-            if echo "$result" | grep -q "Alias name"; then
-              echo "✅ CONTRASEÑA CORRECTA: $pwd"
-              echo "$result" | grep "Alias name"
-              break
-            else
-              echo "❌ Incorrecta: $pwd"
-            fi
-          done
+          keytool -genkeypair \
+            -alias zynergia \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -keystore /tmp/zynergia-new.jks \
+            -storepass "$ANDROID_NEW_PASSWORD" \
+            -keypass "$ANDROID_NEW_PASSWORD" \
+            -dname "CN=Zynergia, OU=Mobile, O=Zynergia, L=Mexico, ST=Mexico, C=MX"
+          echo "=== KEYSTORE EN BASE64 (guárdalo) ==="
+          base64 /tmp/zynergia-new.jks
+          echo "=== FIN BASE64 ==="
       - name: Build Android App Bundle
         script: |
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=/tmp/zynergia.jks \
-            -Pandroid.injected.signing.store.password=$ANDROID_KEYSTORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD
+            -Pandroid.injected.signing.store.file=/tmp/zynergia-new.jks \
+            -Pandroid.injected.signing.store.password=$ANDROID_NEW_PASSWORD \
+            -Pandroid.injected.signing.key.alias=zynergia \
+            -Pandroid.injected.signing.key.password=$ANDROID_NEW_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
