@@ -71,7 +71,7 @@ workflows:
             -keypass "$ANDROID_NEW_PASSWORD" \
             -dname "CN=Zynergia, OU=Mobile, O=Zynergia, L=Mexico, ST=Mexico, C=MX"
           echo "=== KEYSTORE EN BASE64 (guárdalo) ==="
-          base64 /tmp/zynergia-new.jks
+          base64 -i /tmp/zynergia-new.jks
           echo "=== FIN BASE64 ==="
       - name: Build Android App Bundle
         script: |
