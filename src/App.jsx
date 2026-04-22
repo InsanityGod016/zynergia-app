@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -51,7 +51,9 @@ const AuthenticatedApp = () => {
 
   useEffect(() => {
     if (isAuthenticated && onboardingDone) {
-      hasActiveSubscription().then(setSubscribed);
+      hasActiveSubscription()
+        .then(setSubscribed)
+        .catch(() => setSubscribed(true)); // on error let user in rather than hard-block
     }
   }, [isAuthenticated, onboardingDone]);
 
@@ -111,6 +113,12 @@ function App() {
   const [splashDone, setSplashDone] = useState(false);
   const [introSeen, setIntroSeen] = useState(() => !!localStorage.getItem('zynergia_intro_seen'));
 
+  const handleSplashComplete = useCallback(() => setSplashDone(true), []);
+  const handleIntroComplete = useCallback(() => {
+    localStorage.setItem('zynergia_intro_seen', 'true');
+    setIntroSeen(true);
+  }, []);
+
   useEffect(() => {
     StatusBar.setStyle({ style: Style.Default }).catch(() => {});
     StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {});
@@ -140,12 +148,9 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         {!splashDone ? (
-          <SplashScreen onComplete={() => setSplashDone(true)} />
+          <SplashScreen onComplete={handleSplashComplete} />
         ) : !introSeen ? (
-          <Onboarding mode="intro" onComplete={() => {
-            localStorage.setItem('zynergia_intro_seen', 'true');
-            setIntroSeen(true);
-          }} />
+          <Onboarding mode="intro" onComplete={handleIntroComplete} />
         ) : (
           <Router>
             <NavigationTracker />

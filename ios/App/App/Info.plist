@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CAPACITOR_DEBUG</key>
+	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>es</string>
 	<key>CFBundleDisplayName</key>
-        <string>Zynergia</string>
+	<string>Zynergia</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,6 +24,11 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- iPhone only — prevents iPad review that caused blank-screen rejection -->
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -35,19 +40,19 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Permission strings required by Apple -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Zynergia necesita acceso a tu galería de fotos para que puedas agregar imágenes a tus códigos QR personalizados.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Zynergia guarda los códigos QR generados en tu galería de fotos.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Zynergia necesita acceso a la cámara para tomar fotos de perfil y agregarlas a tus materiales de marketing.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Zynergia te envía recordatorios de seguimiento de contactos y tareas pendientes para que no pierdas ninguna oportunidad de negocio.</string>
 </dict>
 </plist>
