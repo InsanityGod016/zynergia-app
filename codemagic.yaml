@@ -65,6 +65,7 @@ workflows:
       - name: Build Android App Bundle
         script: |
           cd android
+          chmod +x gradlew
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=/tmp/zynergia.jks \
             -Pandroid.injected.signing.store.password=$ANDROID_KEYSTORE_PASSWORD \
