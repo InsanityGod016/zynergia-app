@@ -59,20 +59,9 @@ workflows:
         script: npm run build
       - name: Capacitor sync
         script: npx cap sync android
-      - name: Generate new keystore
+      - name: Set up keystore
         script: |
-          keytool -genkeypair \
-            -alias zynergia \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -keystore /tmp/zynergia-new.jks \
-            -storepass "$ANDROID_NEW_PASSWORD" \
-            -keypass "$ANDROID_NEW_PASSWORD" \
-            -dname "CN=Zynergia, OU=Mobile, O=Zynergia, L=Mexico, ST=Mexico, C=MX"
-          echo "=== KEYSTORE EN BASE64 (guárdalo) ==="
-          base64 -i /tmp/zynergia-new.jks
-          echo "=== FIN BASE64 ==="
+          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-new.jks
       - name: Build Android App Bundle
         script: |
           cd android
