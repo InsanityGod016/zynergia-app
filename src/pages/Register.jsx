@@ -1,11 +1,3 @@
-/**
- * Página de registro post-pago.
- * Flujo: Landing → Stripe Checkout → /register?session_id=xxx → aquí → App
- *
- * REQUISITO: Desactiva la confirmación de email en Supabase:
- *   Dashboard → Authentication → Providers → Email → "Confirm email" → OFF
- */
-
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
@@ -16,13 +8,12 @@ export default function Register() {
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
 
-  const [step, setStep] = useState('verifying'); // 'verifying' | 'form' | 'error'
-  const [paymentData, setPaymentData] = useState(null);
+  const [step, setStep] = useState('verifying');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -40,7 +31,6 @@ export default function Register() {
         return data;
       })
       .then(data => {
-        setPaymentData(data);
         setEmail(data.email || '');
         setStep('form');
       })
@@ -53,14 +43,18 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    if (!name.trim() || !email.trim() || password.length < 6) {
-      setFormError('Por favor completa todos los campos. La contraseña debe tener al menos 6 caracteres.');
+
+    if (password.length < 6) {
+      setFormError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-    setLoading(true);
+    if (password !== password2) {
+      setFormError('Las contraseñas no coinciden.');
+      return;
+    }
 
+    setLoading(true);
     try {
-      // 1. Crear cuenta en Supabase
       const { data: authData, error: signupError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -70,39 +64,29 @@ export default function Register() {
       const userId = authData?.user?.id;
       if (!userId) throw new Error('No se pudo crear la cuenta. Intenta de nuevo.');
 
-      // 2. Crear settings con stripe_paid = true
-      const letters = name.trim().replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
+      // Crear settings con stripe_paid = true
+      const letters = email.split('@')[0].replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
       const digits = String(Math.floor(Math.random() * 90) + 10);
-      const partnerCode = letters + digits;
 
       await supabase.from('settings').upsert({
         user_id: userId,
-        user_name: name.trim(),
+        user_name: email.split('@')[0],
         default_currency: 'MXN',
         notifications_enabled: true,
         stripe_paid: true,
         stripe_session_id: sessionId,
-        partner_code: partnerCode,
+        partner_code: letters + digits,
       }, { onConflict: 'user_id' });
 
-      // 3. Marcar onboarding como completo (ya recolectamos el nombre)
       localStorage.setItem(`zynergia_onboarding_done_${userId}`, 'true');
 
-      // 4. Si hay sesión activa (email confirmation desactivada), ir directo a la app
-      if (authData?.session) {
-        navigate('/', { replace: true });
-      } else {
-        // Email confirmation activa — decirle al usuario que confirme su correo
-        setStep('confirm-email');
-      }
+      navigate('/', { replace: true });
     } catch (err) {
       setFormError(err.message || 'Error al crear la cuenta. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   };
-
-  // ── Estados de UI ─────────────────────────────────────────────────────────
 
   if (step === 'verifying') {
     return (
@@ -125,10 +109,7 @@ export default function Register() {
           </div>
           <h1 className="text-[22px] font-bold text-[#0F172A] mb-2">Error de verificación</h1>
           <p className="text-[#64748B] text-[15px] leading-relaxed mb-7">{errorMsg}</p>
-          <a
-            href="/landing"
-            className="block w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl text-center"
-          >
+          <a href="/landing" className="block w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl text-center">
             Volver al inicio
           </a>
           <p className="mt-4 text-[13px] text-[#94A3B8]">
@@ -140,60 +121,21 @@ export default function Register() {
     );
   }
 
-  if (step === 'confirm-email') {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center px-6">
-        <div className="text-center max-w-sm w-full">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <span className="text-3xl">📧</span>
-          </div>
-          <h1 className="text-[22px] font-bold text-[#0F172A] mb-2">Confirma tu correo</h1>
-          <p className="text-[#64748B] text-[15px] leading-relaxed mb-7">
-            Te enviamos un enlace de confirmación a <strong>{email}</strong>.
-            Ábrelo y luego inicia sesión aquí.
-          </p>
-          <a
-            href="/"
-            className="block w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl text-center"
-          >
-            Ir a iniciar sesión
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      {/* Header */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-[13px] font-semibold px-4 py-1.5 rounded-full mb-5">
           <CheckCircle2 className="w-4 h-4" />
           ¡Pago confirmado!
         </div>
-
         <div className="w-16 h-16 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-4">
           <span className="text-white text-2xl font-bold">Z</span>
         </div>
         <h1 className="text-[26px] font-bold text-[#0F172A]">Crea tu cuenta</h1>
-        <p className="text-[15px] text-[#64748B] mt-1">Un solo paso para entrar a Zynergia</p>
+        <p className="text-[15px] text-[#64748B] mt-1">Elige tu correo y contraseña para entrar</p>
       </div>
 
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Tu nombre completo
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="María García"
-            required
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
-
         <div>
           <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
             Correo electrónico
@@ -204,6 +146,7 @@ export default function Register() {
             onChange={e => setEmail(e.target.value)}
             placeholder="tu@correo.com"
             required
+            autoComplete="email"
             className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
           />
         </div>
@@ -219,6 +162,23 @@ export default function Register() {
             placeholder="Mínimo 6 caracteres"
             required
             minLength={6}
+            autoComplete="new-password"
+            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
+            Repite la contraseña
+          </label>
+          <input
+            type="password"
+            value={password2}
+            onChange={e => setPassword2(e.target.value)}
+            placeholder="Repite tu contraseña"
+            required
+            minLength={6}
+            autoComplete="new-password"
             className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
           />
         </div>
@@ -229,7 +189,7 @@ export default function Register() {
 
         <button
           type="submit"
-          disabled={loading || !name || !email || password.length < 6}
+          disabled={loading || !email || password.length < 6 || password !== password2}
           className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading ? (

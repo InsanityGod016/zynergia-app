@@ -13,8 +13,6 @@ import Login from '@/pages/Login';
 import Landing from '@/pages/Landing';
 import Register from '@/pages/Register';
 import { hasActiveSubscription } from '@/lib/subscription';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { App as CapApp } from '@capacitor/app';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -126,17 +124,26 @@ function App() {
   }, []);
 
   useEffect(() => {
-    StatusBar.setStyle({ style: Style.Default }).catch(() => {});
-    StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {});
+    if (!isNative) return;
+    // Dynamic imports so web build never tries to resolve native-only modules
+    import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+      StatusBar.setStyle({ style: Style.Default }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {});
+    }).catch(() => {});
 
-    const handlerPromise = CapApp.addListener('backButton', () => {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        CapApp.exitApp();
-      }
-    });
-    return () => { handlerPromise.then(h => h.remove()); };
+    let cleanup = () => {};
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      const handlerPromise = CapApp.addListener('backButton', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          CapApp.exitApp();
+        }
+      });
+      cleanup = () => { handlerPromise.then(h => h.remove()); };
+    }).catch(() => {});
+
+    return () => cleanup();
   }, []);
 
   // Public routes — no auth, no splash, no query client needed
