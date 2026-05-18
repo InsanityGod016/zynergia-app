@@ -100,28 +100,16 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-col gap-3 justify-center lg:justify-start"
             >
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => startCheckout('monthly', setLoading)}
-                  disabled={loading}
-                  className="bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-7 py-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_32px_rgba(0,74,254,0.45)] text-sm disabled:opacity-70"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : null}
-                  Empezar ahora — $17/mes
-                </button>
-                <button
-                  onClick={() => startCheckout('annual', setLoading)}
-                  disabled={loading}
-                  className="border border-white/20 hover:border-white/40 hover:bg-white/5 text-white/80 hover:text-white font-semibold px-7 py-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 text-sm disabled:opacity-70"
-                >
-                  Plan anual — $170/año
-                  <span className="text-[11px] bg-[#004AFE]/30 text-[#7BA7FF] px-2 py-0.5 rounded-full font-bold">
-                    Ahorra 17%
-                  </span>
-                </button>
-              </div>
+              <button
+                onClick={() => startCheckout('monthly', setLoading)}
+                disabled={loading}
+                className="bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-8 py-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_32px_rgba(0,74,254,0.45)] text-base disabled:opacity-70"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : null}
+                Empezar ahora — $17/mes
+              </button>
               <p className="text-white/30 text-xs text-center lg:text-left mt-1">
                 Sin contrato. Cancela cuando quieras.
               </p>

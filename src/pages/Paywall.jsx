@@ -23,16 +23,8 @@ const PLANS = [
     label: 'Mensual',
     price: '$17',
     period: '/mes',
-    description: 'Ideal para empezar',
+    description: 'Acceso completo a todo',
     badge: null,
-  },
-  {
-    id: 'annual',
-    label: 'Anual',
-    price: '$170',
-    period: '/año',
-    description: '≈ $14.17/mes',
-    badge: 'Ahorra 17%',
   },
 ];
 
@@ -193,7 +185,7 @@ export default function Paywall({ onSubscribed }) {
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Suscribirme — ${selectedPlan === 'monthly' ? '$17/mes' : '$170/año'}`
+            'Suscribirme — $17/mes'
           )}
         </button>
 
