@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronLeft, User, Phone, Globe, Bell, LogOut, Camera, HelpCircle, Check, Copy, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CURRENCIES = [
   { value: 'MXN', label: 'MXN — Peso Mexicano' },
@@ -298,22 +299,36 @@ export default function Settings() {
         )}
 
         {/* Guardar */}
-        <button
+        <motion.button
           onClick={handleSave}
-          disabled={saveMutation.isPending}
-          className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-60"
+          disabled={saveMutation.isPending || saved}
+          animate={saved ? { scale: [1, 1.04, 1], backgroundColor: '#16a34a' } : { scale: 1, backgroundColor: '#004AFE' }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="w-full py-4 text-white font-bold text-[16px] rounded-2xl flex items-center justify-center gap-2 disabled:opacity-80"
         >
-          {saved ? (
-            <>
-              <Check className="w-5 h-5" />
-              Guardado
-            </>
-          ) : saveMutation.isPending ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            'Guardar cambios'
-          )}
-        </button>
+          <AnimatePresence mode="wait">
+            {saved ? (
+              <motion.span
+                key="saved"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="flex items-center gap-2"
+              >
+                <Check className="w-5 h-5" strokeWidth={3} />
+                ¡Guardado!
+              </motion.span>
+            ) : saveMutation.isPending ? (
+              <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </motion.span>
+            ) : (
+              <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                Guardar cambios
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
 
         {/* Ayuda */}
         <button
