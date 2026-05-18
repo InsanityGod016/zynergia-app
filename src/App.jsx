@@ -11,6 +11,7 @@ import Onboarding from '@/pages/Onboarding';
 import Paywall from '@/pages/Paywall';
 import Login from '@/pages/Login';
 import Landing from '@/pages/Landing';
+import Register from '@/pages/Register';
 import { hasActiveSubscription } from '@/lib/subscription';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { App as CapApp } from '@capacitor/app';
@@ -20,13 +21,15 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
+const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true;
+
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isAuthenticated, user } = useAuth();
-  const [onboardingDone, setOnboardingDone] = useState(null); // null = checking
+  const [onboardingDone, setOnboardingDone] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -34,7 +37,6 @@ const AuthenticatedApp = () => {
     if (localDone) {
       setOnboardingDone(true);
     } else {
-      // Check Supabase: if profile already exists, skip onboarding (new device / cleared cache)
       import('@/api/db').then(({ db }) => {
         db.Settings.list().then(settings => {
           if (settings?.[0]?.user_name) {
@@ -47,13 +49,14 @@ const AuthenticatedApp = () => {
       });
     }
   }, [user]);
+
   const [subscribed, setSubscribed] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated && onboardingDone) {
       hasActiveSubscription()
         .then(setSubscribed)
-        .catch(() => setSubscribed(true)); // on error let user in rather than hard-block
+        .catch(() => setSubscribed(true));
     }
   }, [isAuthenticated, onboardingDone]);
 
@@ -110,8 +113,11 @@ const AuthenticatedApp = () => {
 
 
 function App() {
-  const [splashDone, setSplashDone] = useState(false);
-  const [introSeen, setIntroSeen] = useState(() => !!localStorage.getItem('zynergia_intro_seen'));
+  // On web (non-native), skip splash screen and intro video entirely
+  const [splashDone, setSplashDone] = useState(() => !isNative);
+  const [introSeen, setIntroSeen] = useState(() =>
+    !isNative || !!localStorage.getItem('zynergia_intro_seen')
+  );
 
   const handleSplashComplete = useCallback(() => setSplashDone(true), []);
   const handleIntroComplete = useCallback(() => {
@@ -133,12 +139,14 @@ function App() {
     return () => { handlerPromise.then(h => h.remove()); };
   }, []);
 
-  // Ruta pública: /landing (no requiere auth ni splash)
-  if (window.location.pathname === '/landing') {
+  // Public routes — no auth, no splash, no query client needed
+  const pathname = window.location.pathname;
+  if (pathname === '/landing' || pathname.startsWith('/register')) {
     return (
       <Router>
         <Routes>
           <Route path="/landing" element={<Landing />} />
+          <Route path="/register" element={<Register />} />
         </Routes>
       </Router>
     );

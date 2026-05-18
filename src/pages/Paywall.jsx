@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Crown, RefreshCw, X } from 'lucide-react';
+import { CheckCircle2, Crown, RefreshCw, Loader2 } from 'lucide-react';
 import { purchasePackage, restorePurchases, getOfferings } from '@/lib/subscription';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true;
 
 const FEATURES = [
   'Contactos y seguimiento ilimitados',
@@ -23,7 +25,6 @@ const PLANS = [
     period: '/mes',
     description: 'Ideal para empezar',
     badge: null,
-    priceMonthly: 17,
   },
   {
     id: 'annual',
@@ -32,9 +33,29 @@ const PLANS = [
     period: '/año',
     description: '≈ $14.17/mes',
     badge: 'Ahorra 17%',
-    priceMonthly: 14.17,
   },
 ];
+
+async function redirectToStripe(plan, setLoading) {
+  setLoading(true);
+  try {
+    const res = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      toast.error(data.error || 'Error al iniciar el pago. Intenta de nuevo.');
+    }
+  } catch {
+    toast.error('Error de conexión. Por favor intenta de nuevo.');
+  } finally {
+    setLoading(false);
+  }
+}
 
 export default function Paywall({ onSubscribed }) {
   const [selectedPlan, setSelectedPlan] = useState('annual');
@@ -45,12 +66,18 @@ export default function Paywall({ onSubscribed }) {
     queryKey: ['offerings'],
     queryFn: getOfferings,
     retry: false,
+    enabled: isNative,
   });
 
   const handleSubscribe = async () => {
+    // Web: redirect to Stripe Checkout
+    if (!isNative) {
+      return redirectToStripe(selectedPlan, setLoading);
+    }
+
+    // Native: use RevenueCat
     setLoading(true);
     try {
-      // If RevenueCat offerings are available, use real packages
       if (offerings?.availablePackages?.length > 0) {
         const pkg = offerings.availablePackages.find(p =>
           selectedPlan === 'monthly'
@@ -64,9 +91,7 @@ export default function Paywall({ onSubscribed }) {
           onSubscribed?.();
         }
       } else {
-        // Web/dev mode — proceed directly
-        toast.success('Modo demo: acceso habilitado');
-        onSubscribed?.();
+        toast.error('No hay planes disponibles en este momento.');
       }
     } catch (err) {
       if (err?.code !== 'PURCHASE_CANCELLED') {
@@ -78,6 +103,10 @@ export default function Paywall({ onSubscribed }) {
   };
 
   const handleRestore = async () => {
+    if (!isNative) {
+      toast.info('La restauración aplica solo para compras de App Store o Google Play.');
+      return;
+    }
     setRestoring(true);
     try {
       const active = await restorePurchases();
@@ -162,24 +191,27 @@ export default function Paywall({ onSubscribed }) {
           className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             `Suscribirme — ${selectedPlan === 'monthly' ? '$17/mes' : '$170/año'}`
           )}
         </button>
 
-        <button
-          onClick={handleRestore}
-          disabled={restoring}
-          className="w-full py-3 flex items-center justify-center gap-2 text-[#64748B] text-[14px]"
-        >
-          <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
-          Restaurar compra
-        </button>
+        {isNative && (
+          <button
+            onClick={handleRestore}
+            disabled={restoring}
+            className="w-full py-3 flex items-center justify-center gap-2 text-[#64748B] text-[14px]"
+          >
+            <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
+            Restaurar compra
+          </button>
+        )}
 
         <p className="text-center text-[11px] text-[#94A3B8] leading-relaxed px-4">
-          El pago se realiza a través de tu cuenta de App Store o Google Play.
-          La suscripción se renueva automáticamente. Puedes cancelar en cualquier momento.
+          {isNative
+            ? 'El pago se realiza a través de tu cuenta de App Store o Google Play. La suscripción se renueva automáticamente.'
+            : 'Pago seguro con Stripe. Sin contrato. Cancela cuando quieras.'}
         </p>
       </div>
     </div>

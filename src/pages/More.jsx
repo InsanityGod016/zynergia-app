@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Settings, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import MainHeader from '@/components/ui/MainHeader';
 
 const menuItems = [
   {
@@ -21,8 +22,8 @@ export default function More() {
   const handleLogout = () => { logout(); };
 
   return (
-    <div className="px-5 pt-12 pb-6">
-      <h1 className="text-[22px] font-bold text-[#0F172A] mb-6">Más</h1>
+    <div className="px-5 pt-8 pb-6">
+      <MainHeader title="Más" />
 
       <div className="space-y-2">
         {menuItems.map(item => (

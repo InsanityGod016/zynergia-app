@@ -173,7 +173,7 @@ export default function Contacts() {
   }, [contacts, search, contactTypeFilter]);
 
   return (
-    <div className="px-5 pt-8 pb-6 bg-white min-h-screen">
+    <div className="px-5 pt-8 pb-6">
       <MainHeader title="Contactos" />
 
       {/* Search */}

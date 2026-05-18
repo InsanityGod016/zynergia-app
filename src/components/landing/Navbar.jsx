@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Loader2 } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Cómo funciona', href: '#como-funciona' },
@@ -7,9 +7,31 @@ const NAV_LINKS = [
   { label: 'Fast Start', href: '#fast-start' },
 ];
 
+async function startCheckout(setLoading) {
+  setLoading(true);
+  try {
+    const res = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: 'monthly' }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || 'Error al iniciar el pago. Intenta de nuevo.');
+    }
+  } catch {
+    alert('Error de conexión. Por favor intenta de nuevo.');
+  } finally {
+    setLoading(false);
+  }
+}
+
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -63,13 +85,23 @@ export default function Navbar() {
         </div>
 
         {/* CTA desktop */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-3">
           <a
-            href="#"
-            className="bg-[#004AFE] hover:bg-[#0039CC] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors"
+            href="/"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? 'text-[#64748B] hover:text-[#004AFE]' : 'text-white/70 hover:text-white'
+            }`}
           >
-            Descargar
+            Iniciar sesión
           </a>
+          <button
+            onClick={() => startCheckout(setLoading)}
+            disabled={loading}
+            className="bg-[#004AFE] hover:bg-[#0039CC] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 disabled:opacity-70"
+          >
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Suscribirme $17/mes
+          </button>
         </div>
 
         {/* Mobile hamburger */}
@@ -95,11 +127,19 @@ export default function Navbar() {
             </button>
           ))}
           <a
-            href="#"
-            className="bg-[#004AFE] text-white text-sm font-semibold px-5 py-3 rounded-full text-center"
+            href="/"
+            className="text-sm font-medium text-[#64748B] hover:text-[#004AFE] transition-colors"
           >
-            Descargar
+            Iniciar sesión
           </a>
+          <button
+            onClick={() => { setMenuOpen(false); startCheckout(setLoading); }}
+            disabled={loading}
+            className="bg-[#004AFE] text-white text-sm font-semibold px-5 py-3 rounded-full text-center flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Suscribirme $17/mes
+          </button>
         </div>
       )}
     </nav>
