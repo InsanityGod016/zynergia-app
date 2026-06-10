@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/db';
-import { scheduleTaskReminders } from '@/lib/notifications';
+import { scheduleTaskReminders } from '@/lib/localNotifications';
 import { AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import MainHeader from '@/components/ui/MainHeader';
@@ -57,11 +57,14 @@ export default function Tasks() {
     queryFn: () => db.Product.list()
   });
 
-  // Schedule push reminders whenever tasks load (only runs on native device)
+  // Recordatorios locales en el dispositivo (solo corre en app nativa)
   useEffect(() => {
-    if (tasks.length > 0) {
-      scheduleTaskReminders(tasks);
-    }
+    if (tasks.length === 0) return;
+    const today = new Date();
+    const y = today.getFullYear(), m = today.getMonth() + 1, d = today.getDate();
+    const todayStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const todayPending = tasks.filter(t => !t.completed && t.due_date === todayStr).length;
+    scheduleTaskReminders({ todayPending });
   }, [tasks]);
 
   const completeMutation = useMutation({

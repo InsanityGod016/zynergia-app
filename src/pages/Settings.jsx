@@ -2,11 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/api/db';
 import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronLeft, User, Phone, Globe, Bell, LogOut, Camera, HelpCircle, Check, Copy, Share2 } from 'lucide-react';
+import { ChevronLeft, User, Phone, Globe, Bell, LogOut, Camera, HelpCircle, Check, Copy, Share2, Trash2, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// URL absoluta: en la app nativa el origin es capacitor://localhost,
+// así que las rutas relativas a /api no funcionan.
+const API_BASE = 'https://zynergia.pro';
 
 const CURRENCIES = [
   { value: 'MXN', label: 'MXN — Peso Mexicano' },
@@ -134,6 +139,30 @@ export default function Settings() {
 
   const handleLogout = () => {
     logout();
+  };
+
+  const [deleteStep, setDeleteStep] = useState(0); // 0=oculto, 1=confirmar, 2=borrando
+  const handleDeleteAccount = async () => {
+    setDeleteStep(2);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sesión expirada');
+
+      const r = await fetch(`${API_BASE}/api/delete-account`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await r.json();
+      if (!r.ok || !data.deleted) throw new Error(data.error || 'No se pudo eliminar');
+
+      localStorage.clear();
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch (err) {
+      toast.error(err.message || 'No se pudo eliminar la cuenta. Intenta de nuevo.');
+      setDeleteStep(0);
+    }
   };
 
   const initials = form.user_name
@@ -356,6 +385,64 @@ export default function Settings() {
             <span className="font-semibold text-red-500 text-[15px]">Cerrar sesión</span>
           </div>
         </button>
+
+        {/* Eliminar cuenta (requisito App Store / Google Play) */}
+        {deleteStep === 0 && (
+          <button
+            onClick={() => setDeleteStep(1)}
+            className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-[#F1F5F9] shadow-sm active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <span className="font-semibold text-red-500 text-[15px]">Eliminar mi cuenta</span>
+            </div>
+          </button>
+        )}
+
+        {deleteStep >= 1 && (
+          <div className="bg-red-50 rounded-2xl border border-red-200 p-5">
+            <p className="text-[15px] font-bold text-red-600 mb-1.5">¿Eliminar tu cuenta definitivamente?</p>
+            <p className="text-[13px] text-red-500/90 leading-relaxed mb-4">
+              Se borrarán todos tus contactos, tareas, ventas, partners y datos de perfil.
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteStep(0)}
+                disabled={deleteStep === 2}
+                className="flex-1 py-3 bg-white rounded-xl text-[14px] font-semibold text-[#0F172A] border border-red-100 active:scale-95 transition-transform disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteStep === 2}
+                className="flex-1 py-3 bg-red-500 rounded-xl text-[14px] font-semibold text-white active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {deleteStep === 2 ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Sí, eliminar'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Legal */}
+        <div className="flex items-center justify-center gap-5 pt-1">
+          <a
+            href="https://zynergia.pro/privacy-policy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[12px] text-[#94A3B8]"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            Política de privacidad
+          </a>
+        </div>
 
         {/* Version */}
         <p className="text-center text-[12px] text-[#CBD5E1] pb-2">Zynergia v1.0.0</p>

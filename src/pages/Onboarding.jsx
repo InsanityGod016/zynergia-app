@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Camera, Globe, Phone, User, ArrowRight, CheckCircle2, Hash, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { initNotifications } from '@/lib/notifications';
+import { scheduleTaskReminders } from '@/lib/localNotifications';
 import { seedDefaultData } from '@/lib/seedData';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -160,7 +160,7 @@ export default function Onboarding({ onComplete, mode = 'profile' }) {
       console.warn('[Onboarding] Settings save failed:', err);
     }
     localStorage.setItem(`zynergia_onboarding_done_${user?.id}`, 'true');
-    initNotifications(null).catch(() => {});
+    scheduleTaskReminders({}).catch(() => {});
     seedDefaultData().catch(() => {}); // Non-blocking: create default templates & products
     setSaving(false);
     onComplete();

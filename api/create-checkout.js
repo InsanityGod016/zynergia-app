@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     const origin = req.headers.origin || process.env.APP_URL || 'https://zynergia.app';
 
-    const session = await stripe.checkout.sessions.create({
+    const baseParams = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/register?session_id={CHECKOUT_SESSION_ID}`,
@@ -28,11 +28,40 @@ export default async function handler(req, res) {
       ...(email && { customer_email: email }),
       locale: 'es',
       metadata: { plan },
-    });
+    };
+
+    // ── Split de pago con el socio (Stripe Connect / destination charge) ──
+    // La suscripción la cobra la empresa (plataforma). De cada $17:
+    //   - application_fee_percent  → lo que retiene la empresa (incluye la comisión de Stripe)
+    //   - el resto va al socio (STRIPE_PARTNER_ACCOUNT_ID), limpio, sin fees
+    // 82.94% retenido => el socio recibe 17.06% de $17 = $2.90 limpios.
+    // IMPORTANTE: si la cuenta del socio aún no completó su onboarding (capability
+    // de transfers inactiva), Stripe rechaza la sesión. Para NO perder ventas,
+    // intentamos con el split y si falla, cobramos normal sin split.
+    const partnerAccount = process.env.STRIPE_PARTNER_ACCOUNT_ID;
+    const partnerFeePercent = Number(process.env.STRIPE_PARTNER_FEE_PERCENT || '82.94');
+
+    let session;
+    if (partnerAccount) {
+      try {
+        session = await stripe.checkout.sessions.create({
+          ...baseParams,
+          subscription_data: {
+            application_fee_percent: partnerFeePercent,
+            transfer_data: { destination: partnerAccount },
+          },
+        });
+      } catch (splitErr) {
+        console.error('[create-checkout] split falló, cobrando sin split:', splitErr.message);
+        session = await stripe.checkout.sessions.create(baseParams);
+      }
+    } else {
+      session = await stripe.checkout.sessions.create(baseParams);
+    }
 
     res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('[create-checkout]', err.message);
-    res.status(500).json({ error: 'Error al crear la sesión de pago' });
+    res.status(500).json({ error: 'Error al crear la sesión de pago', detalle: err.message });
   }
 }

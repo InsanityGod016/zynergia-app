@@ -13,7 +13,7 @@ import { createPartnerTasks, refreshSmartPartnerTasks } from '@/components/tasks
 import FastStartDashboard from '@/components/partners/FastStartDashboard';
 import { DEFAULT_PRODUCTS } from '@/lib/defaultProducts';
 import { runNotificationEngine } from '@/components/notifications/notificationEngine';
-import { schedulePartnerReminders } from '@/lib/notifications';
+import { scheduleTaskReminders } from '@/lib/localNotifications';
 
 function addDays(dateStr, days) {
   const d = new Date(dateStr);
@@ -90,11 +90,16 @@ export default function Partners() {
     }).catch(() => {});
   }, [tasks.length, sales.length, partners.length, products.length]);
 
-  // Schedule native push reminders for Fast Start deadlines
+  // Recordatorio local si hay partners en riesgo (deadline cerca sin completar fase)
   useEffect(() => {
-    if (partners.length > 0) {
-      schedulePartnerReminders(partners);
-    }
+    if (partners.length === 0) return;
+    const now = Date.now();
+    const riskCount = partners.filter(p => {
+      if (p.fast_start_status !== 'activo' || !p.fast_start_deadline) return false;
+      const daysLeft = (new Date(p.fast_start_deadline) - now) / 86400000;
+      return daysLeft >= 0 && daysLeft <= 15;
+    }).length;
+    scheduleTaskReminders({ riskCount });
   }, [partners]);
 
   const createPartnerMutation = useMutation({

@@ -71,7 +71,7 @@ export default function EditProduct() {
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://..."
-            className="h-12 rounded-full border-[#E2E8F0] text-[15px]"
+            className="h-12 rounded-xl border-[#E2E8F0] text-[15px]"
           />
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function EditProduct() {
         <Button
           onClick={handleSave}
           disabled={updateMutation.isPending}
-          className="w-full h-14 bg-[#004AFE] hover:bg-[#0039CC] text-white rounded-full text-[15px] font-medium"
+          className="w-full h-14 bg-[#004AFE] hover:bg-[#0039CC] text-white rounded-xl text-[15px] font-medium"
         >
           {updateMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
         </Button>

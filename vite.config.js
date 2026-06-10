@@ -11,14 +11,9 @@ export default defineConfig({
       'onesignal-capacitor': path.resolve(__dirname, 'src/lib/stubs/onesignal-stub.js'),
     },
   },
-  build: {
-    rollupOptions: {
-      external: [
-        '@revenuecat/purchases-capacitor',
-        'onesignal-capacitor',
-        '@capacitor/status-bar',
-        '@capacitor/app',
-      ]
-    }
-  }
+  // IMPORTANTE: NO marcar plugins de Capacitor como "external".
+  // El WebView nativo no puede resolver bare imports en runtime — externalizarlos
+  // crashea el bundle completo y deja la app en pantalla blanca (causa del
+  // rechazo 2.1a de Apple). Los plugins deben ir DENTRO del bundle; en web son
+  // no-op porque todo uso está protegido con isNative.
 });

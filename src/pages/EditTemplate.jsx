@@ -157,7 +157,7 @@ export default function EditTemplate() {
         <Button
           onClick={handleSave}
           disabled={updateMutation.isPending || !content.trim()}
-          className="w-full bg-[#004AFE] hover:bg-[#0039CC] rounded-full h-12 text-base font-medium"
+          className="w-full bg-[#004AFE] hover:bg-[#0039CC] rounded-xl h-12 text-base font-medium"
         >
           Guardar cambios
         </Button>

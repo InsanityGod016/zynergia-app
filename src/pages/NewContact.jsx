@@ -82,7 +82,7 @@ export default function NewContact() {
             value={formData.full_name}
             onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
             placeholder="Nombre del contacto"
-            className="mt-1.5 h-12 rounded-full"
+            className="mt-1.5 h-12 rounded-xl"
           />
         </div>
 
@@ -92,7 +92,7 @@ export default function NewContact() {
             <select
               value={formData.country_code}
               onChange={(e) => setFormData({ ...formData, country_code: e.target.value })}
-              className="w-24 h-12 px-3 rounded-full border border-[#EAEAEA] text-sm bg-white"
+              className="w-24 h-12 px-3 rounded-xl border border-[#EAEAEA] text-sm bg-white"
             >
               <option value="+52">🇲🇽 +52</option>
               <option value="+1">🇺🇸 +1</option>
@@ -103,7 +103,7 @@ export default function NewContact() {
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="55 1234 5678"
-              className="flex-1 h-12 rounded-full"
+              className="flex-1 h-12 rounded-xl"
             />
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function NewContact() {
             value={formData.contact_type || '__none__'}
             onValueChange={(v) => setFormData({ ...formData, contact_type: v === '__none__' ? '' : v })}
           >
-            <SelectTrigger className="mt-1.5 h-12 rounded-full">
+            <SelectTrigger className="mt-1.5 h-12 rounded-xl">
               <SelectValue placeholder="Sin tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -143,7 +143,7 @@ export default function NewContact() {
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             placeholder="Notas adicionales..."
-            className="mt-1.5 h-24 rounded-3xl"
+            className="mt-1.5 h-24 rounded-xl"
           />
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function NewContact() {
         <button
           onClick={handleSubmit}
           disabled={createMutation.isPending || !formData.full_name || !formData.phone}
-          className="w-full h-12 bg-[#004afe] hover:bg-[#330077] text-white rounded-full text-[15px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full h-12 bg-[#004afe] hover:bg-[#330077] text-white rounded-xl text-[15px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <span>Crear contacto</span>
           <Check className="w-5 h-5 ml-auto" />

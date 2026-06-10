@@ -8,11 +8,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Onboarding from '@/pages/Onboarding';
-import Paywall from '@/pages/Paywall';
 import Login from '@/pages/Login';
 import Landing from '@/pages/Landing';
 import Register from '@/pages/Register';
-import { hasActiveSubscription } from '@/lib/subscription';
+import SetPassword from '@/pages/SetPassword';
+import DownloadApp from '@/pages/DownloadApp';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -48,16 +48,6 @@ const AuthenticatedApp = () => {
     }
   }, [user]);
 
-  const [subscribed, setSubscribed] = useState(null);
-
-  useEffect(() => {
-    if (isAuthenticated && onboardingDone) {
-      hasActiveSubscription()
-        .then(setSubscribed)
-        .catch(() => setSubscribed(true));
-    }
-  }, [isAuthenticated, onboardingDone]);
-
   if (isLoadingAuth || (isAuthenticated && onboardingDone === null)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -72,18 +62,6 @@ const AuthenticatedApp = () => {
 
   if (onboardingDone === false) {
     return <Onboarding mode="profile" onComplete={() => setOnboardingDone(true)} />;
-  }
-
-  if (subscribed === null) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#004AFE] rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!subscribed) {
-    return <Paywall onSubscribed={() => setSubscribed(true)} />;
   }
 
   return (
@@ -148,12 +126,14 @@ function App() {
 
   // Public routes — no auth, no splash, no query client needed
   const pathname = window.location.pathname;
-  if (pathname === '/landing' || pathname.startsWith('/register')) {
+  if (pathname === '/landing' || pathname.startsWith('/register') || pathname === '/set-password' || pathname === '/download') {
     return (
       <Router>
         <Routes>
           <Route path="/landing" element={<Landing />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/download" element={<DownloadApp />} />
         </Routes>
       </Router>
     );

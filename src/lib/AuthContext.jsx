@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { initSubscription } from '@/lib/subscription';
 
 const AuthContext = createContext();
 
@@ -15,10 +14,6 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
       setIsAuthenticated(!!session?.user);
       setIsLoadingAuth(false);
-      // Initialize RevenueCat early on session restore (returning user)
-      if (session?.user?.id) {
-        initSubscription(session.user.id).catch(() => {});
-      }
     });
 
     // Listen for sign-in / sign-out events
@@ -27,8 +22,6 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(!!session?.user);
       setIsLoadingAuth(false);
       if (session?.user?.id) {
-        // Initialize RevenueCat BEFORE hasActiveSubscription is called anywhere
-        initSubscription(session.user.id).catch(() => {});
         // Update last_active
         supabase.from('settings')
           .update({ last_active: new Date().toISOString() })

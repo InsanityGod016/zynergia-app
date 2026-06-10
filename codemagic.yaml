@@ -12,6 +12,8 @@ workflows:
         script: npm install
       - name: Build web assets
         script: npm run build
+      - name: Strip web-only assets (landing animation = 27MB)
+        script: rm -rf dist/animations
       - name: Capacitor sync
         script: npx cap sync ios
       - name: Set up code signing
@@ -57,6 +59,8 @@ workflows:
         script: npm install
       - name: Build web assets
         script: npm run build
+      - name: Strip web-only assets (landing animation = 27MB)
+        script: rm -rf dist/animations
       - name: Capacitor sync
         script: npx cap sync android
       - name: Set up keystore

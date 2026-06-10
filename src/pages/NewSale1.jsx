@@ -54,7 +54,7 @@ export default function NewSale1() {
             placeholder="Buscar contacto"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-11 rounded-full border-[#EAEAEA]"
+            className="pl-10 h-11 rounded-xl border-[#EAEAEA]"
           />
         </div>
       </div>

@@ -3,27 +3,37 @@ import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
 export default function Login() {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login'); // 'login' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return;
     setLoading(true);
 
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (mode === 'reset') {
+        if (!email) { setLoading(false); return; }
+        // URL absoluta: en la app nativa window.location.origin es capacitor://localhost
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: 'https://zynergia.pro/set-password',
+        });
         if (error) throw error;
+        toast.success('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja y spam.');
+        setMode('login');
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        if (!email || !password) { setLoading(false); return; }
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-        toast.success('Cuenta creada. Revisa tu correo para confirmar.');
       }
     } catch (err) {
-      toast.error(err.message || 'Error al iniciar sesión');
+      const msg = err.message?.toLowerCase() || '';
+      if (msg.includes('invalid login')) {
+        toast.error('Correo o contraseña incorrectos. Si la olvidaste, toca "¿Olvidaste tu contraseña?".');
+      } else {
+        toast.error(err.message || 'Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
@@ -38,7 +48,7 @@ export default function Login() {
         </div>
         <h1 className="text-[28px] font-bold text-[#0F172A]">Zynergia</h1>
         <p className="text-[15px] text-[#64748B] mt-1">
-          {mode === 'login' ? 'Inicia sesión para continuar' : 'Crea tu cuenta'}
+          {mode === 'login' ? 'Inicia sesión para continuar' : 'Restablecer contraseña'}
         </p>
       </div>
 
@@ -53,28 +63,32 @@ export default function Login() {
             onChange={e => setEmail(e.target.value)}
             placeholder="tu@correo.com"
             required
+            autoComplete="email"
             className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
           />
         </div>
 
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Contraseña
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            minLength={6}
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
+        {mode === 'login' && (
+          <div>
+            <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              autoComplete="current-password"
+              className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
+            />
+          </div>
+        )}
 
         <button
           type="submit"
-          disabled={loading || !email || !password}
+          disabled={loading || !email || (mode === 'login' && !password)}
           className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center"
         >
           {loading ? (
@@ -82,19 +96,26 @@ export default function Login() {
           ) : mode === 'login' ? (
             'Iniciar sesión'
           ) : (
-            'Crear cuenta'
+            'Enviarme el correo'
           )}
         </button>
       </form>
 
-      <button
-        onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-        className="mt-6 text-[14px] text-[#004AFE] font-medium"
-      >
-        {mode === 'login'
-          ? '¿No tienes cuenta? Crear una'
-          : '¿Ya tienes cuenta? Inicia sesión'}
-      </button>
+      {mode === 'login' ? (
+        <button
+          onClick={() => setMode('reset')}
+          className="mt-5 text-[14px] text-[#004AFE] font-medium"
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
+      ) : (
+        <button
+          onClick={() => setMode('login')}
+          className="mt-5 text-[14px] text-[#64748B] font-medium"
+        >
+          ← Volver a iniciar sesión
+        </button>
+      )}
     </div>
   );
 }
