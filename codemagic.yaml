@@ -65,25 +65,17 @@ workflows:
         script: npx cap sync android
       - name: Set up keystore
         script: |
-          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-new.jks
-      - name: Export upload key certificate (PEM)
-        script: |
           echo "$ANDROID_NEW_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
-          echo "=== CERTIFICADO PEM (para Google Play upload key reset) ==="
-          keytool -export \
-            -keystore /tmp/zynergia-upload.jks \
-            -alias zynergia \
-            -storepass "$ANDROID_NEW_PASSWORD" \
-            -rfc
-          echo "=== FIN CERTIFICADO ==="
+          # Verificar que la contraseña/alias son correctos ANTES de compilar 8 min
+          keytool -list -keystore /tmp/zynergia-upload.jks -storepass "$ANDROID_NEW_PASSWORD" | head -5
       - name: Build Android App Bundle
         script: |
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=/tmp/zynergia-new.jks \
-            -Pandroid.injected.signing.store.password=$ANDROID_KEYSTORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD
+            -Pandroid.injected.signing.store.file=/tmp/zynergia-upload.jks \
+            -Pandroid.injected.signing.store.password=$ANDROID_NEW_PASSWORD \
+            -Pandroid.injected.signing.key.alias=zynergia \
+            -Pandroid.injected.signing.key.password=$ANDROID_NEW_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
