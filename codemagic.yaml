@@ -81,17 +81,16 @@ workflows:
         script: npx cap sync android
       - name: Set up keystore
         script: |
-          echo "$ANDROID_NEW_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
-          # Verificar que la contraseña/alias son correctos ANTES de compilar 8 min
-          keytool -list -keystore /tmp/zynergia-upload.jks -storepass "$ANDROID_NEW_PASSWORD" | head -5
+          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
+          keytool -list -keystore /tmp/zynergia-upload.jks -storepass "$ANDROID_KEY_PASSWORD" | head -5
       - name: Build Android App Bundle
         script: |
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=/tmp/zynergia-upload.jks \
-            -Pandroid.injected.signing.store.password=$ANDROID_NEW_PASSWORD \
+            -Pandroid.injected.signing.store.password=$ANDROID_KEY_PASSWORD \
             -Pandroid.injected.signing.key.alias=zynergia \
-            -Pandroid.injected.signing.key.password=$ANDROID_NEW_PASSWORD
+            -Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
