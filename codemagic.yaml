@@ -45,6 +45,22 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
 
+  android-verify-keystore:
+    name: Verify Original Keystore Password
+    max_build_duration: 5
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - android_credentials
+      java: 21
+    scripts:
+      - name: Verify ANDROID_KEYSTORE + ANDROID_KEY_PASSWORD
+        script: |
+          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/original.jks
+          echo "=== Intentando con ANDROID_KEY_PASSWORD ==="
+          keytool -list -v -keystore /tmp/original.jks -storepass "$ANDROID_KEY_PASSWORD" 2>&1 | grep -E "SHA1|SHA-256|Alias|error|Exception" | head -10
+          echo "=== FIN ==="
+
   android-distribution:
     name: Android Distribution
     max_build_duration: 60
