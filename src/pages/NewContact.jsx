@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import TagAutocomplete from '@/components/contacts/TagAutocomplete';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createProspectoProductoTasks, createProspectoPartnerTasks, createReferralTask } from '@/components/tasks/taskEngine';
+import { COUNTRY_CODES } from '@/lib/countryCodes';
 
 export default function NewContact() {
   const navigate = useNavigate();
@@ -92,12 +93,11 @@ export default function NewContact() {
             <select
               value={formData.country_code}
               onChange={(e) => setFormData({ ...formData, country_code: e.target.value })}
-              className="w-24 h-12 px-3 rounded-xl border border-[#EAEAEA] text-sm bg-white"
+              className="w-28 h-12 px-3 rounded-xl border border-[#EAEAEA] text-base bg-white"
             >
-              <option value="+52">🇲🇽 +52</option>
-              <option value="+1">🇺🇸 +1</option>
-              <option value="+34">🇪🇸 +34</option>
-              <option value="+57">🇨🇴 +57</option>
+              {COUNTRY_CODES.map((c) => (
+                <option key={c.name} value={c.code}>{c.flag} {c.code}</option>
+              ))}
             </select>
             <Input
               value={formData.phone}

@@ -85,4 +85,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Evita el auto-zoom de iOS WKWebView al enfocar inputs (<16px) */
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
 }

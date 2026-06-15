@@ -15,7 +15,7 @@ export default function SplashScreen({ onComplete }) {
         setGone(true);
         onCompleteRef.current?.();
       }, 480);
-    }, 2800);
+    }, 1600);
     return () => clearTimeout(exit);
   }, []); // empty deps — timer runs exactly once regardless of prop changes
 
@@ -38,8 +38,8 @@ export default function SplashScreen({ onComplete }) {
         initial={{ opacity: 0, scale: 0.08, rotate: -360 }}
         animate={{ opacity: 1, scale: 1, rotate: 0 }}
         transition={{
-          delay: 0.2,
-          duration: 1.6,
+          delay: 0.1,
+          duration: 1.0,
           ease: [0.34, 1.56, 0.64, 1],
         }}
         className="w-[150px] h-[150px] object-contain rounded-[30px]"
@@ -48,7 +48,7 @@ export default function SplashScreen({ onComplete }) {
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.4, duration: 0.7, ease: 'easeOut' }}
+        transition={{ delay: 0.85, duration: 0.55, ease: 'easeOut' }}
         style={{
           position: 'absolute',
           bottom: 60,
