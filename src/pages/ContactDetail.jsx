@@ -1,19 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db } from '@/api/db';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, MessageCircle, Pencil, Phone } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import TagAutocomplete from '@/components/contacts/TagAutocomplete';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  createProspectoProductoTasks,
-  createProspectoPartnerTasks,
-  cancelFutureTasksByArea,
-  createReferralTask
-} from '@/components/tasks/taskEngine';
+import { db } from '@/api/db';
+import { whatsappUrl } from '@/lib/phone';
+import { createPageUrl } from '@/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,368 +18,384 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+const typeLabels = {
+  cliente_producto: 'Cliente',
+  partner: 'Socio',
+  prospecto_producto: 'Prospecto de producto',
+  prospecto_partner: 'Prospecto de negocio',
+};
+
+function parseLocalDate(value) {
+  const [year, month, day] = String(value ?? '').split('-').map(Number);
+  if (!year || !month || !day) return new Date(Number.NaN);
+  return new Date(year, month - 1, day);
+}
+
+function localDateTimestamp(value) {
+  const timestamp = parseLocalDate(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+}
+
+function formatLocalDate(value, pattern) {
+  const date = parseLocalDate(value);
+  return Number.isFinite(date.getTime())
+    ? format(date, pattern, { locale: es })
+    : 'Fecha no disponible';
+}
+
+function todayString() {
+  const now = new Date();
+  return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+}
+
+function DetailState(/** @type {{ title: string, description: string, actionLabel?: string, onAction?: () => unknown, onBack: () => void }} */ {
+  title,
+  description,
+  actionLabel,
+  onAction,
+  onBack,
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-5">
+        <BackButton onClick={onBack} />
+      </header>
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-6 text-center" role="status">
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <p className="mt-2 text-[17px] leading-7 text-muted-foreground">{description}</p>
+        {onAction && (
+          <button type="button" onClick={onAction} className="mt-6 min-h-14 rounded-2xl bg-primary px-6 text-[17px] font-semibold text-primary-foreground">
+            {actionLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BackButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-12 items-center gap-2 rounded-2xl pr-3 text-[17px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      aria-label="Volver a contactos"
+    >
+      <span className="flex h-12 w-12 items-center justify-center">
+        <ArrowLeft aria-hidden="true" className="h-6 w-6" />
+      </span>
+      Volver
+    </button>
+  );
+}
+
 export default function ContactDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const params = new URLSearchParams(window.location.search);
-  const contactId = params.get('id');
+  const [searchParams] = useSearchParams();
+  const contactId = searchParams.get('id');
   const [cancelSaleId, setCancelSaleId] = useState(null);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    notes: '',
-    tag_ids: [],
-    contact_type: ''
-  });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const { data: contact } = useQuery({
+  const goBack = () => {
+    if (location.key && location.key !== 'default') navigate(-1);
+    else navigate(createPageUrl('Contacts'), { replace: true });
+  };
+
+  const contactQuery = useQuery({
     queryKey: ['contact', contactId],
     queryFn: () => db.Contact.filter({ id: contactId }),
-    select: (data) => data[0]
+    select: (data) => data[0],
+    enabled: Boolean(contactId),
   });
-
-  const { data: tags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: () => db.Tag.list()
-  });
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => db.Product.list()
-  });
-
-  const { data: sales = [] } = useQuery({
+  const tagsQuery = useQuery({ queryKey: ['tags'], queryFn: () => db.Tag.list() });
+  const productsQuery = useQuery({ queryKey: ['products'], queryFn: () => db.Product.list() });
+  const salesQuery = useQuery({
     queryKey: ['sales', contactId],
-    queryFn: () => db.Sale.filter({ contact_id: contactId })
+    queryFn: () => db.Sale.filter({ contact_id: contactId }),
+    enabled: Boolean(contactId),
+  });
+  const tasksQuery = useQuery({
+    queryKey: ['tasks', contactId],
+    queryFn: () => db.Task.filter({ contact_id: contactId }),
+    enabled: Boolean(contactId),
   });
 
-  useEffect(() => {
-    if (contact) {
-      setFormData({
-        full_name: contact.full_name || '',
-        phone: contact.phone || '',
-        notes: contact.notes || '',
-        tag_ids: contact.tag_ids || [],
-        contact_type: contact.contact_type || ''
-      });
-    }
-  }, [contact]);
-
-  const { data: partners = [] } = useQuery({
-    queryKey: ['partners'],
-    queryFn: () => db.Partner.list()
-  });
-
-  const { data: allTasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => db.Task.list()
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data) => {
-      const prevType = contact?.contact_type;
-      await db.Contact.update(contactId, data);
-
-      const newType = data.contact_type || null;
-      // Handle contact_type change side effects
-      if (newType !== prevType) {
-        // Cancel old prospecto tasks if type changes away
-        if (prevType === 'prospecto_producto') {
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_producto', existingTasks: allTasks });
-        }
-        if (prevType === 'prospecto_partner') {
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_partner', existingTasks: allTasks });
-        }
-
-        // Create new sequences if moving to a prospecto type
-        if (newType === 'prospecto_producto') {
-          const fresh = await db.Task.list();
-          await createProspectoProductoTasks({ contactId, existingTasks: fresh });
-        }
-        if (newType === 'prospecto_partner') {
-          const fresh = await db.Task.list();
-          await createProspectoPartnerTasks({ contactId, existingTasks: fresh });
-        }
-
-        // If changing to partner, auto-create Partner record if not exists
-        if (newType === 'partner') {
-          const alreadyPartner = partners.some(p => p.contact_id === contactId);
-          if (!alreadyPartner) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const deadline = new Date();
-            deadline.setDate(deadline.getDate() + 120);
-            const deadlineStr = deadline.toISOString().split('T')[0];
-            await db.Partner.create({
-              contact_id: contactId,
-              start_date: todayStr,
-              fast_start_deadline: deadlineStr,
-              fast_start_status: 'activo',
-              fase_actual: 1,
-              qteam_completed: false,
-              fs_level1_completed: false,
-              fs_level2_completed: false,
-              xteam_completed: false
-            });
-            const { createPartnerTasks } = await import('@/components/tasks/taskEngine');
-            await createPartnerTasks({ contactId, startDate: todayStr });
-          }
-        }
-
-        // Tarea de referido para clientes y partners (30 días desde registro)
-        if (newType === 'cliente_producto' || newType === 'partner') {
-          const fresh = await db.Task.list();
-          await createReferralTask({
-            contactId,
-            contactCreatedAt: contact?.created_at,
-            existingTasks: fresh
-          });
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['contact', contactId] });
-      queryClient.invalidateQueries({ queryKey: ['partners'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    }
-  });
+  const contact = contactQuery.data;
+  const tags = tagsQuery.data ?? [];
+  const products = productsQuery.data ?? [];
+  const sales = salesQuery.data ?? [];
+  const tasks = tasksQuery.data ?? [];
 
   const cancelMutation = useMutation({
-    mutationFn: (saleId) => db.Sale.update(saleId, { status: 'cancelled' }),
+    mutationFn: async (saleId) => {
+      const sale = sales.find(item => item.id === saleId);
+      if (!sale) throw new Error('Venta no encontrada');
+      await db.Sale.update(saleId, { status: 'cancelled' });
+      const futureRepurchaseTasks = tasks.filter(task => (
+        task.contact_id === contactId
+        && task.product_id === sale.product_id
+        && !task.completed
+        && task.due_date >= todayString()
+        && ['recompra', 'reactivacion'].includes(task.category)
+      ));
+      await Promise.all(futureRepurchaseTasks.map(task => db.Task.delete(task.id)));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales', contactId] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', contactId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setCancelSaleId(null);
-    }
+    },
   });
 
-  const handleSave = () => {
-    const payload = { ...formData };
-    if (!payload.contact_type) delete payload.contact_type;
-    updateMutation.mutate(payload);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: () => db.Contact.anonymize(contactId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['partners'] }),
+        queryClient.invalidateQueries({ queryKey: ['sales'] }),
+      ]);
+      navigate(createPageUrl('Contacts'), { replace: true });
+    },
+  });
 
-  const activeSales = sales.filter(s => s.status === 'active');
-  const allSales = sales.sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date));
+  const selectedTags = useMemo(
+    () => tags.filter((tag) => (contact?.tag_ids ?? []).includes(tag.id)),
+    [contact?.tag_ids, tags],
+  );
+  const sortedSales = useMemo(
+    () => [...sales].sort((a, b) => localDateTimestamp(b.purchase_date) - localDateTimestamp(a.purchase_date)),
+    [sales],
+  );
+  const activeProducts = useMemo(() => {
+    const activeSales = sales.filter((sale) => sale.status === 'active');
+    return [...new Set(activeSales.map((sale) => sale.product_id))].flatMap((productId) => {
+      const product = products.find((item) => item.id === productId);
+      if (!product) return [];
+      const productSales = activeSales
+        .filter((sale) => sale.product_id === productId)
+        .sort((a, b) => localDateTimestamp(b.purchase_date) - localDateTimestamp(a.purchase_date));
+      return [{ product, sales: productSales, latestSale: productSales[0] }];
+    });
+  }, [products, sales]);
 
-  const getProductDetails = (productId) => {
-    const product = products.find(p => p.id === productId);
-    const productSales = sales.filter(s => s.product_id === productId && s.status === 'active');
-    const purchaseCount = productSales.length;
-    const lastSale = productSales.sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date))[0];
-    
-    let nextPurchaseDays = null;
-    if (lastSale && product) {
-      const lastPurchase = new Date(lastSale.purchase_date);
-      const nextPurchase = new Date(lastPurchase);
-      nextPurchase.setDate(nextPurchase.getDate() + product.frequency_days);
-      nextPurchaseDays = Math.max(0, Math.ceil((nextPurchase - new Date()) / (1000 * 60 * 60 * 24)));
-    }
-
-    return {
-      product,
-      purchaseCount,
-      lastPurchaseDate: lastSale?.purchase_date,
-      nextPurchaseDays,
-      latestSaleId: lastSale?.id
-    };
-  };
-
-  const uniqueActiveProductIds = [...new Set(activeSales.map(s => s.product_id))];
-
-  const handleWhatsApp = () => {
-    if (contact?.phone) {
-      window.open(`https://wa.me/${contact.phone.replace(/\D/g, '')}`, '_blank');
-    }
-  };
-
+  if (!contactId) {
+    return <DetailState title="No encontramos este contacto" description="El enlace está incompleto." actionLabel="Volver a contactos" onAction={() => navigate(createPageUrl('Contacts'), { replace: true })} onBack={goBack} />;
+  }
+  if (contactQuery.isPending) {
+    return <DetailState title="Cargando contacto" description="Esto sólo tomará un momento." onBack={goBack} />;
+  }
+  if (contactQuery.isError) {
+    return <DetailState title="No pudimos abrir el contacto" description="Revisa tu conexión. Tus datos siguen seguros." actionLabel="Intentar de nuevo" onAction={() => contactQuery.refetch()} onBack={goBack} />;
+  }
   if (!contact) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-2 border-[#004afe] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <DetailState title="Contacto no disponible" description="Puede que haya sido eliminado o que este enlace ya no funcione." actionLabel="Volver a contactos" onAction={() => navigate(createPageUrl('Contacts'), { replace: true })} onBack={goBack} />;
   }
 
+  const phoneDigits = String(contact.phone ?? '').replace(/\D/g, '');
+  const phoneForCall = String(contact.phone ?? '').trim().startsWith('+') ? `+${phoneDigits}` : phoneDigits;
+  const whatsappLink = whatsappUrl(contact.phone);
+  const hasPhone = Boolean(whatsappLink);
+  const relatedDataError = tagsQuery.isError || productsQuery.isError || salesQuery.isError || tasksQuery.isError;
+
   return (
-    <div className="min-h-screen bg-white pb-24">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center">
-        <button
-          onClick={() => navigate(createPageUrl('Contacts'))}
-          className="w-10 h-10 flex items-center justify-center -ml-2"
-        >
-          <ArrowLeft className="w-6 h-6 text-[#27251f]" />
-        </button>
-      </div>
+    <div className="min-h-screen bg-background pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur sm:px-5">
+        <BackButton onClick={goBack} />
+      </header>
 
-      <div className="px-5 space-y-5">
-        {/* Name - Editable */}
-        <div>
-          <input
-            value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            className="text-2xl font-bold text-[#27251f] w-full border-0 focus:outline-none"
-          />
-        </div>
+      <main className="space-y-6 px-4 py-5 sm:px-5">
+        <section aria-labelledby="contact-name">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 id="contact-name" className="break-words text-3xl font-bold leading-tight text-foreground">
+                {contact.full_name || 'Contacto eliminado'}
+              </h1>
+              <p className="mt-1 text-[17px] text-muted-foreground">
+                {typeLabels[contact.contact_type] || 'Sin tipo asignado'}
+              </p>
+            </div>
+            <Link
+              to={createPageUrl(`EditContact?id=${contactId}`)}
+              className="flex min-h-12 shrink-0 items-center gap-2 rounded-2xl border border-border bg-card px-4 text-[15px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <Pencil aria-hidden="true" className="h-5 w-5" />
+              Editar
+            </Link>
+          </div>
+        </section>
 
-        {/* Phone & WhatsApp */}
-        <div className="flex items-center justify-between pb-5 border-b border-[#EAEAEA]">
-          <input
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className="text-[15px] text-[#6E6E73] border-0 focus:outline-none"
-          />
+        <section className="grid grid-cols-2 gap-3" aria-label="Acciones de contacto">
+          <a
+            href={hasPhone ? `tel:${phoneForCall || phoneDigits}` : undefined}
+            aria-disabled={!hasPhone}
+            onClick={(event) => { if (!hasPhone) event.preventDefault(); }}
+            className={`flex min-h-14 items-center justify-center gap-2 rounded-2xl text-[17px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              hasPhone ? 'bg-primary text-primary-foreground' : 'cursor-not-allowed bg-muted text-muted-foreground'
+            }`}
+          >
+            <Phone aria-hidden="true" className="h-5 w-5" />
+            Llamar
+          </a>
           <button
-            onClick={handleWhatsApp}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366]/10 text-[#25D366] text-sm font-medium hover:bg-[#25D366]/20 transition-colors"
+            type="button"
+            disabled={!hasPhone}
+            onClick={() => window.open(whatsappLink, '_blank', 'noopener,noreferrer')}
+            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-primary bg-card text-[17px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
           >
-            <MessageCircle className="w-4 h-4" />
-            <span>WhatsApp</span>
+            <MessageCircle aria-hidden="true" className="h-5 w-5" />
+            WhatsApp
           </button>
-        </div>
+        </section>
+        {!hasPhone && <p className="-mt-3 text-[15px] text-muted-foreground">Agrega un teléfono para llamar o enviar un mensaje.</p>}
 
-        {/* Contact Type - Editable */}
-        <div>
-          <h2 className="text-sm font-semibold text-[#27251f] mb-2">Tipo de contacto</h2>
-          <Select
-            value={formData.contact_type || '__none__'}
-            onValueChange={(v) => setFormData({ ...formData, contact_type: v === '__none__' ? '' : v })}
-          >
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue placeholder="Sin tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Sin tipo</SelectItem>
-              <SelectItem value="prospecto_producto">Prospecto producto</SelectItem>
-              <SelectItem value="prospecto_partner">Prospecto partner</SelectItem>
-              <SelectItem value="cliente_producto">Cliente producto</SelectItem>
-              <SelectItem value="partner">Partner</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <section className="rounded-3xl border border-border bg-card p-5 shadow-sm" aria-labelledby="contact-info-title">
+          <h2 id="contact-info-title" className="text-xl font-semibold text-foreground">Información</h2>
+          <dl className="mt-4 space-y-4 text-[17px]">
+            <div>
+              <dt className="text-[15px] font-semibold text-muted-foreground">Teléfono</dt>
+              <dd className="mt-1 break-words text-foreground">{contact.phone || 'Sin teléfono'}</dd>
+            </div>
+            <div>
+              <dt className="text-[15px] font-semibold text-muted-foreground">Etiquetas</dt>
+              <dd className="mt-2 flex flex-wrap gap-2">
+                {selectedTags.length ? selectedTags.map((tag) => (
+                  <span key={tag.id} className="rounded-xl bg-primary/10 px-3 py-2 text-[15px] font-medium text-primary">{tag.name}</span>
+                )) : <span className="text-foreground">Sin etiquetas</span>}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[15px] font-semibold text-muted-foreground">Notas</dt>
+              <dd className="mt-1 whitespace-pre-wrap text-foreground">{contact.notes || 'Sin notas'}</dd>
+            </div>
+          </dl>
+        </section>
 
-        {/* Tags - Editable */}
-        <div>
-          <h2 className="text-sm font-semibold text-[#27251f] mb-3">Etiquetas</h2>
-          <TagAutocomplete
-            selectedTagIds={formData.tag_ids}
-            onChange={(tagIds) => setFormData({ ...formData, tag_ids: tagIds })}
-          />
-        </div>
+        {relatedDataError && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4" role="alert">
+            <p className="text-[15px] text-foreground">No pudimos cargar toda la información de este contacto.</p>
+            <button
+              type="button"
+              onClick={() => Promise.all([tagsQuery.refetch(), productsQuery.refetch(), salesQuery.refetch(), tasksQuery.refetch()])}
+              className="mt-2 min-h-12 rounded-xl px-3 text-[15px] font-semibold text-primary"
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        )}
 
-        {/* Products Section */}
-        <div>
-          <h2 className="text-lg font-semibold text-[#27251f] mb-4">Productos</h2>
-          <div className="space-y-3">
-            {uniqueActiveProductIds.map(productId => {
-              const details = getProductDetails(productId);
-              if (!details.product) return null;
-
-              return (
-                <div
-                  key={productId}
-                  className="bg-white rounded-2xl p-4 border border-[#EAEAEA]"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-[#27251f] text-[15px]">
-                      {details.product.name}
-                    </h3>
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-700">
-                      Activo
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-[13px] text-[#6E6E73]">
-                    {details.lastPurchaseDate && (
-                      <p>
-                        Última compra: {format(new Date(details.lastPurchaseDate), "d 'de' MMMM", { locale: es })}
-                      </p>
-                    )}
-                    <p>Compras realizadas: {details.purchaseCount}</p>
-                    <p>Frecuencia: cada {details.product.frequency_days} días</p>
-                    {details.nextPurchaseDays !== null && (
-                      <p>Próxima compra: en {details.nextPurchaseDays} días</p>
-                    )}
-                  </div>
+        {!relatedDataError && (
+          <section aria-labelledby="products-title">
+            <h2 id="products-title" className="text-xl font-semibold text-foreground">Productos activos</h2>
+            <div className="mt-3 space-y-3">
+              {activeProducts.map(({ product, sales: productSales, latestSale }) => (
+                <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                  <h3 className="text-[17px] font-semibold text-foreground">{product.name}</h3>
+                  <p className="mt-1 text-[15px] text-muted-foreground">
+                    {productSales.length} compra{productSales.length === 1 ? '' : 's'} registrada{productSales.length === 1 ? '' : 's'}
+                  </p>
+                  <p className="mt-1 text-[15px] text-muted-foreground">
+                    Última: {formatLocalDate(latestSale.purchase_date, "d 'de' MMMM 'de' yyyy")}
+                  </p>
                   <button
-                    onClick={() => setCancelSaleId(details.latestSaleId)}
-                    className="mt-3 text-sm text-red-500 hover:text-red-600 transition-colors"
+                    type="button"
+                    onClick={() => setCancelSaleId(latestSale.id)}
+                    disabled={tasksQuery.isLoading || tasksQuery.isFetching}
+                    className="mt-3 min-h-12 rounded-xl px-3 text-left text-[15px] font-semibold text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive disabled:opacity-50"
                   >
-                    Cancelar suscripción
+                    {tasksQuery.isLoading || tasksQuery.isFetching ? 'Preparando seguimiento…' : 'Detener seguimiento de recompra'}
                   </button>
-                </div>
-              );
-            })}
+                </article>
+              ))}
+              {!activeProducts.length && <p className="rounded-2xl bg-muted p-4 text-[15px] text-muted-foreground">No hay productos activos.</p>}
+            </div>
+          </section>
+        )}
 
-            {uniqueActiveProductIds.length === 0 && (
-              <p className="text-[#6E6E73] text-sm text-center py-6">
-                No hay productos activos
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Purchase History */}
-        <div>
-          <h2 className="text-lg font-semibold text-[#27251f] mb-4">Historial de compras</h2>
-          <div className="space-y-2">
-            {allSales.map(sale => {
-              const product = products.find(p => p.id === sale.product_id);
-              return (
-                <div
-                  key={sale.id}
-                  className="flex items-center justify-between py-3 border-b border-[#EAEAEA]"
-                >
-                  <div>
-                    <p className="font-medium text-[#27251f] text-[15px]">
-                      {product?.name || 'Producto'}
-                    </p>
-                    <p className="text-[13px] text-[#6E6E73]">
-                      {format(new Date(sale.purchase_date), "d 'de' MMMM, yyyy", { locale: es })}
-                    </p>
+        {!relatedDataError && (
+          <section aria-labelledby="sales-title">
+            <h2 id="sales-title" className="text-xl font-semibold text-foreground">Historial de compras</h2>
+            <div className="mt-3 overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+              {sortedSales.map((sale) => {
+                const product = products.find((item) => item.id === sale.product_id);
+                return (
+                  <div key={sale.id} className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-[17px] font-medium text-foreground">{product?.name || 'Producto'}</p>
+                      <p className="text-[15px] text-muted-foreground">{formatLocalDate(sale.purchase_date, 'd MMM yyyy')}</p>
+                    </div>
+                    {sale.status === 'cancelled' && <span className="text-[15px] font-medium text-destructive">Cancelado</span>}
                   </div>
-                  {sale.status === 'cancelled' && (
-                    <span className="text-xs text-red-500">Cancelado</span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+              {!sortedSales.length && <p className="p-4 text-[15px] text-muted-foreground">No hay compras registradas.</p>}
+            </div>
+          </section>
+        )}
 
-            {allSales.length === 0 && (
-              <p className="text-[#6E6E73] text-sm text-center py-6">
-                No hay compras registradas
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+        <section className="border-t border-border pt-4" aria-labelledby="delete-title">
+          <h2 id="delete-title" className="text-[17px] font-semibold text-foreground">Administrar contacto</h2>
+          <button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            className="mt-2 min-h-12 rounded-xl px-3 text-left text-[17px] font-semibold text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+          >
+            Eliminar contacto
+          </button>
+          {deleteMutation.isError && (
+            <p className="mt-2 text-[15px] text-destructive" role="alert">No pudimos eliminar el contacto. Tus datos no cambiaron. Intenta de nuevo.</p>
+          )}
+        </section>
+      </main>
 
-      {/* Save Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-[#EAEAEA]">
-        <button
-          onClick={handleSave}
-          disabled={updateMutation.isPending}
-          className="w-full h-12 bg-[#004afe] hover:bg-[#0039cc] text-white rounded-xl text-[15px] font-semibold disabled:opacity-50"
-        >
-          Guardar cambios
-        </button>
-      </div>
-
-      {/* Cancel Dialog */}
-      <AlertDialog open={!!cancelSaleId} onOpenChange={() => setCancelSaleId(null)}>
-        <AlertDialogContent>
+      <AlertDialog open={Boolean(cancelSaleId)} onOpenChange={(open) => { if (!open && !cancelMutation.isPending) setCancelSaleId(null); }}>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar suscripción?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción marcará la suscripción como cancelada.
+            <AlertDialogTitle className="text-xl">¿Detener este seguimiento?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] leading-6">El producto seguirá en el historial y cancelaremos sus recordatorios de recompra pendientes.</AlertDialogDescription>
+          </AlertDialogHeader>
+          {cancelMutation.isError && <p className="text-[15px] text-destructive" role="alert">No pudimos guardar el cambio. Intenta de nuevo.</p>}
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="min-h-12 text-[15px]">Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                cancelMutation.mutate(cancelSaleId);
+              }}
+              disabled={cancelMutation.isPending}
+              className="min-h-12 bg-destructive text-[15px] text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelMutation.isPending ? 'Guardando…' : 'Sí, detener'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => { if (!deleteMutation.isPending) setShowDeleteDialog(open); }}>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">¿Eliminar este contacto?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] leading-6">
+              Borraremos su nombre, teléfono, notas y tareas futuras. Las ventas históricas se conservarán sin datos personales como “Contacto eliminado”.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>No, mantener</AlertDialogCancel>
+          {deleteMutation.isError && <p className="text-[15px] text-destructive" role="alert">No pudimos eliminarlo. Tus datos no cambiaron.</p>}
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="min-h-12 text-[15px]">Conservar contacto</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => cancelMutation.mutate(cancelSaleId)}
-              className="bg-red-500 hover:bg-red-600"
+              onClick={(event) => {
+                event.preventDefault();
+                deleteMutation.mutate();
+              }}
+              disabled={deleteMutation.isPending}
+              className="min-h-12 bg-destructive text-[15px] text-destructive-foreground hover:bg-destructive/90"
             >
-              Sí, cancelar
+              {deleteMutation.isPending ? 'Eliminando…' : 'Eliminar contacto'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

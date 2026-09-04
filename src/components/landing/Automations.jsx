@@ -27,9 +27,9 @@ const AUTOMATIONS = [
     resultColor: 'bg-amber-50 text-amber-700',
   },
   {
-    trigger: 'Partner pierde clientes activos',
+    trigger: 'Partner necesita apoyo',
     triggerColor: 'bg-red-100 text-red-700',
-    result: 'Alerta de urgencia: "Recuperar Q-Team" con mensaje de acción inmediata',
+    result: 'Alerta visible con una acción concreta de seguimiento',
     resultColor: 'bg-red-50 text-red-700',
   },
 ];

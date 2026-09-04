@@ -4,8 +4,18 @@ const config: CapacitorConfig = {
   appId: 'com.zynergia.app',
   appName: 'Zynergia',
   webDir: 'dist',
+  android: {
+    allowMixedContent: false,
+    webContentsDebuggingEnabled: false,
+    loggingBehavior: 'none'
+  },
+  ios: {
+    webContentsDebuggingEnabled: false
+  },
   server: {
-    androidScheme: 'https'
+    hostname: 'localhost',
+    androidScheme: 'https',
+    cleartext: false
   },
   plugins: {
     SplashScreen: {

@@ -1,288 +1,267 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Eye, EyeOff, Loader2, TriangleAlert } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import BrandMark from '@/components/ui/BrandMark';
+import { apiFetch } from '@/lib/api';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
-import { motion } from 'framer-motion';
+
+const canonicalUrl = import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zynergia.pro';
 
 export default function Register() {
-  const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
-
-  // verifying → form → creating → welcome | error
-  const [step, setStep] = useState('verifying');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    accepted: false,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [done, setDone] = useState(false);
+  const [signupState, setSignupState] = useState('checking');
+  const [fieldErrors, setFieldErrors] = useState(/** @type {Record<string, string>} */ ({}));
+  const [error, setError] = useState('');
 
-  // ── Al cargar: verificar pago Y crear la cuenta de inmediato (server-side).
-  //    Así la cuenta EXISTE aunque cierren la ventana antes de poner contraseña.
-  useEffect(() => {
-    if (!sessionId || !sessionId.startsWith('cs_')) {
-      setErrorMsg('Enlace inválido. Vuelve a la página principal y completa el pago.');
-      setStep('error');
-      return;
+  const refreshSignupState = useCallback(async () => {
+    setSignupState('checking');
+    try {
+      const availability = await apiFetch('/api/billing/signup-status', { auth: false });
+      setSignupState(availability?.enabled === true ? 'open' : 'closed');
+    } catch {
+      setSignupState('error');
     }
+  }, []);
 
-    fetch('/api/finalize-account', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId }),
-    })
-      .then(async r => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || data.detalle || 'No se pudo confirmar el pago');
-        return data;
-      })
-      .then(data => {
-        setEmail(data.email || '');
-        setStep('form');
-      })
-      .catch(err => {
-        setErrorMsg(err.message || 'No se pudo verificar el pago. Intenta de nuevo.');
-        setStep('error');
-      });
-  }, [sessionId]);
-
-  // ── Aviso si intentan cerrar la ventana antes de terminar ──
   useEffect(() => {
-    const warn = (e) => {
-      if (done) return;
-      if (step === 'form' || step === 'creating') {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [step, done]);
+    refreshSignupState();
+  }, [refreshSignupState]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
+  const update = (field, value) => {
+    setForm(current => ({ ...current, [field]: value }));
+    setFieldErrors(current => ({
+      ...current,
+      [field]: '',
+      ...(field === 'password' ? { confirmPassword: '' } : {}),
+    }));
+    setError('');
+  };
 
-    if (password.length < 6) {
-      setFormError('La contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-    if (password !== password2) {
-      setFormError('Las contraseñas no coinciden.');
+  const handleSubmit = async event => {
+    event.preventDefault();
+    setError('');
+
+    /** @type {Record<string, string>} */
+    const nextErrors = {};
+    if (form.name.trim().length < 2) nextErrors.name = 'Escribe tu nombre completo.';
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) nextErrors.email = 'Escribe un correo válido. Ejemplo: nombre@gmail.com';
+    if (form.password.length < 8) nextErrors.password = 'Usa al menos 8 caracteres.';
+    if (!form.confirmPassword) nextErrors.confirmPassword = 'Vuelve a escribir tu contraseña.';
+    else if (form.password !== form.confirmPassword) nextErrors.confirmPassword = 'Las contraseñas no coinciden. Escríbelas igual.';
+    if (!form.accepted) nextErrors.accepted = 'Marca esta casilla para continuar.';
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length) {
+      const firstField = ['name', 'email', 'password', 'confirmPassword', 'accepted']
+        .find(field => nextErrors[field]);
+      const elementIds = {
+        name: 'register-name',
+        email: 'register-email',
+        password: 'register-password',
+        confirmPassword: 'register-password-confirmation',
+        accepted: 'register-legal',
+      };
+      window.requestAnimationFrame(() => document.getElementById(elementIds[firstField])?.focus());
       return;
     }
 
     setLoading(true);
-    setStep('creating');
+    try {
+      const availability = await apiFetch('/api/billing/signup-status', { auth: false });
+      if (availability?.enabled !== true) {
+        setSignupState('closed');
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError('No pudimos confirmar que las cuentas nuevas estén disponibles. No se creó ninguna cuenta. Intenta de nuevo.');
+      setLoading(false);
+      return;
+    }
 
     try {
-      // 1. Fijar la contraseña que el usuario eligió (server-side, idempotente)
-      const r = await fetch('/api/finalize-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, password }),
+      const email = form.email.trim().toLowerCase();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: form.password,
+        options: {
+          emailRedirectTo: `${canonicalUrl}/cuenta`,
+          data: {
+            full_name: form.name.trim(),
+            legal_accepted_at: new Date().toISOString(),
+          },
+        },
       });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || data.detalle || 'No se pudo guardar la contraseña');
+      if (signUpError) throw signUpError;
 
-      // 2. Iniciar sesión con esa contraseña
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: (data.email || email).trim(),
-        password,
-      });
-      if (signInError) throw signInError;
+      if (data.session) {
+        navigate('/cuenta', { replace: true });
+        return;
+      }
 
-      const userId = signInData?.user?.id;
-      if (userId) localStorage.setItem(`zynergia_onboarding_done_${userId}`, 'true');
-
-      setDone(true);
-      setStep('welcome');
-      // window.location (no navigate): /download vive en el branch público y
-      // el Router de este branch no tiene ruta "/" — navigate dejaría pantalla blanca
-      setTimeout(() => window.location.replace('/download'), 1800);
-    } catch (err) {
-      setStep('form');
-      setFormError(err.message || 'Error al crear la cuenta. Intenta de nuevo.');
+      sessionStorage.setItem('zynergia_verification_email', email);
+      sessionStorage.setItem('zynergia_verification_sent_at', String(Date.now()));
+      navigate('/verificar-correo', { replace: true, state: { email } });
+    } catch (signUpError) {
+      const message = signUpError?.message?.toLowerCase() || '';
+      setError(message.includes('already registered') || message.includes('already exists')
+        ? 'Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña.'
+        : 'No pudimos crear tu cuenta. Tus datos siguen aquí. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Verificando pago + creando cuenta base ──
-  if (step === 'verifying') {
-    return (
-      <div className="fixed inset-0 bg-[#004AFE] flex items-center justify-center">
-        <div className="text-center px-6">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-            className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl"
-          >
-            <span className="text-[#004AFE] text-4xl font-bold">Z</span>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <p className="text-white font-bold text-[28px] mb-2">¡Pago confirmado!</p>
-            <p className="text-blue-100 text-[16px]">Creando tu cuenta… <span className="font-semibold">no cierres esta ventana</span></p>
-            <div className="mt-6 flex justify-center">
-              <Loader2 className="w-6 h-6 text-white/60 animate-spin" />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Guardando contraseña / iniciando sesión ──
-  if (step === 'creating') {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center">
-        <div className="text-center px-6">
-          <div className="w-20 h-20 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-6">
-            <span className="text-white text-3xl font-bold">Z</span>
-          </div>
-          <Loader2 className="w-8 h-8 text-[#004AFE] animate-spin mx-auto mb-4" />
-          <p className="text-[#0F172A] font-bold text-[20px]">Activando tu cuenta…</p>
-          <p className="text-[#64748B] text-[14px] mt-1">Un segundo, <span className="font-semibold text-[#0F172A]">no cierres la ventana</span></p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Bienvenida ──
-  if (step === 'welcome') {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="text-center px-6"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 18 }}
-            className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5"
-          >
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
-          </motion.div>
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="text-[#0F172A] font-bold text-[24px]">
-            ¡Listo, bienvenido!
-          </motion.p>
-          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-            className="text-[#64748B] text-[15px] mt-1">
-            Tu cuenta quedó activa. Entrando…
-          </motion.p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ── Error ──
-  if (step === 'error') {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center px-6">
-        <div className="text-center max-w-sm w-full">
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <AlertCircle className="w-8 h-8 text-red-500" />
-          </div>
-          <h1 className="text-[22px] font-bold text-[#0F172A] mb-2">Algo salió mal</h1>
-          <p className="text-[#64748B] text-[15px] leading-relaxed mb-7">{errorMsg}</p>
-          <a href="/landing" className="block w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl text-center">
-            Volver al inicio
-          </a>
-          <p className="mt-4 text-[13px] text-[#94A3B8]">
-            ¿Ya tienes cuenta?{' '}
-            <a href="/" className="text-[#004AFE] font-medium">Inicia sesión</a>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Formulario para crear contraseña ──
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-[13px] font-semibold px-4 py-1.5 rounded-full mb-5">
-          <CheckCircle2 className="w-4 h-4" />
-          ¡Pago confirmado! Tu cuenta ya está creada
-        </div>
-        <div className="w-16 h-16 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-4">
-          <span className="text-white text-2xl font-bold">Z</span>
-        </div>
-        <h1 className="text-[26px] font-bold text-[#0F172A]">Crea tu contraseña</h1>
-        <p className="text-[15px] text-[#64748B] mt-1">
-          {email ? <>Para tu cuenta <span className="font-semibold text-[#0F172A]">{email}</span></> : 'Elige una contraseña para entrar'}
-        </p>
-      </div>
+    <main className="auth-page">
+      <section className="auth-card" aria-labelledby="register-title">
+        <Link to="/" className="brand-link" aria-label="Volver a Zynergia"><BrandMark className="brand-mark" /></Link>
+        <p className="eyebrow">Paso 1 de 4 · Tu cuenta</p>
+        <h1 id="register-title">Crea tu cuenta</h1>
+        <p className="auth-lead">Escribe tus datos. Después te enviaremos un correo para confirmar que la cuenta es tuya.</p>
 
-      {/* Aviso de no cerrar */}
-      <div className="w-full max-w-sm mb-4 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-        <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-[12.5px] text-amber-800 leading-snug">
-          No cierres esta ventana hasta terminar. Solo elige tu contraseña y entra — toma 5 segundos.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Contraseña
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            required
-            minLength={6}
-            autoFocus
-            autoComplete="new-password"
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Repite la contraseña
-          </label>
-          <input
-            type="password"
-            value={password2}
-            onChange={e => setPassword2(e.target.value)}
-            placeholder="Repite tu contraseña"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
-
-        {formError && (
-          <p className="text-[13px] text-red-500 bg-red-50 px-4 py-3 rounded-xl">{formError}</p>
+        {signupState === 'checking' && (
+          <div className="status-panel" aria-live="polite">
+            <Loader2 className="spinner" aria-hidden="true" />
+            <p>Revisando disponibilidad…</p>
+          </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || password.length < 6 || password !== password2}
-          className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            'Guardar y entrar'
-          )}
-        </button>
-      </form>
+        {signupState === 'closed' && (
+          <p className="billing-warning" role="status">
+            Las cuentas nuevas están pausadas por el momento. Si ya tienes una cuenta, puedes iniciar sesión normalmente.
+          </p>
+        )}
 
-      <p className="mt-6 text-center text-[13px] text-[#94A3B8]">
-        ¿Ya tienes cuenta?{' '}
-        <a href="/" className="text-[#004AFE] font-medium">Inicia sesión aquí</a>
-      </p>
-    </div>
+        {signupState === 'error' && (
+          <div className="state-card state-card--error" role="alert">
+            <TriangleAlert aria-hidden="true" />
+            <div>
+              <strong>No pudimos revisar las cuentas nuevas</strong>
+              <p>No se creó ninguna cuenta. Revisa tu conexión e intenta de nuevo.</p>
+            </div>
+            <button type="button" onClick={refreshSignupState}>Intentar de nuevo</button>
+          </div>
+        )}
+
+        {signupState === 'open' && <form onSubmit={handleSubmit} className="auth-form" noValidate aria-busy={loading}>
+          <label htmlFor="register-name">Nombre completo</label>
+          <input
+            id="register-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            value={form.name}
+            onChange={event => update('name', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? 'register-name-error' : undefined}
+          />
+          {fieldErrors.name && <p id="register-name-error" className="field-error" role="alert">{fieldErrors.name}</p>}
+
+          <label htmlFor="register-email">Correo electrónico</label>
+          <input
+            id="register-email"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="email"
+            value={form.email}
+            onChange={event => update('email', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'register-email-error' : undefined}
+          />
+          {fieldErrors.email && <p id="register-email-error" className="field-error" role="alert">{fieldErrors.email}</p>}
+
+          <label htmlFor="register-password">Crea una contraseña</label>
+          <div className="password-field password-field--labeled">
+            <input
+              id="register-password"
+              name="new-password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              minLength={8}
+              value={form.password}
+              onChange={event => update('password', event.target.value)}
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={`password-help${fieldErrors.password ? ' register-password-error' : ''}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(value => !value)}
+              aria-label={showPassword ? 'Ocultar la primera contraseña' : 'Ver la primera contraseña'}
+            >
+              {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              <span>{showPassword ? 'Ocultar' : 'Ver'}</span>
+            </button>
+          </div>
+          <p id="password-help" className="field-help">Usa al menos 8 caracteres.</p>
+          {fieldErrors.password && <p id="register-password-error" className="field-error" role="alert">{fieldErrors.password}</p>}
+
+          <label htmlFor="register-password-confirmation">Repite la contraseña</label>
+          <div className="password-field password-field--labeled">
+            <input
+              id="register-password-confirmation"
+              name="confirm-password"
+              type={showConfirmation ? 'text' : 'password'}
+              autoComplete="new-password"
+              minLength={8}
+              value={form.confirmPassword}
+              onChange={event => update('confirmPassword', event.target.value)}
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={Boolean(fieldErrors.confirmPassword)}
+              aria-describedby={fieldErrors.confirmPassword ? 'register-password-confirmation-error' : undefined}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmation(value => !value)}
+              aria-label={showConfirmation ? 'Ocultar la contraseña repetida' : 'Ver la contraseña repetida'}
+            >
+              {showConfirmation ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              <span>{showConfirmation ? 'Ocultar' : 'Ver'}</span>
+            </button>
+          </div>
+          {form.confirmPassword && form.password === form.confirmPassword && !fieldErrors.confirmPassword && (
+            <p className="field-match" role="status">Las contraseñas coinciden.</p>
+          )}
+          {fieldErrors.confirmPassword && <p id="register-password-confirmation-error" className="field-error" role="alert">{fieldErrors.confirmPassword}</p>}
+
+          <label className="legal-check">
+            <input
+              id="register-legal"
+              type="checkbox"
+              checked={form.accepted}
+              onChange={event => update('accepted', event.target.checked)}
+              aria-invalid={Boolean(fieldErrors.accepted)}
+              aria-describedby={fieldErrors.accepted ? 'register-legal-error' : undefined}
+            />
+            <span>Acepto los <Link to="/terminos">Términos</Link> y el <Link to="/privacidad">Aviso de privacidad</Link>.</span>
+          </label>
+          {fieldErrors.accepted && <p id="register-legal-error" className="field-error" role="alert">{fieldErrors.accepted}</p>}
+
+          {error && <p className="form-error" role="alert">{error}</p>}
+
+          <button className="primary-action" type="submit" disabled={loading}>
+            {loading && <Loader2 className="spinner" aria-hidden="true" />}
+            {loading ? 'Creando cuenta…' : 'Crear cuenta'}
+          </button>
+        </form>}
+
+        <p className="auth-switch">¿Ya tienes cuenta? <Link to="/iniciar-sesion">Iniciar sesión</Link></p>
+      </section>
+    </main>
   );
 }

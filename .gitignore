@@ -1,6 +1,8 @@
 #env
 .env
 .env.*
+!.env.example
+.vercel
 
 # Logs
 logs
@@ -15,6 +17,12 @@ node_modules
 dist
 dist-ssr
 *.local
+test-results/
+playwright-report/
+*.aab
+*.apk
+*.jks
+*.keystore
 
 # Editor directories and files
 .vscode/*
@@ -26,6 +34,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-.env
-.vercel

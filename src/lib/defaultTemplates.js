@@ -819,4 +819,33 @@ export const DEFAULT_TEMPLATES = [
     category: 'seguimiento', subcategory: 'referido', tone: 'directo',
     content: `{{contact.full_name}}, ¿conoces a alguien que quiera mejorar su salud? Si me das un nombre, yo lo contacto.`,
   },
+
+  // Mensaje manual, visible sólo cuando la persona elige “Otro recordatorio”.
+  {
+    name: 'Recordatorio manual — General',
+    category: 'seguimiento', subcategory: 'manual', tone: 'general', situation: 'manual',
+    content: `Hola {{contact.full_name}}, te escribo para dar seguimiento. ¿Cómo estás?`,
+  },
+  {
+    name: 'Recordatorio manual — Amigable',
+    category: 'seguimiento', subcategory: 'manual', tone: 'amigable', situation: 'manual',
+    content: `¡Hola {{contact.full_name}}! 😊 Paso a saludarte y dar seguimiento. ¿Cómo vas?`,
+  },
+  {
+    name: 'Recordatorio manual — Directo',
+    category: 'seguimiento', subcategory: 'manual', tone: 'directo', situation: 'manual',
+    content: `Hola {{contact.full_name}}, quiero retomar nuestro seguimiento. ¿Podemos hablar hoy?`,
+  },
+
+  // Acciones reales que sustituyen los checkpoints inventados de partners.
+  ...['general', 'amigable', 'directo'].map(tone => ({
+    name: `Invitar a Zynergia — ${tone}`,
+    category: 'seguimiento', subcategory: 'partner_invitar_zynergia', tone,
+    content: '',
+  })),
+  ...['general', 'amigable', 'directo'].map(tone => ({
+    name: `Fast Start Nivel 2 — ${tone}`,
+    category: 'seguimiento', subcategory: 'partner_smart_fs2', tone,
+    content: '',
+  })),
 ];

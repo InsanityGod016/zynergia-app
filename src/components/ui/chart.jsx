@@ -10,7 +10,41 @@ const THEMES = {
   dark: ".dark"
 }
 
-const ChartContext = React.createContext(null)
+/**
+ * @typedef {{
+ *   label?: React.ReactNode,
+ *   icon?: React.ComponentType,
+ *   color?: string,
+ *   theme?: Partial<Record<keyof typeof THEMES, string>>
+ * }} ChartConfigItem
+ * @typedef {Record<string, ChartConfigItem>} ChartConfig
+ * @typedef {React.ComponentProps<"div"> & {
+ *   config: ChartConfig,
+ *   children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"]
+ * }} ChartContainerProps
+ * @typedef {import("recharts").TooltipProps<number | string | Array<number | string>, number | string> & {
+ *   className?: string,
+ *   indicator?: "line" | "dot" | "dashed",
+ *   hideLabel?: boolean,
+ *   hideIndicator?: boolean,
+ *   color?: string,
+ *   nameKey?: string,
+ *   labelKey?: string
+ * }} ChartTooltipContentProps
+ * @typedef {import("recharts").LegendProps & {
+ *   className?: string,
+ *   hideIcon?: boolean,
+ *   nameKey?: string
+ * }} ChartLegendContentProps
+ * @typedef {React.CSSProperties & {
+ *   "--color-bg"?: string,
+ *   "--color-border"?: string
+ * }} IndicatorStyle
+ */
+
+const ChartContext = React.createContext(
+  /** @type {{ config: ChartConfig } | null} */ (null)
+)
 
 function useChart() {
   const context = React.useContext(ChartContext)
@@ -22,7 +56,12 @@ function useChart() {
   return context
 }
 
-const ChartContainer = React.forwardRef(({ id, className, children, config, ...props }, ref) => {
+const ChartContainer = React.forwardRef(
+  /**
+   * @param {ChartContainerProps} props
+   * @param {React.ForwardedRef<HTMLDivElement>} ref
+   */
+  ({ id, className, children, config, ...props }, ref) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
 
@@ -46,6 +85,7 @@ const ChartContainer = React.forwardRef(({ id, className, children, config, ...p
 })
 ChartContainer.displayName = "Chart"
 
+/** @param {{ id: string, config: ChartConfig }} props */
 const ChartStyle = ({
   id,
   config
@@ -80,6 +120,7 @@ return color ? `  --color-${key}: ${color};` : null
 const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef((
+  /** @type {ChartTooltipContentProps} */
   {
     active,
     payload,
@@ -179,10 +220,10 @@ const ChartTooltipContent = React.forwardRef((
                           "my-0.5": nestLabel && indicator === "dashed",
                         })}
                         style={
-                          {
+                          /** @type {IndicatorStyle} */ ({
                             "--color-bg": indicatorColor,
                             "--color-border": indicatorColor
-                          }
+                          })
                         } />
                     )
                   )}
@@ -217,6 +258,7 @@ ChartTooltipContent.displayName = "ChartTooltip"
 const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = React.forwardRef((
+  /** @type {ChartLegendContentProps} */
   { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
   ref
 ) => {
@@ -263,6 +305,12 @@ const ChartLegendContent = React.forwardRef((
 ChartLegendContent.displayName = "ChartLegend"
 
 // Helper to extract item config from a payload.
+/**
+ * @param {ChartConfig} config
+ * @param {unknown} payload
+ * @param {string} key
+ * @returns {ChartConfigItem | undefined}
+ */
 function getPayloadConfigFromPayload(
   config,
   payload,
@@ -272,20 +320,21 @@ function getPayloadConfigFromPayload(
     return undefined
   }
 
+  const source = /** @type {Record<string, unknown>} */ (payload)
   const payloadPayload =
-    "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
-      ? payload.payload
+    "payload" in source &&
+    typeof source.payload === "object" &&
+    source.payload !== null
+      ? /** @type {Record<string, unknown>} */ (source.payload)
       : undefined
 
   let configLabelKey = key
 
   if (
-    key in payload &&
-    typeof payload[key] === "string"
+    key in source &&
+    typeof source[key] === "string"
   ) {
-    configLabelKey = payload[key]
+    configLabelKey = source[key]
   } else if (
     payloadPayload &&
     key in payloadPayload &&

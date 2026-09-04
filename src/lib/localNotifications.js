@@ -1,24 +1,24 @@
-/**
- * localNotifications.js — recordatorios en el dispositivo (sin servidor).
- *
- * Usa @capacitor/local-notifications. Cada vez que el usuario abre la app:
- *  1. Pide permiso (solo la primera vez, iOS/Android muestran su diálogo).
- *  2. Reprograma los recordatorios de los próximos 7 días a las 9:00 am:
- *     - Hoy (si aún no son las 9): "Tienes X tareas hoy".
- *     - Días siguientes: recordatorio genérico de abrir la app.
- *  3. Si hay partners en riesgo, agenda una alerta para mañana 10:00 am.
- *
- * Como se reprograman en cada apertura, los textos se mantienen frescos.
- * Push real (servidor) puede agregarse después sin tocar esto.
- */
+import { Capacitor } from '@capacitor/core';
+import { taskDetail, taskReasonLabel } from '@/lib/taskPresentation';
 
-const REMINDER_IDS = [9001, 9002, 9003, 9004, 9005, 9006, 9007];
-const PARTNER_RISK_ID = 9100;
+const TASK_ID_BASE = 100_000;
+const TASK_ID_RANGE = 800_000_000;
+const SUMMARY_IDS = [900_000_001, 900_000_002];
+const LEGACY_IDS = [9001, 9002, 9003, 9004, 9005, 9006, 9007, 9100];
+let notificationQueue = Promise.resolve();
+let identityGeneration = 0;
+let currentUserId = null;
+let identityInitialized = false;
+
+function serializeNotificationChange(operation) {
+  const result = notificationQueue.then(operation, operation);
+  notificationQueue = result.catch(() => {});
+  return result;
+}
 
 function isNative() {
   try {
-    return typeof window !== 'undefined' &&
-      window.Capacitor?.isNativePlatform?.() === true;
+    return Capacitor.isNativePlatform();
   } catch {
     return false;
   }
@@ -34,77 +34,177 @@ async function getPlugin() {
   }
 }
 
-function at(daysFromNow, hour, minute = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hour, minute, 0, 0);
-  return d;
+export function taskNotificationId(taskId, userId = '') {
+  const value = `${userId}:${String(taskId || 'missing')}`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return TASK_ID_BASE + ((hash >>> 0) % TASK_ID_RANGE);
 }
 
-// Distintas pantallas aportan distintos datos (Tasks → tareas, Partners → riesgo).
-// Se mezclan aquí para que una llamada no borre lo que aportó la otra.
-let lastValues = { todayPending: 0, riskCount: 0 };
+function localDateAt(value, time = '09:00') {
+  const [year, month, day] = String(value || '').split('-').map(Number);
+  const [hour, minute] = String(time || '09:00').split(':').map(Number);
+  if (!year || !month || !day) return null;
+  const date = new Date(year, month - 1, day, Number.isFinite(hour) ? hour : 9, Number.isFinite(minute) ? minute : 0, 0, 0);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
 
-/**
- * Reprograma todos los recordatorios. Llamar al abrir la app con datos frescos.
- * @param {number} [todayPending]  tareas pendientes de hoy
- * @param {number} [riskCount]     partners en riesgo
- */
-export async function scheduleTaskReminders(values = {}) {
-  lastValues = { ...lastValues, ...values };
-  const { todayPending, riskCount } = lastValues;
+export function buildTaskNotifications(tasks, contacts, products, now = new Date(), userId = '') {
+  const contactById = new Map(contacts.map(contact => [contact.id, contact]));
+  const productById = new Map(products.map(product => [product.id, product]));
+  const horizon = new Date(now);
+  horizon.setDate(horizon.getDate() + 60);
+
+  return tasks
+    .filter(task => !task.completed)
+    .map(task => ({ task, at: localDateAt(task.due_date, task.due_time) }))
+    .filter(({ at }) => at && at > now && at <= horizon)
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, 60)
+    .map(({ task, at }) => {
+      const contact = contactById.get(task.contact_id);
+      const product = productById.get(task.product_id);
+      const detail = taskDetail(task, product);
+      return {
+        id: taskNotificationId(task.id, userId),
+        title: contact?.full_name || 'Tarea de Zynergia',
+        body: `${taskReasonLabel(task)}${detail ? ` · ${detail}` : ''}`,
+        schedule: { at, allowWhileIdle: true },
+        smallIcon: 'ic_launcher',
+        extra: {
+          source: 'zynergia',
+          userId,
+          entityType: 'task',
+          entityId: String(task.id),
+          contactId: task.contact_id ? String(task.contact_id) : '',
+        },
+      };
+    });
+}
+
+async function hasPermission(LocalNotifications) {
+  const permission = await LocalNotifications.checkPermissions();
+  return permission.display === 'granted';
+}
+
+export async function requestNotificationPermission() {
   const LocalNotifications = await getPlugin();
-  if (!LocalNotifications) return;
+  if (!LocalNotifications) return { display: 'unavailable' };
+  const current = await LocalNotifications.checkPermissions();
+  if (current.display === 'granted' || current.display === 'denied') return current;
+  return LocalNotifications.requestPermissions();
+}
 
-  try {
-    const perm = await LocalNotifications.requestPermissions();
-    if (perm.display !== 'granted') return;
+export async function notificationPermissionStatus() {
+  const LocalNotifications = await getPlugin();
+  if (!LocalNotifications) return { display: 'unavailable' };
+  return LocalNotifications.checkPermissions();
+}
 
-    // Limpiar agenda anterior para no duplicar
-    const pending = await LocalNotifications.getPending();
-    if (pending?.notifications?.length) {
-      await LocalNotifications.cancel({
-        notifications: pending.notifications.map(n => ({ id: n.id })),
-      });
+async function cancelOwned(LocalNotifications, predicate) {
+  const pending = await LocalNotifications.getPending();
+  const notifications = (pending?.notifications || [])
+    .filter(predicate)
+    .map(notification => ({ id: notification.id }));
+  if (notifications.length) await LocalNotifications.cancel({ notifications });
+}
+
+export async function cancelZynergiaNotifications() {
+  identityGeneration += 1;
+  return serializeNotificationChange(async () => {
+    const LocalNotifications = await getPlugin();
+    if (!LocalNotifications) return;
+    await cancelOwned(LocalNotifications, notification => (
+      notification.extra?.source === 'zynergia' || SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
+    ));
+  });
+}
+
+export function switchNotificationIdentity(userId) {
+  const nextUserId = userId ? String(userId) : null;
+  if (identityInitialized && currentUserId === nextUserId) return Promise.resolve();
+  identityInitialized = true;
+  currentUserId = nextUserId;
+  identityGeneration += 1;
+  return serializeNotificationChange(async () => {
+    const LocalNotifications = await getPlugin();
+    if (!LocalNotifications) return;
+    await cancelOwned(LocalNotifications, notification => (
+      notification.extra?.source === 'zynergia' || SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
+    ));
+  });
+}
+
+/** @param {{tasks?: any[], contacts?: any[], products?: any[], enabled?: boolean, userId?: string | null}} options */
+export function reconcileTaskNotifications({ tasks = [], contacts = [], products = [], enabled = true, userId } = {}) {
+  const normalizedUserId = userId ? String(userId) : null;
+  const generation = identityGeneration;
+  return serializeNotificationChange(async () => {
+    if (!normalizedUserId || normalizedUserId !== currentUserId || generation !== identityGeneration) {
+      return { scheduled: 0, status: 'stale-identity' };
+    }
+    const LocalNotifications = await getPlugin();
+    if (!LocalNotifications) return { scheduled: 0, status: 'unavailable' };
+    if (!(await hasPermission(LocalNotifications))) return { scheduled: 0, status: 'permission-required' };
+    if (normalizedUserId !== currentUserId || generation !== identityGeneration) {
+      return { scheduled: 0, status: 'stale-identity' };
     }
 
-    const toSchedule = [];
-    const now = new Date();
-
-    for (let day = 0; day < 7; day++) {
-      const when = at(day, 9, 0);
-      if (when <= now) continue; // hoy ya pasaron las 9 → empezar mañana
-
-      const isToday = day === 0;
-      toSchedule.push({
-        id: REMINDER_IDS[day],
-        title: isToday && todayPending > 0
-          ? `Tienes ${todayPending} tarea${todayPending === 1 ? '' : 's'} hoy 📋`
-          : 'Tus seguimientos de hoy te esperan 📋',
-        body: isToday && todayPending > 0
-          ? 'No dejes enfriar a tus contactos. Entra y da seguimiento.'
-          : 'Abre Zynergia para ver a quién darle seguimiento hoy.',
-        schedule: { at: when, allowWhileIdle: true },
-        sound: undefined,
-        smallIcon: 'ic_launcher',
-      });
+    await cancelOwned(LocalNotifications, notification => (
+      (notification.extra?.source === 'zynergia' && notification.extra?.entityType === 'task') || LEGACY_IDS.includes(notification.id)
+    ));
+    if (normalizedUserId !== currentUserId || generation !== identityGeneration) {
+      return { scheduled: 0, status: 'stale-identity' };
     }
+    if (!enabled) return { scheduled: 0, status: 'disabled' };
 
-    if (riskCount > 0) {
-      toSchedule.push({
-        id: PARTNER_RISK_ID,
-        title: `⚠️ ${riskCount} partner${riskCount === 1 ? '' : 's'} en riesgo`,
-        body: 'Actúa hoy para que no pierdan su nivel del Fast Start.',
-        schedule: { at: at(1, 10, 0), allowWhileIdle: true },
-        sound: undefined,
-        smallIcon: 'ic_launcher',
-      });
-    }
+    const notifications = buildTaskNotifications(tasks, contacts, products, new Date(), normalizedUserId);
+    if (notifications.length) await LocalNotifications.schedule({ notifications });
+    return { scheduled: notifications.length, status: 'scheduled' };
+  });
+}
 
-    if (toSchedule.length) {
-      await LocalNotifications.schedule({ notifications: toSchedule });
+// Compatibilidad temporal con la alerta de riesgo de Equipo. No solicita permiso
+// ni cancela notificaciones que pertenezcan a otras aplicaciones/plugins.
+/** @param {{riskCount?: number, userId?: string | null}} options */
+export function scheduleTaskReminders({ riskCount = 0, userId } = {}) {
+  const normalizedUserId = userId ? String(userId) : null;
+  const generation = identityGeneration;
+  return serializeNotificationChange(async () => {
+    if (!normalizedUserId || normalizedUserId !== currentUserId || generation !== identityGeneration) return;
+    const LocalNotifications = await getPlugin();
+    if (!LocalNotifications || !(await hasPermission(LocalNotifications))) return;
+    if (normalizedUserId !== currentUserId || generation !== identityGeneration) return;
+    await cancelOwned(LocalNotifications, notification => SUMMARY_IDS.includes(notification.id));
+    if (!riskCount || normalizedUserId !== currentUserId || generation !== identityGeneration) return;
+    const at = new Date();
+    at.setDate(at.getDate() + 1);
+    at.setHours(10, 0, 0, 0);
+    await LocalNotifications.schedule({ notifications: [{
+      id: SUMMARY_IDS[1],
+      title: `${riskCount} partner${riskCount === 1 ? '' : 's'} necesita${riskCount === 1 ? '' : 'n'} seguimiento`,
+      body: 'Abre Equipo para revisar la siguiente acción.',
+      schedule: { at, allowWhileIdle: true },
+      smallIcon: 'ic_launcher',
+      extra: { source: 'zynergia', userId: normalizedUserId, entityType: 'partner-dashboard' },
+    }] });
+  });
+}
+
+export async function initializeLocalNotificationNavigation(navigate) {
+  const LocalNotifications = await getPlugin();
+  if (!LocalNotifications) return () => {};
+  const handle = await LocalNotifications.addListener('localNotificationActionPerformed', event => {
+    const extra = event.notification?.extra || {};
+    if (extra.source !== 'zynergia') return;
+    if (extra.entityType === 'task' && extra.entityId) {
+      navigate(`/Tasks?taskId=${encodeURIComponent(extra.entityId)}`);
+      return;
     }
-  } catch (err) {
-    console.error('[localNotifications]', err);
-  }
+    navigate('/Partners');
+  });
+  return () => handle.remove();
 }

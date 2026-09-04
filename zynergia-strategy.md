@@ -1,144 +1,48 @@
-# Zynergia — Contexto Estratégico
+# Zynergia — contexto estratégico 1.1
 
-> Este archivo es la fuente de verdad del producto, modelo de negocio y estrategia de marketing.
-> Actualizar aquí cada vez que cambie la dirección del producto.
+Este documento resume las decisiones vigentes del producto. La implementación operativa y los bloqueos de publicación están detallados en `README.md` y `SUBMISSION-GUIDE.md`.
 
----
+## Producto y audiencia
 
-## El Producto
+Zynergia es una app móvil de CoreFlowAI LLC para organizar contactos, ventas, tareas y equipos de personas que trabajan en redes de mercadeo. Su audiencia prioritaria es hispanohablante en Latinoamérica e incluye personas de 55 años o más con poca confianza digital.
 
-**Zynergia** es una app móvil para distribuidores de redes de mercadeo (network marketing / MLM).
+La experiencia debe ser simple por defecto:
 
-### El problema que resuelve
+- una acción principal por pantalla;
+- lenguaje literal y botones con texto;
+- navegación en cuatro destinos: Hoy, Contactos, Ventas y Equipo;
+- objetivos táctiles grandes, atrás visible y errores recuperables;
+- movimiento breve y semántico inspirado en Left, sin copiar sus assets o código.
 
-Los distribuidores de red tienen muchos prospectos, clientes y partners — pero no saben:
-- A quién escribir hoy
-- Cuándo dar seguimiento
-- Cuándo pedir referidos
-- Cuándo hacer seguimiento de recompra
+## Modelo comercial
 
-El resultado: prospectos perdidos, ventas no repetidas, partners que se desmotivan.
+- Las altas nuevas cuestan 17 USD finales al mes.
+- La cuenta y la verificación de correo ocurren antes del pago.
+- Stripe procesa la compra y administración desde `zynergia.pro`.
+- Las apps iOS y Android son de consumo: no contienen checkout, upgrade ni enlaces hacia Stripe.
+- Los precios o planes legacy se conservan y concilian; no se migran automáticamente.
+- El split 80/20 está fuera de 1.1 y sólo se activará después de estabilizar identidad y facturación.
 
-### La solución
+## Web y adquisición
 
-Zynergia convierte la actividad del distribuidor en **tareas automáticas de seguimiento por WhatsApp**.
+La landing explica el valor y lleva a `/crear-cuenta`. La web también contiene inicio de sesión, verificación, cuenta, facturación, soporte, legal, descarga y eliminación. El CRM permanece exclusivamente en las apps móviles.
 
-La app:
-- Organiza contactos por tipo: prospecto, cliente, partner
-- Genera tareas automáticas según el tipo y estado del contacto
-- Crea mensajes de seguimiento listos para enviar (3 tonos: directo, amigable, urgente)
-- Recuerda cuándo hacer seguimiento de recompra
-- Rastrea el avance en el programa **Fast Start** (Q-Team → N1 → N2 → X-Team)
-- Alerta si un partner está en riesgo de perder su nivel
+El flujo canónico es:
 
----
-
-## Modelo de Negocio
-
-### Monetización
-- Suscripción mensual: $17/mes
-- Suscripción anual: $170/año (ahorra 17%)
-- Un solo plan. Todo incluido.
-
-### Canal de distribución principal
-El crecimiento vendrá de **líderes de redes de mercadeo**.
-
-- Un líder puede tener ~3,000 distribuidores en su red
-- El líder recomienda Zynergia a su red como herramienta de trabajo
-- Efecto multiplicador: 1 líder = potencialmente miles de usuarios
-
----
-
-## Funnel de Adquisición
-
-```
-Recomendación del líder
-       ↓
-Video explicativo (compartido por WhatsApp, grupos, presentaciones)
-       ↓
-Landing page (/landing)
-       ↓
-Descarga de la app (App Store / Google Play)
+```text
+Recomendación → landing → cuenta verificada → Stripe → app iOS/Android → mismo correo y contraseña
 ```
 
-### Punto clave del funnel
+El QR público sólo abre `https://zynergia.pro/app`; nunca transporta sesión, contraseña o token.
 
-**El video NO está en la landing.** Se comparte directamente por WhatsApp antes de que el usuario llegue a la página.
+## Fast Start y marcas
 
-Esto significa que cuando alguien visita la landing:
-- **Ya sabe** qué hace la app
-- **Ya vio** cómo funciona
-- Solo necesita **un último empuje** para descargar
+Los motores existentes se conservan para no alterar datos históricos. La interfaz no muestra importes, promesas de ingreso ni requisitos comerciales no verificados.
 
-Por eso la landing está optimizada para **descarga**, no para educación.
+Zynergia usa identidad propia y se presenta como herramienta independiente. No debe usar logos, fotografías, hotlinks, trade dress ni claims de Zinzino u otras marcas sin autorización y fuente vigentes. Cualquier término o regla Fast Start visible se valida antes de publicar.
 
----
+## Release 1.1
 
-## Estrategia de la Landing Page
+Android actualizará la ficha existente `com.zynergia.app`; iOS y Android salen desde el mismo release candidate. Antes de producción deben pasar seguridad, conciliación Stripe/Supabase, RLS adversarial, legal/Data Safety, pruebas con usuarios 55+ y los gates descritos en `SUBMISSION-GUIDE.md`.
 
-### Objetivo único: descarga de la app
-
-La landing NO es una landing SaaS de adquisición fría. Es el último paso de un funnel educado.
-
-### Estructura de 5 secciones
-
-| # | Sección | Objetivo |
-|---|---------|---------|
-| 1 | **Hero** | Capturar atención + CTA de descarga inmediato |
-| 2 | **Cómo funciona** | Reforzar los 4 pasos del flujo (ya conocidos del video) |
-| 3 | **Automatizaciones** | Mostrar que cada acción dispara la tarea correcta |
-| 4 | **Fast Start** | Conectar con la motivación de bonos del distribuidor |
-| 5 | **CTA final** | Descarga App Store / Google Play |
-
-### Secciones removidas (con motivo)
-
-| Sección eliminada | Por qué |
-|-------------------|---------|
-| Problema | El video ya educó — no repetir desde cero |
-| Solución | Redundante con Hero + Automatizaciones |
-| Features/Módulos | Nivel de detalle innecesario para conversión |
-| Pricing | Se maneja dentro de la app (paywall en onboarding) |
-| FAQ | Fricción — si ya vio el video, ya tiene respuestas |
-
----
-
-## Programa Fast Start
-
-El programa de bonos que motiva a los distribuidores a crecer rápido.
-
-| Fase | Nombre | Requisito | Bono aprox. |
-|------|--------|-----------|-------------|
-| 1 | Q-Team | 4 clientes activos | $1,900 MXN |
-| 2 | Fast Start N1 | Q-Team + 2 partners activos | $7,600 MXN |
-| 3 | Fast Start N2 | N1 + duplicación del equipo | $22,800 MXN |
-| 4 | X-Team | N2 + 10 clientes activos | $2,850 USD |
-
-Zynergia rastrea el avance en estas fases automáticamente.
-
----
-
-## Automatizaciones clave
-
-| Trigger | Acción automática |
-|---------|------------------|
-| Prospecto agregado (producto) | Secuencia de 6 mensajes de seguimiento |
-| Prospecto agregado (partner) | Secuencia de reclutamiento |
-| Nueva venta registrada | Recordatorios de recompra |
-| Partner pierde clientes | Alerta urgente de riesgo de nivel |
-| Contacto convertido | Tarea de pedir referidos |
-
----
-
-## Notas para Marketing Futuro
-
-- **Audiencia primaria:** Distribuidores activos de MLM en Latinoamérica (México primero)
-- **Motivación principal:** Cobrar los bonos del Fast Start
-- **Pain point clave:** "Se me olvida el seguimiento y pierdo ventas y prospectos"
-- **Mensaje central:** "Zynergia te dice exactamente a quién escribir y qué decirle, cada día"
-- **Tono:** Práctico, orientado a resultados, nunca "hype MLM"
-- **Canales:** WhatsApp (orgánico, referidos de líderes) como canal principal
-- **Siguiente palanca de crecimiento:** Conseguir que más líderes de red recomienden la app
-
----
-
-*Última actualización: Marzo 2026*
+_Última actualización: 19 de agosto de 2026._

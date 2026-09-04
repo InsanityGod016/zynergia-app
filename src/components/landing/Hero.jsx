@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DownloadChoices from '@/components/DownloadChoices';
 
 const FLOAT_CARDS = [
   {
@@ -29,30 +29,7 @@ const FLOAT_CARDS = [
   },
 ];
 
-async function startCheckout(plan, setLoading) {
-  setLoading(true);
-  try {
-    const res = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || 'Error al iniciar el pago. Intenta de nuevo.');
-    }
-  } catch {
-    alert('Error de conexión. Por favor intenta de nuevo.');
-  } finally {
-    setLoading(false);
-  }
-}
-
 export default function Hero() {
-  const [loading, setLoading] = useState(false);
-
   return (
     <section className="bg-[#0A0F1E] min-h-screen flex items-center pt-16 overflow-hidden">
       <div className="max-w-6xl mx-auto px-5 py-20 w-full">
@@ -100,19 +77,16 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-col gap-3 justify-center lg:justify-start"
             >
-              <button
-                onClick={() => startCheckout('monthly', setLoading)}
-                disabled={loading}
-                className="bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-8 py-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_32px_rgba(0,74,254,0.45)] text-base disabled:opacity-70"
+              <a
+                href="/crear-cuenta"
+                className="bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-8 py-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-[0_0_32px_rgba(0,74,254,0.45)] text-base"
               >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : null}
-                Empezar ahora — $17/mes
-              </button>
-              <p className="text-white/30 text-xs text-center lg:text-left mt-1">
-                Sin contrato. Cancela cuando quieras.
+                Crear mi cuenta — 17 USD/mes
+              </a>
+              <p className="mt-1 text-center text-xs text-white/70 lg:text-left">
+                Precio final. Crea tu cuenta antes de pagar.
               </p>
+              <DownloadChoices className="mt-5 hero-downloads" showQr={false} />
             </motion.div>
           </div>
 

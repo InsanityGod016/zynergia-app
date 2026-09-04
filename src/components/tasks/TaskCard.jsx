@@ -1,75 +1,61 @@
-import { motion } from 'framer-motion';
 import { MessageCircle, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { taskDetail, taskReasonLabel, taskTimeLabel } from '@/lib/taskPresentation';
 
-const categoryColors = {
-  recompra: { bg: 'bg-amber-50', text: 'text-amber-600', label: 'Recompra' },
-  seguimiento: { bg: 'bg-blue-50', text: 'text-[#004AFE]', label: 'Seguimiento' },
-  reactivacion: { bg: 'bg-purple-50', text: 'text-purple-600', label: 'Reactivación' }
-};
-
-function getTaskLabel(task) {
-  if (task.task_name) return task.task_name;
-  return task.subcategory;
+function localDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-export default function TaskCard({ task, contact, product, onComplete, onWhatsApp }) {
+export default function TaskCard({ task, contact, product, onComplete, isUpdating = false, highlighted = false }) {
   const navigate = useNavigate();
-  const cat = categoryColors[task.category] || { bg: 'bg-gray-50', text: 'text-gray-500', label: task.category };
+  const today = localDateString();
+  const isOverdue = !task.completed && task.due_date < today;
+  const detail = taskDetail(task, product);
 
   const handleWhatsAppClick = () => {
     navigate(createPageUrl('SelectMessageTone') + '?taskId=' + task.id);
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      className={`bg-white rounded-2xl p-4 border border-[#F1F5F9] shadow-sm ${task.completed ? 'opacity-60' : ''}`}
-    >
-      <div className="flex items-start gap-3">
-        {/* Complete button */}
+    <article id={`task-${task.id}`} className={`rounded-2xl border bg-card p-4 shadow-card ${highlighted ? 'border-primary ring-4 ring-primary/15' : isOverdue ? 'border-amber-300' : 'border-border/80'}`}>
+      <div className="min-w-0">
+        <h3 className={`truncate text-[17px] font-bold leading-snug ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+          {contact?.full_name || 'Contacto no disponible'}
+        </h3>
+        <p className="mt-1 text-[15px] font-semibold leading-snug text-primary">
+          {taskReasonLabel(task)}{detail ? ` · ${detail}` : ''}
+        </p>
+        <p className={`mt-1 text-[15px] leading-snug ${isOverdue ? 'font-semibold text-amber-800' : 'text-muted-foreground'}`}>
+          {taskTimeLabel(task, today)}
+        </p>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
-          onClick={() => onComplete(task.id, task.completed)}
-          className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-            task.completed
-              ? 'bg-[#004AFE] border-[#004AFE]'
-              : 'border-[#CBD5E1]'
-          }`}
+          type="button"
+          onClick={handleWhatsAppClick}
+          disabled={!contact}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 px-3 text-[15px] font-bold text-emerald-800 outline-none hover:bg-emerald-100 focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {task.completed && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500 }}>
-              <Check className="w-3 h-3 text-white" strokeWidth={3} />
-            </motion.div>
-          )}
+          <MessageCircle className="h-5 w-5" aria-hidden="true" />
+          WhatsApp
         </button>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-semibold text-[15px] leading-tight truncate ${task.completed ? 'line-through text-[#94A3B8]' : 'text-[#0F172A]'}`}>
-              {contact?.full_name || 'Sin nombre'}
-            </h3>
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cat.bg} ${cat.text}`}>
-              {cat.label}
-            </span>
-          </div>
-
-          <p className={`text-[12px] font-medium mt-0.5 ${task.completed ? 'line-through text-[#94A3B8]' : 'text-[#004AFE]'}`}>{getTaskLabel(task)}</p>
-          {product && <p className="text-[12px] text-[#94A3B8] mt-0.5 truncate">{product.name}</p>}
-
-          <button
-            onClick={handleWhatsAppClick}
-            className="mt-2.5 flex items-center gap-1.5 text-[12px] font-semibold text-[#25D366]"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Enviar mensaje
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onComplete(task.id, task.completed)}
+          disabled={isUpdating}
+          aria-pressed={task.completed}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted px-3 text-[15px] font-bold text-foreground outline-none hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+        >
+          <Check className="h-5 w-5 text-primary" strokeWidth={3} aria-hidden="true" />
+          {task.completed ? 'Deshacer' : 'Hecha'}
+        </button>
       </div>
-    </motion.div>
+    </article>
   );
 }

@@ -1,32 +1,72 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { clearLocalSupabaseSession, supabase } from '@/lib/supabaseClient';
+import { clearRememberedPasswordRecovery } from '@/lib/passwordRecovery';
+import { queryClientInstance } from '@/lib/query-client';
+import { cancelZynergiaNotifications, switchNotificationIdentity } from '@/lib/localNotifications';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+
+function clearScopedClientState(userId) {
+  localStorage.removeItem('zynergia_sale_draft_v1');
+  sessionStorage.removeItem('zynergia:new-task-draft:v1');
+  sessionStorage.removeItem('zynergia_checkout_idempotency');
+  sessionStorage.removeItem('zynergia_verification_email');
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+    if (key?.startsWith('zynergia:message-draft:')) sessionStorage.removeItem(key);
+  }
+  if (userId) {
+    localStorage.removeItem(`zynergia_onboarding_draft_${userId}`);
+    sessionStorage.removeItem(`zynergia_delete_operation_${userId}`);
+    sessionStorage.removeItem(`zynergia_qr_draft_v1_${userId}`);
+  }
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const activeUserId = useRef(null);
 
   useEffect(() => {
-    // Read existing session on mount (reads from localStorage, no network request)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsAuthenticated(!!session?.user);
+    let sawAuthEvent = false;
+    const applySession = nextSession => {
+      const nextUserId = nextSession?.user?.id || null;
+      if (activeUserId.current !== nextUserId) {
+        switchNotificationIdentity(nextUserId).catch(() => {});
+      }
+      if (activeUserId.current && activeUserId.current !== nextUserId) {
+        queryClientInstance.clear();
+        clearScopedClientState(activeUserId.current);
+      }
+      activeUserId.current = nextUserId;
+      setSession(nextSession ?? null);
+      setUser(nextSession?.user ?? null);
+      setIsAuthenticated(Boolean(nextSession?.user));
       setIsLoadingAuth(false);
-    });
+    };
+
+    // Read existing session on mount (reads from localStorage, no network request)
+    supabase.auth.getSession().then(
+      ({ data: { session } }) => {
+        if (!sawAuthEvent) applySession(session);
+      },
+      () => {
+        if (!sawAuthEvent) applySession(null);
+      },
+    );
 
     // Listen for sign-in / sign-out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsAuthenticated(!!session?.user);
-      setIsLoadingAuth(false);
+      sawAuthEvent = true;
+      applySession(session);
       if (session?.user?.id) {
         // Update last_active
         supabase.from('settings')
           .update({ last_active: new Date().toISOString() })
           .eq('user_id', session.user.id)
-          .then(() => {}).catch(() => {});
+          .then(() => {}, () => {});
       }
     });
 
@@ -34,15 +74,32 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = async () => {
-    if (user?.id) {
-      localStorage.removeItem(`zynergia_onboarding_done_${user.id}`);
+    clearRememberedPasswordRecovery();
+    clearScopedClientState(activeUserId.current);
+    queryClientInstance.clear();
+    await switchNotificationIdentity(null).catch(() => {});
+    await cancelZynergiaNotifications().catch(() => {});
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.warn('[Auth] Remote sign-out failed; clearing this device session.');
+        clearLocalSupabaseSession();
+      }
+    } catch {
+      console.warn('[Auth] Remote sign-out was unreachable; clearing this device session.');
+      clearLocalSupabaseSession();
+    } finally {
+      activeUserId.current = null;
+      setSession(null);
+      setUser(null);
+      setIsAuthenticated(false);
     }
-    await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       isAuthenticated,
       isLoadingAuth,
       logout,

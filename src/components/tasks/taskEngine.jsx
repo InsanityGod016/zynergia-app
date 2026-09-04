@@ -1,5 +1,5 @@
 import { db } from '@/api/db';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 
 function dateStr(date) {
   return format(date, 'yyyy-MM-dd');
@@ -39,12 +39,15 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
     ? purchaseDate
     : dateStr(new Date(purchaseDate));
 
-  // Determine repurchase cycle length by category
-  // "Compra Única" → 30 days, "Premier Kits" → 180 days
+  // El ciclo editable del producto es la autoridad. La categoría sólo conserva
+  // compatibilidad con productos históricos que todavía no tengan cycle_days.
   const catLower = (product?.category || '').toLowerCase().replace(/\s/g, '_');
   const isCompraUnica = catLower === 'compra_única' || catLower === 'compra_unica' || catLower === 'compra_nica';
   const isPremierKit = catLower === 'premier_kits' || catLower === 'premier_kit';
-  const frecuenciaDias = isCompraUnica ? 30 : isPremierKit ? 180 : null;
+  const configuredCycle = Number(product?.cycle_days);
+  const frecuenciaDias = Number.isInteger(configuredCycle) && configuredCycle > 0
+    ? configuredCycle
+    : isCompraUnica ? 30 : isPremierKit ? 180 : null;
 
   const tasks = [];
 
@@ -232,28 +235,19 @@ export async function createReferralTask({ contactId, contactCreatedAt, existing
 // ── Partner Fast Start ────────────────────────────────────────────────────────
 
 export async function createPartnerTasks({ contactId, startDate }) {
-  const sequence = [
-    { days: 1,   template_subcategory: 'partner_qteam_dia_1',   task_name: 'Fast Start – Q-Team Día 1' },
-    { days: 7,   template_subcategory: 'partner_qteam_dia_7',   task_name: 'Fast Start – Q-Team Día 7' },
-    { days: 30,  template_subcategory: 'partner_qteam_dia_30',  task_name: 'Fast Start – Q-Team Día 30' },
-    { days: 35,  template_subcategory: 'partner_fs_n1_dia_35',  task_name: 'Fast Start – Nivel 1 Día 35' },
-    { days: 60,  template_subcategory: 'partner_fs_n1_dia_60',  task_name: 'Fast Start – Nivel 1 Día 60' },
-    { days: 75,  template_subcategory: 'partner_fs_n2_dia_75',  task_name: 'Fast Start – Nivel 2 Día 75' },
-    { days: 90,  template_subcategory: 'partner_fs_n2_dia_90',  task_name: 'Fast Start – Nivel 2 Día 90' },
-    { days: 110, template_subcategory: 'partner_xteam_dia_110', task_name: 'Fast Start – X-Team Día 110' },
-    { days: 120, template_subcategory: 'partner_xteam_dia_120', task_name: 'Fast Start – X-Team Día 120' }
-  ];
-
-  await Promise.all(sequence.map(s => db.Task.create({
+  // A partner captured only as a contact has no verified progress. Creating
+  // nine calendar checkpoints made the UI look precise while using invented
+  // data. Keep one honest next action until the account is linked.
+  await db.Task.create({
     contact_id: contactId,
     category: 'seguimiento',
-    subcategory: s.template_subcategory,
-    template_subcategory: s.template_subcategory,
-    task_name: s.task_name,
+    subcategory: 'partner_invitar_zynergia',
+    template_subcategory: 'partner_invitar_zynergia',
+    task_name: 'Invitar a Zynergia para ver su avance real',
     task_area: 'partner',
-    due_date: addDaysToStr(startDate, s.days),
+    due_date: startDate,
     completed: false
-  })));
+  });
 }
 
 /**
@@ -261,84 +255,88 @@ export async function createPartnerTasks({ contactId, startDate }) {
  * Replaces calendar-based sequence with real-progress-based tasks.
  * Called when real FS metrics are available.
  */
-export async function refreshSmartPartnerTasks({ contactId, contactName, activePremierClients, partnersCount, existingTasks }) {
+export async function refreshSmartPartnerTasks({ contactId, contactName, activePremierClients, partnersCount, directBranches = [], existingTasks }) {
   const today = todayStr();
-
-  // Cancel all pending future partner tasks for this contact
-  const toDelete = existingTasks.filter(
-    t => t.contact_id === contactId &&
-      t.task_area === 'partner' &&
-      t.due_date >= today &&
-      !t.completed
-  );
-  await Promise.all(toDelete.map(t => db.Task.delete(t.id)));
 
   const qteamDone = activePremierClients >= 4;
   const fs1Done   = qteamDone && partnersCount >= 2;
+  const knownBranches = directBranches.filter(branch => Number.isFinite(branch?.premier_clients));
+  const qteamBranches = knownBranches.filter(branch => branch.premier_clients >= 4).length;
+  const unknownBranches = Math.max(0, partnersCount - knownBranches.length);
+  const fs2Done = fs1Done && qteamBranches >= 2;
   const xteamDone = fs1Done && activePremierClients >= 10;
 
-  const tasks = [];
+  let nextTask;
 
   if (!qteamDone) {
     const left = 4 - activePremierClients;
-    tasks.push({
+    nextTask = {
       task_name: left === 1
         ? `¡${contactName} está a 1 cliente del Q-Team!`
         : `Apoya a ${contactName}: necesita ${left} clientes Premier para Q-Team`,
       template_subcategory: 'partner_smart_qteam',
       due_date: today,
-    });
-    // Check-in en 7 días
-    tasks.push({
-      task_name: `Check-in Fast Start con ${contactName}`,
-      template_subcategory: 'partner_smart_checkin',
-      due_date: addDaysToStr(today, 7),
-    });
+    };
   } else if (!fs1Done) {
     const left = 2 - partnersCount;
-    tasks.push({
+    nextTask = {
       task_name: left === 1
         ? `¡${contactName} necesita 1 partner más para Nivel 1!`
         : `Apoya a ${contactName} a reclutar ${left} partners para FS Nivel 1`,
       template_subcategory: 'partner_smart_fs1',
       due_date: today,
-    });
-    tasks.push({
-      task_name: `Check-in Fast Start con ${contactName}`,
-      template_subcategory: 'partner_smart_checkin',
-      due_date: addDaysToStr(today, 7),
-    });
+    };
+  } else if (!fs2Done) {
+    const needsVerification = qteamBranches + unknownBranches >= 2 && unknownBranches > 0;
+    nextTask = {
+      task_name: needsVerification
+        ? `Vincula o verifica las ramas de ${contactName} para Nivel 2`
+        : `Nivel 2: ayuda a ${contactName} con ${Math.max(0, 2 - qteamBranches)} rama${2 - qteamBranches === 1 ? '' : 's'} Q-Team`,
+      template_subcategory: 'partner_smart_fs2',
+      due_date: today,
+    };
   } else if (!xteamDone) {
     const left = 10 - activePremierClients;
-    tasks.push({
+    nextTask = {
       task_name: `X-Team: ${contactName} necesita ${left} clientes más`,
       template_subcategory: 'partner_smart_xteam',
       due_date: today,
-    });
-    tasks.push({
-      task_name: `Check-in Fast Start con ${contactName}`,
-      template_subcategory: 'partner_smart_checkin',
-      due_date: addDaysToStr(today, 14),
-    });
+    };
   } else {
-    // All bonuses done — monthly check-in
-    tasks.push({
+    nextTask = {
       task_name: `Check-in mensual con ${contactName} (Fast Start completado)`,
       template_subcategory: 'partner_smart_checkin',
       due_date: addDaysToStr(today, 30),
-    });
+    };
   }
 
-  await Promise.all(tasks.map(t => db.Task.create({
+  const pending = existingTasks.filter(task => (
+    task.contact_id === contactId && task.task_area === 'partner' && !task.completed
+  ));
+  const keep = pending.find(task => task.template_subcategory === nextTask.template_subcategory);
+  const obsolete = pending.filter(task => task.id !== keep?.id);
+
+  // Advancing a stage closes every previous pending task, including overdue
+  // ones. Keeping history is safer than deleting it.
+  await Promise.all(obsolete.map(task => db.Task.update(task.id, { completed: true })));
+
+  if (keep) {
+    if (keep.task_name !== nextTask.task_name) {
+      await db.Task.update(keep.id, { task_name: nextTask.task_name });
+    }
+    return keep;
+  }
+
+  return db.Task.create({
     contact_id: contactId,
     category: 'seguimiento',
-    subcategory: t.template_subcategory,
-    template_subcategory: t.template_subcategory,
-    task_name: t.task_name,
+    subcategory: nextTask.template_subcategory,
+    template_subcategory: nextTask.template_subcategory,
+    task_name: nextTask.task_name,
     task_area: 'partner',
-    due_date: t.due_date,
+    due_date: nextTask.due_date,
     completed: false,
-  })));
+  });
 }
 
 /**

@@ -6,35 +6,51 @@ workflows:
     environment:
       groups:
         - ios_credentials
-      node: latest
+        - app_environment
+      node: 22.14.0
+      xcode: 26.6
     scripts:
       - name: Install dependencies
-        script: npm install
-      - name: Build web assets
-        script: npm run build
+        script: npm ci
+      - name: Static checks
+        script: |
+          npm run lint
+          npm run typecheck
+          npm run typecheck:backend
+          npm test
+      - name: Release safety gate
+        script: |
+          RELEASE_GATE_MODE=artifact node supabase/scripts/predeploy-gate.mjs supabase/schema.production.json
+      - name: Build native web assets
+        script: |
+          npm run build:native
+          npm run verify:native-bundle
       - name: Strip web-only assets (landing animation = 27MB)
         script: rm -rf dist/animations
       - name: Capacitor sync
         script: npx cap sync ios
       - name: Set up code signing
         script: |
+          set -euo pipefail
           keychain initialize
-          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          printf '%s' "$CM_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
           keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
-          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          printf '%s' "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' /tmp/profile.mobileprovision | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           xcode-project use-profiles
       - name: Build iOS
         script: |
+          set -euo pipefail
           xcode-project build-ipa \
             --project ios/App/App.xcodeproj \
             --scheme App \
             --config Release
       - name: Publish to TestFlight
         script: |
-          echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > /tmp/api_key.p8
+          set -euo pipefail
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/api_key.p8
           app-store-connect publish \
             --path $(find build/ios/ipa -name "*.ipa") \
             --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
@@ -52,14 +68,18 @@ workflows:
     environment:
       groups:
         - android_credentials
+      xcode: 26.6
       java: 21
     scripts:
       - name: Verify ANDROID_KEYSTORE + ANDROID_KEY_PASSWORD
         script: |
-          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/original.jks
-          echo "=== Intentando con ANDROID_KEY_PASSWORD ==="
-          keytool -list -v -keystore /tmp/original.jks -storepass "$ANDROID_KEY_PASSWORD" 2>&1 | grep -E "SHA1|SHA-256|Alias|error|Exception" | head -10
-          echo "=== FIN ==="
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > /tmp/original.jks
+          keytool -list -v \
+            -keystore /tmp/original.jks \
+            -storepass "$ANDROID_KEY_PASSWORD" \
+            -alias zynergia > /tmp/keystore-report.txt
+          grep -E "SHA1|SHA-256|Alias" /tmp/keystore-report.txt
 
   android-distribution:
     name: Android Distribution
@@ -68,23 +88,41 @@ workflows:
     environment:
       groups:
         - android_credentials
-      node: latest
+        - app_environment
+      node: 22.14.0
+      xcode: 26.6
       java: 21
     scripts:
       - name: Install dependencies
-        script: npm install
-      - name: Build web assets
-        script: npm run build
+        script: npm ci
+      - name: Static checks
+        script: |
+          npm run lint
+          npm run typecheck
+          npm run typecheck:backend
+          npm test
+      - name: Release safety gate
+        script: |
+          RELEASE_GATE_MODE=artifact node supabase/scripts/predeploy-gate.mjs supabase/schema.production.json
+      - name: Build native web assets
+        script: |
+          npm run build:native
+          npm run verify:native-bundle
       - name: Strip web-only assets (landing animation = 27MB)
         script: rm -rf dist/animations
       - name: Capacitor sync
         script: npx cap sync android
       - name: Set up keystore
         script: |
-          echo "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
-          keytool -list -keystore /tmp/zynergia-upload.jks -storepass "$ANDROID_KEY_PASSWORD" | head -5
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
+          keytool -list \
+            -keystore /tmp/zynergia-upload.jks \
+            -storepass "$ANDROID_KEY_PASSWORD" \
+            -alias zynergia > /dev/null
       - name: Build Android App Bundle
         script: |
+          set -euo pipefail
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \

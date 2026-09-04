@@ -1,99 +1,66 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
-const CONTACT_TYPES = [
+const contactTypes = [
   { value: '', label: 'Sin tipo' },
-  { value: 'prospecto_producto', label: 'Prospecto producto' },
-  { value: 'prospecto_partner', label: 'Prospecto partner' },
-  { value: 'cliente_producto', label: 'Cliente producto' },
-  { value: 'partner', label: 'Partner' },
+  { value: 'prospecto_producto', label: 'Prospecto de producto' },
+  { value: 'prospecto_partner', label: 'Prospecto de negocio' },
+  { value: 'cliente_producto', label: 'Cliente' },
+  { value: 'partner', label: 'Socio' },
 ];
 
-export default function BulkChangeTypeSheet({ isOpen, onClose, onConfirm, isLoading }) {
+export default function BulkChangeTypeSheet({ isOpen, onClose, onConfirm, isLoading, error }) {
   const [selected, setSelected] = useState(null);
 
-  // Hide bottom nav while open
   useEffect(() => {
-    const nav = document.querySelector('nav');
-    if (!nav) return;
-    if (isOpen) {
-      nav.style.display = 'none';
-    } else {
-      nav.style.display = '';
-    }
-    return () => { nav.style.display = ''; };
+    if (!isOpen) setSelected(null);
   }, [isOpen]);
 
-  const handleConfirm = () => {
-    if (selected === null) return;
-    onConfirm(selected);
-    setSelected(null);
-  };
-
-  const handleClose = () => {
-    setSelected(null);
-    onClose();
-  };
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 z-40"
-            onClick={handleClose}
-          />
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 pb-8"
-          >
-            <div className="flex items-center justify-between px-5 pt-5 pb-4">
-              <h2 className="text-[17px] font-semibold text-[#0F172A]">Cambiar tipo de contacto</h2>
-              <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F1F5F9]">
-                <X className="w-4 h-4 text-[#64748B]" />
-              </button>
-            </div>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open && !isLoading) onClose(); }}>
+      <SheetContent side="bottom" className="mx-auto max-w-lg rounded-t-3xl px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6">
+        <SheetHeader className="pr-12 text-left">
+          <SheetTitle className="text-xl">Cambiar tipo</SheetTitle>
+          <SheetDescription className="text-[15px]">El cambio se aplicará a todos los contactos seleccionados.</SheetDescription>
+        </SheetHeader>
 
-            <div className="px-5">
-              {CONTACT_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => setSelected(type.value)}
-                  className={`w-full flex items-center justify-between py-3.5 text-[15px] transition-colors ${
-                    selected === type.value ? 'text-[#004AFE] font-medium' : 'text-[#0F172A] font-normal'
-                  }`}
-                >
-                  {type.label}
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selected === type.value ? 'border-[#004AFE]' : 'border-[#CBD5E1]'
-                  }`}>
-                    {selected === type.value && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#004AFE]" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
+        <div className="mt-5 space-y-1" role="radiogroup" aria-label="Nuevo tipo de contacto">
+          {contactTypes.map((type) => (
+            <button
+              key={type.value}
+              type="button"
+              role="radio"
+              aria-checked={selected === type.value}
+              onClick={() => setSelected(type.value)}
+              disabled={isLoading}
+              className="flex min-h-14 w-full items-center justify-between rounded-2xl px-3 text-left text-[17px] text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+            >
+              {type.label}
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                selected === type.value ? 'border-primary bg-primary' : 'border-border bg-card'
+              }`} aria-hidden="true">
+                {selected === type.value && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+              </span>
+            </button>
+          ))}
+        </div>
 
-            <div className="px-5 mt-4">
-              <button
-                onClick={handleConfirm}
-                disabled={selected === null || isLoading}
-                className="w-full h-12 bg-[#004AFE] text-white rounded-full text-[15px] font-semibold disabled:opacity-40 transition-opacity"
-              >
-                {isLoading ? 'Aplicando...' : 'Confirmar'}
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        {error && <p className="mt-3 text-[15px] font-medium text-destructive" role="alert">{error}</p>}
+        <button
+          type="button"
+          onClick={() => onConfirm(selected)}
+          disabled={selected === null || isLoading}
+          className="mt-5 min-h-14 w-full rounded-2xl bg-primary px-5 text-[17px] font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50"
+        >
+          {isLoading ? 'Guardando…' : 'Confirmar cambio'}
+        </button>
+      </SheetContent>
+    </Sheet>
   );
 }

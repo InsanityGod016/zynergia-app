@@ -1,0 +1,25 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "NR7VZQ9R89.com.zynergia.app"
+        ],
+        "components": [
+          {
+            "/": "/app",
+            "comment": "Abre la pantalla de descarga o la app instalada."
+          },
+          {
+            "/": "/app/*"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "NR7VZQ9R89.com.zynergia.app"
+    ]
+  }
+}

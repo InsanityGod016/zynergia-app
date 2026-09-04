@@ -1,59 +1,52 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 const typeOptions = [
-  { value: 'all', label: 'Todos' },
-  { value: 'cliente_producto', label: 'Cliente producto' },
-  { value: 'partner', label: 'Partner' },
-  { value: 'prospecto_producto', label: 'Prospecto producto' },
-  { value: 'prospecto_partner', label: 'Prospecto partner' }
+  { value: 'all', label: 'Todos los contactos' },
+  { value: 'cliente_producto', label: 'Clientes' },
+  { value: 'partner', label: 'Socios' },
+  { value: 'prospecto_producto', label: 'Prospectos de producto' },
+  { value: 'prospecto_partner', label: 'Prospectos de negocio' },
 ];
 
 export default function ContactTypeFilterSheet({ isOpen, onClose, selectedType, onSelect }) {
-  const handleSelect = (value) => {
+  const selectType = (value) => {
     onSelect(value);
     onClose();
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 z-[60]"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[70] pb-[env(safe-area-inset-bottom)]"
-          >
-            <div className="px-6 py-4">
-              <h3 className="text-[18px] font-semibold text-[#0F172A]">Tipo de contacto</h3>
-            </div>
-            <div className="px-6 pb-6 space-y-0">
-              {typeOptions.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleSelect(option.value)}
-                  className="w-full flex items-center justify-between py-3"
-                >
-                  <span className="text-[15px] text-[#0F172A]">{option.label}</span>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    selectedType === option.value ? 'border-[#004AFE] bg-[#004AFE]' : 'border-[#CBD5E1]'
-                  }`}>
-                    {selectedType === option.value && <div className="w-2 h-2 bg-white rounded-full" />}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent side="bottom" className="mx-auto max-w-lg rounded-t-3xl px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6">
+        <SheetHeader className="pr-12 text-left">
+          <SheetTitle className="text-xl">Mostrar contactos</SheetTitle>
+          <SheetDescription className="text-[15px]">Elige un tipo para reducir la lista.</SheetDescription>
+        </SheetHeader>
+        <div className="mt-5 space-y-1" role="radiogroup" aria-label="Tipo de contacto">
+          {typeOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selectedType === option.value}
+              onClick={() => selectType(option.value)}
+              className="flex min-h-14 w-full items-center justify-between rounded-2xl px-3 text-left text-[17px] text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <span>{option.label}</span>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                selectedType === option.value ? 'border-primary bg-primary' : 'border-border bg-card'
+              }`} aria-hidden="true">
+                {selectedType === option.value && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+              </span>
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

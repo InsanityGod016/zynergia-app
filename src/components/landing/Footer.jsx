@@ -3,23 +3,24 @@ const FOOTER_LINKS = [
     heading: 'Producto',
     links: [
       { label: 'Cómo funciona', href: '#como-funciona' },
-      { label: 'Automatizaciones', href: '#automatizaciones' },
-      { label: 'Fast Start', href: '#fast-start' },
+      { label: 'Precio', href: '#precios' },
+      { label: 'Descargar la app', href: '/app' },
     ],
   },
   {
-    heading: 'Empresa',
+    heading: 'Cuenta',
     links: [
-      { label: 'Acerca de', href: '#' },
-      { label: 'Contacto', href: 'mailto:hola@zynergia.app' },
-      { label: 'Blog', href: '#' },
+      { label: 'Crear cuenta', href: '/crear-cuenta' },
+      { label: 'Iniciar sesión', href: '/iniciar-sesion' },
+      { label: 'Soporte', href: '/soporte' },
     ],
   },
   {
     heading: 'Legal',
     links: [
-      { label: 'Términos de uso', href: '#' },
-      { label: 'Privacidad', href: '/privacy' },
+      { label: 'Términos de uso', href: '/terminos' },
+      { label: 'Privacidad', href: '/privacidad' },
+      { label: 'Eliminar cuenta', href: '/eliminar-cuenta' },
     ],
   },
 ];
@@ -49,9 +50,13 @@ export default function Footer() {
               />
               <span className="text-white font-bold text-lg">Zynergia</span>
             </div>
-            <p className="text-white/40 text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed text-white/70">
               La app de seguimiento para distribuidores que quieren crecer sin perder
               ningún contacto en el camino.
+            </p>
+            <p className="mt-4 text-xs leading-relaxed text-white/70">
+              Zynergia es una herramienta independiente de CoreFlowAI LLC. CoreFlowAI LLC
+              y Zynergia no están afiliadas, patrocinadas ni respaldadas por Zinzino.
             </p>
           </div>
 
@@ -68,14 +73,14 @@ export default function Footer() {
                       {link.href.startsWith('#') ? (
                         <button
                           onClick={() => scrollTo(link.href)}
-                          className="text-white/50 hover:text-white text-sm transition-colors"
+                          className="text-sm text-white/70 transition-colors hover:text-white"
                         >
                           {link.label}
                         </button>
                       ) : (
                         <a
                           href={link.href}
-                          className="text-white/50 hover:text-white text-sm transition-colors"
+                          className="text-sm text-white/70 transition-colors hover:text-white"
                         >
                           {link.label}
                         </a>
@@ -90,10 +95,10 @@ export default function Footer() {
 
         {/* Divider */}
         <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-white/30 text-xs">
-            © {new Date().getFullYear()} Zynergia. Todos los derechos reservados.
+          <p className="text-xs text-white/60">
+            © {new Date().getFullYear()} CoreFlowAI LLC. Todos los derechos reservados.
           </p>
-          <div className="flex items-center gap-5 text-white/30 text-xs">
+          <div className="flex items-center gap-5 text-xs text-white/60">
             <span>iOS · Android</span>
           </div>
         </div>

@@ -1,28 +1,33 @@
-import { motion } from 'framer-motion';
-
 export default function ProgressCircle({ completed, total }) {
   const percentage = total > 0 ? (completed / total) * 100 : 0;
-  const radius = 40;
+  const radius = 35;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-24 h-24 flex items-center justify-center">
-      <svg className="w-24 h-24 transform -rotate-90">
-        <circle cx="48" cy="48" r={radius} fill="none" stroke="#F1F5F9" strokeWidth="7" />
-        <motion.circle
-          cx="48" cy="48" r={radius}
-          fill="none" stroke="#004AFE" strokeWidth="7"
+    <div
+      className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center"
+      role="progressbar"
+      aria-label={`${completed} de ${total} tareas completadas`}
+      aria-valuemin={0}
+      aria-valuemax={total || 1}
+      aria-valuenow={completed}
+    >
+      <svg className="h-[88px] w-[88px] -rotate-90" aria-hidden="true">
+        <circle cx="44" cy="44" r={radius} fill="none" className="stroke-muted" strokeWidth="7" />
+        <circle
+          cx="44" cy="44" r={radius}
+          fill="none"
+          className="stroke-primary transition-[stroke-dashoffset] duration-200 motion-reduce:transition-none"
+          strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          strokeDashoffset={strokeDashoffset}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[18px] font-bold text-[#0F172A] leading-none">{completed}</span>
-        <span className="text-[11px] text-[#94A3B8] leading-none mt-0.5">/ {total}</span>
+        <span className="text-xl font-bold leading-none text-foreground">{completed}</span>
+        <span className="mt-1 text-xs leading-none text-muted-foreground">de {total}</span>
       </div>
     </div>
   );

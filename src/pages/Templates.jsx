@@ -1,230 +1,116 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { db } from '@/api/db';
-import { Pencil, ArrowLeft } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Copy, Pencil, Plus, Search, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { db } from '@/api/db';
+import { Input } from '@/components/ui/input';
+import StateView from '@/components/ui/StateView';
+import { templateSituation } from '@/lib/templateResolution';
 import { createPageUrl } from '@/utils';
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-const TABS = [
-  { value: 'all',        label: 'Todas' },
-  { value: 'producto',   label: 'Producto' },
-  { value: 'prospectos', label: 'Prospectos' },
-  { value: 'faststart',  label: 'Fast Start' },
-  { value: 'smart',      label: 'Smart Partner' },
-  { value: 'referidos',  label: 'Referidos' },
+const FILTERS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'repurchase', label: 'Recompra' },
+  { value: 'product', label: 'Producto' },
+  { value: 'product-prospect', label: 'Prospecto de producto' },
+  { value: 'business', label: 'Negocio' },
+  { value: 'fast-start', label: 'Fast Start' },
+  { value: 'referral', label: 'Referidos' },
+  { value: 'mine', label: 'Creadas por mí' },
 ];
 
-// ── Sections — define order and which tab each belongs to ─────────────────────
-// match(subcategory) → true if the template belongs to this section
-const SECTIONS = [
-  {
-    id: 'seguimiento_producto',
-    label: 'Seguimiento Producto',
-    description: 'Bienvenida día 3 tras la primera compra',
-    tab: 'producto',
-    match: s => s === 'producto_dia_3',
-  },
-  {
-    id: 'recompra',
-    label: 'Recompra',
-    description: 'Recordatorios antes y después de la fecha de recompra',
-    tab: 'producto',
-    match: s => ['producto_7_dias_antes', 'producto_3_dias_antes', 'producto_5_dias_despues'].includes(s),
-  },
-  {
-    id: 'reactivacion',
-    label: 'Reactivación Producto',
-    description: 'Contacto cuando un cliente lleva tiempo sin comprar',
-    tab: 'producto',
-    match: s => s === 'producto_reactivacion',
-  },
-  {
-    id: 'prospecto_producto',
-    label: 'Prospecto Producto',
-    description: 'Secuencia de 6 mensajes para convertir un prospecto en cliente',
-    tab: 'prospectos',
-    match: s => s.startsWith('prospecto_producto_msg_'),
-  },
-  {
-    id: 'prospecto_partner',
-    label: 'Prospecto Partner',
-    description: 'Secuencia de 6 mensajes para invitar a alguien al negocio',
-    tab: 'prospectos',
-    match: s => s.startsWith('prospecto_partner_msg_'),
-  },
-  {
-    id: 'fast_start_qteam',
-    label: 'Fast Start — Q-Team (días 1–30)',
-    description: 'Acompañamiento para llegar a 4 clientes Premier activos',
-    tab: 'faststart',
-    match: s => s.startsWith('partner_qteam_dia_'),
-  },
-  {
-    id: 'fast_start_niveles',
-    label: 'Fast Start — Niveles 1 y 2 (días 35–90)',
-    description: 'Acompañamiento para reclutar partners y construir equipo',
-    tab: 'faststart',
-    match: s => s.startsWith('partner_fs_n'),
-  },
-  {
-    id: 'fast_start_xteam',
-    label: 'Fast Start — X-Team (días 110–120)',
-    description: 'Recta final hacia los 10 clientes Premier activos',
-    tab: 'faststart',
-    match: s => s.startsWith('partner_xteam_dia_'),
-  },
-  {
-    id: 'partner_smart',
-    label: 'Smart Partner — Tareas dinámicas',
-    description: 'Mensajes adaptados al progreso real del partner (requiere app)',
-    tab: 'smart',
-    match: s => s.startsWith('partner_smart_'),
-  },
-  {
-    id: 'urgencia_qteam',
-    label: 'Urgencia Q-Team',
-    description: 'Alerta cuando el partner pierde clientes activos',
-    tab: 'smart',
-    match: s => s === 'partner_urgencia_qteam',
-  },
-  {
-    id: 'referidos',
-    label: 'Referidos',
-    description: 'Solicitar referidos a clientes y partners actuales',
-    tab: 'referidos',
-    match: s => s === 'referido',
-  },
-];
-
-const TONE_BADGE = {
-  general:  { label: 'General',  bg: 'bg-[#F1F5F9]', text: 'text-[#475569]' },
-  amigable: { label: 'Amigable', bg: 'bg-[#FFF7ED]', text: 'text-[#C2410C]' },
-  directo:  { label: 'Directo',  bg: 'bg-[#EEF2FF]', text: 'text-[#4338CA]' },
-};
-
-function getSection(subcategory) {
-  return SECTIONS.find(s => s.match(subcategory));
+function situationLabel(template) {
+  return FILTERS.find(filter => filter.value === templateSituation(template))?.label || 'Seguimiento';
 }
 
 export default function Templates() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('all');
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const templatesQuery = useQuery({ queryKey: ['templates'], queryFn: () => db.Template.list() });
 
-  const { data: templates = [] } = useQuery({
-    queryKey: ['templates'],
-    queryFn: () => db.Template.list(),
+  const visibleTemplates = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('es');
+    return (templatesQuery.data || []).filter(template => {
+      const matchesFilter = filter === 'all' || (filter === 'mine' ? template.origin === 'user' : templateSituation(template) === filter);
+      const searchable = `${template.name || ''} ${template.content || ''}`.toLocaleLowerCase('es');
+      return matchesFilter && (!term || searchable.includes(term));
+    });
+  }, [filter, search, templatesQuery.data]);
+
+  const duplicateMutation = useMutation({
+    mutationFn: (/** @type {any} */ template) => db.Template.create({
+      name: `Copia de ${template.name}`,
+      category: template.category,
+      subcategory: template.subcategory,
+      tone: template.tone || 'general',
+      content: template.content,
+      contact_id: template.contact_id || null,
+      is_default: false,
+    }),
+    onSuccess: async template => {
+      await queryClient.invalidateQueries({ queryKey: ['templates'] });
+      toast.success('Plantilla duplicada.');
+      navigate(`${createPageUrl('EditTemplate')}?id=${encodeURIComponent(template.id)}`);
+    },
+    onError: error => toast.error(error.message || 'No pudimos duplicar la plantilla.'),
   });
 
-  const handleEdit = (template) => {
-    navigate(createPageUrl('EditTemplate') + '?id=' + template.id);
-  };
-
-  // Build ordered sections list for the active tab
-  const visibleSections = SECTIONS.filter(
-    sec => activeTab === 'all' || sec.tab === activeTab
-  );
-
-  // Group templates by section
-  const bySection = {};
-  templates.forEach(t => {
-    const sec = getSection(t.subcategory);
-    if (!sec) return;
-    if (!bySection[sec.id]) bySection[sec.id] = [];
-    bySection[sec.id].push(t);
+  const defaultMutation = useMutation({
+    mutationFn: (/** @type {any} */ template) => db.Template.setDefault(template.id),
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['templates'] }); toast.success('Plantilla predeterminada actualizada.'); },
+    onError: error => toast.error(error.message || 'No pudimos cambiar la plantilla predeterminada.'),
   });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 bg-white flex items-center justify-between border-b border-[#F1F5F9]">
-        <button
-          onClick={() => navigate(createPageUrl('Marketing'))}
-          className="w-10 h-10 flex items-center justify-center -ml-2"
-        >
-          <ArrowLeft className="w-6 h-6 text-[#27251f]" />
-        </button>
-        <h1 className="text-lg font-semibold text-[#27251f]">Plantillas de mensajes</h1>
-        <div className="w-10" />
-      </div>
+    <main className="min-h-dvh bg-[#F7F9FC] pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <header className="sticky top-0 z-20 border-b border-[#E2E8F0] bg-white/95 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={() => navigate(createPageUrl('More'))} className="flex min-h-12 items-center gap-1 rounded-xl pr-3 text-[17px] font-semibold" aria-label="Volver a Cuenta">
+            <span className="flex h-12 w-10 items-center justify-center"><ArrowLeft className="h-6 w-6" aria-hidden="true" /></span> Volver
+          </button>
+          <button type="button" onClick={() => navigate(`${createPageUrl('EditTemplate')}?new=1`)} className="flex min-h-12 items-center gap-2 rounded-xl bg-[#004AFE] px-4 text-[16px] font-semibold text-white active:scale-[0.98]">
+            <Plus className="h-5 w-5" aria-hidden="true" /> Nueva
+          </button>
+        </div>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0F172A]">Plantillas de mensajes</h1>
+        <p className="mt-1 text-[16px] text-[#64748B]">Prepara tus mensajes una vez y envíalos en segundos.</p>
+        <label className="relative mt-4 block">
+          <span className="sr-only">Buscar plantilla</span><Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B]" aria-hidden="true" />
+          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar plantilla" className="h-14 rounded-2xl bg-[#F8FAFC] pl-12 text-[17px]" />
+        </label>
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Filtrar plantillas">
+          {FILTERS.map(item => <button key={item.value} type="button" onClick={() => setFilter(item.value)} aria-pressed={filter === item.value} className={`min-h-12 shrink-0 rounded-xl px-4 text-[15px] font-semibold ${filter === item.value ? 'bg-[#EAF0FF] text-[#004AFE]' : 'bg-[#F1F5F9] text-[#475569]'}`}>{item.label}</button>)}
+        </div>
+      </header>
 
-      {/* Tabs */}
-      <div className="bg-white px-5 pb-3 border-b border-[#F1F5F9]">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1 pb-0.5">
-          {TABS.map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className={`px-4 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.value
-                  ? 'bg-[#004AFE] text-white'
-                  : 'bg-[#F1F5F9] text-[#64748B]'
-              }`}
-            >
-              {tab.label}
-            </button>
+      <section className="px-5 py-5">
+        {templatesQuery.isPending && <StateView state="loading" title="Cargando plantillas" />}
+        {templatesQuery.isError && <StateView state="error" title="No pudimos cargar tus plantillas" description="Tus mensajes siguen guardados. Revisa tu conexión e intenta de nuevo." actionLabel="Intentar de nuevo" onAction={() => templatesQuery.refetch()} />}
+        {!templatesQuery.isPending && !templatesQuery.isError && visibleTemplates.length === 0 && <StateView state="empty" title="No encontramos plantillas" description="Prueba otro filtro o crea tu propio mensaje." actionLabel="Crear plantilla" onAction={() => navigate(`${createPageUrl('EditTemplate')}?new=1`)} />}
+
+        <div className="space-y-3">
+          {visibleTemplates.map(template => (
+            <article key={template.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm">
+              <button type="button" onClick={() => navigate(`${createPageUrl('EditTemplate')}?id=${encodeURIComponent(template.id)}`)} className="block min-h-16 w-full rounded-xl text-left focus-visible:ring-2 focus-visible:ring-[#004AFE]">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-lg bg-[#F1F5F9] px-2.5 py-1 text-[15px] font-semibold text-[#475569]">{situationLabel(template)}</span>
+                  {template.is_default && <span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[15px] font-semibold text-amber-700"><Star className="h-4 w-4 fill-current" /> Predeterminada</span>}
+                </span>
+                <span className="mt-2 block text-[17px] font-bold text-[#0F172A]">{template.name}</span>
+                <span className="mt-1 block line-clamp-2 text-[15px] leading-6 text-[#64748B]">{template.content}</span>
+              </button>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => navigate(`${createPageUrl('EditTemplate')}?id=${encodeURIComponent(template.id)}`)} className="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-[#F1F5F9] px-2 text-[15px] font-semibold text-[#334155]"><Pencil className="h-4 w-4" /> Editar</button>
+                <button type="button" disabled={duplicateMutation.isPending} onClick={() => duplicateMutation.mutate(template)} className="flex min-h-12 items-center justify-center gap-1 rounded-xl bg-[#F1F5F9] px-2 text-[15px] font-semibold text-[#334155] disabled:opacity-50"><Copy className="h-4 w-4" /> Duplicar</button>
+                <button type="button" disabled={template.is_default || defaultMutation.isPending} onClick={() => defaultMutation.mutate(template)} className="flex min-h-12 items-center justify-center gap-1 rounded-xl border border-[#D7E1F0] bg-white px-2 text-[15px] font-semibold text-[#004AFE] disabled:opacity-50"><Star className="h-4 w-4" /> Usar</button>
+              </div>
+            </article>
           ))}
         </div>
-      </div>
-
-      {/* Sections */}
-      <div className="px-5 py-5 space-y-6">
-        {visibleSections.map(sec => {
-          const sectionTemplates = bySection[sec.id] || [];
-          if (sectionTemplates.length === 0) return null;
-
-          return (
-            <div key={sec.id}>
-              {/* Section header */}
-              <div className="mb-3">
-                <h2 className="text-[15px] font-bold text-[#0F172A]">{sec.label}</h2>
-                <p className="text-[12px] text-[#94A3B8] mt-0.5">{sec.description}</p>
-              </div>
-
-              {/* Template cards */}
-              <div className="space-y-2.5">
-                {sectionTemplates.map(template => {
-                  const tone = TONE_BADGE[template.tone] || TONE_BADGE.general;
-                  return (
-                    <div
-                      key={template.id}
-                      className="bg-white rounded-2xl p-4 border border-[#E2E8F0]"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${tone.bg} ${tone.text}`}
-                          >
-                            {tone.label}
-                          </span>
-                          <h3 className="text-[14px] font-semibold text-[#0F172A]">
-                            {template.name}
-                          </h3>
-                        </div>
-                        <button
-                          onClick={() => handleEdit(template)}
-                          className="w-8 h-8 flex items-center justify-center shrink-0 rounded-full bg-[#F8FAFC] active:scale-95 transition-transform"
-                        >
-                          <Pencil className="w-4 h-4 text-[#64748B]" />
-                        </button>
-                      </div>
-                      <p className="text-[13px] text-[#64748B] line-clamp-2 leading-relaxed">
-                        {template.content}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-
-        {visibleSections.every(sec => !bySection[sec.id]?.length) && (
-          <div className="text-center py-12">
-            <p className="text-[#94A3B8] text-sm">No hay plantillas en esta sección</p>
-          </div>
-        )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

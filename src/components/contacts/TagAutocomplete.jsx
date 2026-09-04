@@ -1,134 +1,161 @@
-import { useState, useRef, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, X } from 'lucide-react';
 import { db } from '@/api/db';
-import { X, Plus } from 'lucide-react';
+
+function normalize(value = '') {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es-419')
+    .trim();
+}
 
 export default function TagAutocomplete({ selectedTagIds = [], onChange }) {
   const queryClient = useQueryClient();
+  const rootRef = useRef(null);
+  const textInputRef = useRef(null);
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const inputRef = useRef(null);
 
-  const { data: tags = [] } = useQuery({
+  const tagsQuery = useQuery({
     queryKey: ['tags'],
-    queryFn: () => db.Tag.list()
+    queryFn: () => db.Tag.list(),
   });
+  const tags = tagsQuery.data ?? [];
 
   const createTagMutation = useMutation({
-    mutationFn: (data) => db.Tag.create(data),
+    mutationFn: /** @param {string} name */ (name) => db.Tag.create({ name, category: 'condition' }),
     onSuccess: (newTag) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
       onChange([...selectedTagIds, newTag.id]);
       setInputValue('');
       setIsOpen(false);
-    }
+      textInputRef.current?.focus();
+    },
   });
 
-  const selectedTags = tags.filter(t => selectedTagIds.includes(t.id));
-  const availableTags = tags.filter(t => !selectedTagIds.includes(t.id));
-  
-  const matchingTags = availableTags.filter(t => 
-    t.name.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  const selectedTags = tags.filter((tag) => selectedTagIds.includes(tag.id));
+  const matchingTags = useMemo(() => {
+    const term = normalize(inputValue);
+    return tags.filter((tag) => (
+      !selectedTagIds.includes(tag.id) && (!term || normalize(tag.name).includes(term))
+    ));
+  }, [inputValue, selectedTagIds, tags]);
+  const exactMatch = tags.some((tag) => normalize(tag.name) === normalize(inputValue));
 
-  const exactMatch = matchingTags.some(t => 
-    t.name.toLowerCase() === inputValue.toLowerCase()
-  );
+  useEffect(() => {
+    const closeOnOutsideClick = (event) => {
+      if (!rootRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
+  }, []);
 
-  const handleAddTag = (tagId) => {
+  const addTag = (tagId) => {
     onChange([...selectedTagIds, tagId]);
     setInputValue('');
     setIsOpen(false);
-    inputRef.current?.focus();
+    textInputRef.current?.focus();
   };
 
-  const handleRemoveTag = (tagId) => {
-    onChange(selectedTagIds.filter(id => id !== tagId));
+  const createTag = () => {
+    const name = inputValue.trim();
+    if (name) createTagMutation.mutate(name);
   };
-
-  const handleCreateTag = () => {
-    if (!inputValue.trim()) return;
-    createTagMutation.mutate({
-      name: inputValue.trim(),
-      category: 'condition'
-    });
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (inputRef.current && !inputRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
-    <div className="relative" ref={inputRef}>
-      {/* Selected Tags */}
+    <div className="relative" ref={rootRef}>
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {selectedTags.map(tag => (
-            <div
-              key={tag.id}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EEF2FF] text-[#004AFE] text-[12px] font-medium"
-            >
+        <ul className="mb-3 flex flex-wrap gap-2" aria-label="Etiquetas seleccionadas">
+          {selectedTags.map((tag) => (
+            <li key={tag.id} className="inline-flex min-h-12 items-center gap-1 rounded-2xl bg-primary/10 pl-3 text-[15px] font-medium text-primary">
               <span>{tag.name}</span>
               <button
-                onClick={() => handleRemoveTag(tag.id)}
-                className="hover:bg-[#004AFE]/20 rounded-full p-0.5 transition-colors"
+                type="button"
+                onClick={() => onChange(selectedTagIds.filter((id) => id !== tag.id))}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl outline-none hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={`Quitar etiqueta ${tag.name}`}
               >
-                <X className="w-3.5 h-3.5" />
+                <X aria-hidden="true" className="h-5 w-5" />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      {/* Input */}
       <input
+        ref={textInputRef}
         type="text"
+        autoComplete="off"
         value={inputValue}
-        onChange={(e) => {
-          setInputValue(e.target.value);
+        onChange={(event) => {
+          setInputValue(event.target.value);
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        placeholder="Agregar etiquetas..."
-        className="w-full h-11 px-4 rounded-full border border-[#E2E8F0] text-[15px] placeholder:text-[#94A3B8] focus:border-[#004AFE] focus:outline-none focus:ring-2 focus:ring-[#004AFE]/20 transition-all"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setIsOpen(false);
+          if (event.key === 'Enter' && inputValue.trim() && !exactMatch) {
+            event.preventDefault();
+            createTag();
+          }
+        }}
+        placeholder="Escribe para buscar o crear"
+        className="h-14 w-full rounded-2xl border border-border bg-card px-4 text-[17px] text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+        role="combobox"
+        aria-label="Agregar etiquetas"
+        aria-expanded={isOpen}
+        aria-controls="tag-options"
+        aria-autocomplete="list"
       />
 
-      {/* Dropdown */}
-      {isOpen && (inputValue || matchingTags.length > 0) && (
-        <div className="absolute z-10 w-full mt-2 bg-white rounded-xl border border-[#E2E8F0] shadow-lg max-h-60 overflow-y-auto">
-          {/* Matching tags */}
-          {matchingTags.map(tag => (
+      {tagsQuery.isError && (
+        <div className="mt-2 flex items-center justify-between gap-3 text-[15px]" role="alert">
+          <span className="text-destructive">No pudimos cargar las etiquetas.</span>
+          <button type="button" onClick={() => tagsQuery.refetch()} className="min-h-12 rounded-xl px-3 font-semibold text-primary">
+            Reintentar
+          </button>
+        </div>
+      )}
+      {createTagMutation.isError && (
+        <p className="mt-2 text-[15px] text-destructive" role="alert">
+          No pudimos crear la etiqueta. Lo que escribiste sigue aquí.
+        </p>
+      )}
+
+      {isOpen && !tagsQuery.isError && (
+        <div
+          id="tag-options"
+          role="listbox"
+          className="absolute z-40 mt-2 max-h-64 w-full overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-xl"
+        >
+          {tagsQuery.isPending && <p className="px-4 py-4 text-[15px] text-muted-foreground">Cargando etiquetas…</p>}
+          {!tagsQuery.isPending && matchingTags.map((tag) => (
             <button
               key={tag.id}
-              onClick={() => handleAddTag(tag.id)}
-              className="w-full text-left px-4 py-3 hover:bg-[#F8FAFC] text-[15px] text-[#0F172A] border-b border-[#F1F5F9] last:border-b-0 transition-colors"
+              type="button"
+              role="option"
+              aria-selected="false"
+              onClick={() => addTag(tag.id)}
+              className="min-h-12 w-full rounded-xl px-4 text-left text-[17px] text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
             >
               {tag.name}
             </button>
           ))}
-
-          {/* Create new tag option */}
-          {inputValue && !exactMatch && (
+          {!tagsQuery.isPending && inputValue.trim() && !exactMatch && (
             <button
-              onClick={handleCreateTag}
+              type="button"
+              onClick={createTag}
               disabled={createTagMutation.isPending}
-              className="w-full text-left px-4 py-3 hover:bg-[#F8FAFC] text-[15px] flex items-center gap-2 text-[#004AFE] font-medium transition-colors"
+              className="flex min-h-12 w-full items-center gap-2 rounded-xl px-4 text-left text-[17px] font-semibold text-primary outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
-              <Plus className="w-4 h-4" />
-              Crear "{inputValue}"
+              <Plus aria-hidden="true" className="h-5 w-5" />
+              {createTagMutation.isPending ? 'Creando…' : `Crear “${inputValue.trim()}”`}
             </button>
           )}
-
-          {matchingTags.length === 0 && !inputValue && (
-            <div className="px-4 py-3 text-[13px] text-[#64748B]">
-              Escribe para buscar o crear etiquetas
-            </div>
+          {!tagsQuery.isPending && !inputValue.trim() && matchingTags.length === 0 && (
+            <p className="px-4 py-4 text-[15px] text-muted-foreground">Todavía no hay etiquetas.</p>
           )}
         </div>
       )}

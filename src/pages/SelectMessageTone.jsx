@@ -1,157 +1,194 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Clipboard, MessageCircle } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { whatsappUrl } from '@/lib/phone';
+import { orderTemplatesForTask, resolveTemplateForTask } from '@/lib/templateResolution';
+import StateView from '@/components/ui/StateView';
+import { Button } from '@/components/ui/button';
 
 const toneLabels = {
   general: 'General',
   amigable: 'Amigable',
-  directo: 'Directo'
+  directo: 'Directo',
 };
+
+function fillTemplate(content, contact, product) {
+  return (content || '')
+    .replace(/\{\{contact\.full_name\}\}/g, contact?.full_name || '')
+    .replace(/\{\{product\.name\}\}/g, product?.name || '')
+    .replace(/\{\{product\.link_URL\}\}/g, product?.link_url || '')
+    .replace(/\{\{product\.link_url\}\}/g, product?.link_url || '');
+}
 
 export default function SelectMessageTone() {
   const navigate = useNavigate();
-  const urlParams = new URLSearchParams(window.location.search);
-  const taskId = urlParams.get('taskId');
-  
-  const [selectedTone, setSelectedTone] = useState(null);
-  const [task, setTask] = useState(null);
-  const [contact, setContact] = useState(null);
-  const [product, setProduct] = useState(null);
-  const [templates, setTemplates] = useState([]);
+  const [searchParams] = useSearchParams();
+  const taskId = searchParams.get('taskId');
+  const [selectedTone, setSelectedTone] = useState('general');
+  const [copyStatus, setCopyStatus] = useState('');
+  const [editedMessage, setEditedMessage] = useState('');
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => db.Task.list()
-  });
+  const taskQuery = useQuery({ queryKey: ['tasks'], queryFn: () => db.Task.list() });
+  const contactQuery = useQuery({ queryKey: ['contacts'], queryFn: () => db.Contact.list() });
+  const productQuery = useQuery({ queryKey: ['products'], queryFn: () => db.Product.list() });
+  const templateQuery = useQuery({ queryKey: ['templates'], queryFn: () => db.Template.list() });
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: () => db.Contact.list()
-  });
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => db.Product.list()
-  });
-
-  const { data: allTemplates = [] } = useQuery({
-    queryKey: ['templates'],
-    queryFn: () => db.Template.list()
-  });
+  const task = taskQuery.data?.find(item => String(item.id) === String(taskId));
+  const contact = contactQuery.data?.find(item => item.id === task?.contact_id);
+  const product = productQuery.data?.find(item => item.id === task?.product_id);
+  const templates = useMemo(
+    () => task ? orderTemplatesForTask(templateQuery.data || [], task, contact) : [],
+    [contact, task, templateQuery.data],
+  );
+  const toneOptions = useMemo(
+    () => [...new Set(templates.map(template => template.tone || 'general'))],
+    [templates],
+  );
+  const selectedTemplate = resolveTemplateForTask(templates, task, contact, selectedTone);
+  const message = fillTemplate(selectedTemplate?.content, contact, product);
+  const phoneIsVerified = /^\+\d{8,15}$/.test(String(contact?.phone || ''));
+  const needsProductLink = selectedTemplate?.content?.includes('{{product.link_') && !product?.link_url;
+  const isLoading = taskQuery.isLoading || contactQuery.isLoading || productQuery.isLoading || templateQuery.isLoading;
+  const hasError = taskQuery.isError || contactQuery.isError || productQuery.isError || templateQuery.isError;
 
   useEffect(() => {
-    if (taskId && tasks.length > 0) {
-      const foundTask = tasks.find(t => t.id === taskId);
-      setTask(foundTask);
-      
-      if (foundTask) {
-        const foundContact = contacts.find(c => c.id === foundTask.contact_id);
-        const foundProduct = products.find(p => p.id === foundTask.product_id);
-        setContact(foundContact);
-        setProduct(foundProduct);
+    const preferredTone = templates[0]?.tone || toneOptions[0];
+    if (preferredTone) setSelectedTone(preferredTone);
+  }, [taskId, templates[0]?.id, templates[0]?.tone, toneOptions[0]]);
 
-        // Filter templates by category and template_subcategory (or subcategory as fallback)
-        const templateSubcat = foundTask.template_subcategory || foundTask.subcategory;
-        const matchingTemplates = allTemplates.filter(
-          t => t.category === foundTask.category && t.subcategory === templateSubcat
-        );
-        setTemplates(matchingTemplates);
-      }
+  useEffect(() => {
+    if (!taskId || !selectedTemplate?.id || !message) return;
+    const key = `zynergia:message-draft:${taskId}`;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(key) || '{}');
+      setEditedMessage(saved.templateId === selectedTemplate.id ? saved.message : message);
+    } catch {
+      setEditedMessage(message);
     }
-  }, [taskId, tasks, contacts, products, allTemplates]);
+  }, [message, selectedTemplate?.id, taskId]);
 
-  const replaceVariables = (content) => {
-    if (!content) return '';
-    return content
-      .replace(/\{\{contact\.full_name\}\}/g, contact?.full_name || '')
-      .replace(/\{\{product\.name\}\}/g, product?.name || '')
-      .replace(/\{\{product\.link_URL\}\}/g, product?.link_url || '')
-      .replace(/\{\{product\.link_url\}\}/g, product?.link_url || '');
-  };
+  const goBack = () => window.history.length > 1 ? navigate(-1) : navigate(createPageUrl('Tasks'));
+  const retry = () => Promise.all([
+    taskQuery.refetch(),
+    contactQuery.refetch(),
+    productQuery.refetch(),
+    templateQuery.refetch(),
+  ]);
 
-  const handleSelectTone = (template) => {
-    setSelectedTone(template.tone);
-    
-    // Replace variables and open WhatsApp
-    const message = replaceVariables(template.content);
-    const phone = contact?.phone?.replace(/\D/g, '') || '';
-    
-    if (phone && message) {
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(editedMessage);
+      setCopyStatus('Mensaje copiado.');
+    } catch {
+      setCopyStatus('No se pudo copiar. Mantén presionado el mensaje para seleccionarlo.');
     }
   };
 
-  const formatTitle = () => {
-    if (!task) return '';
-    if (task.task_name) return task.task_name;
-
-    const categoryLabels = {
-      seguimiento: 'Seguimiento',
-      recompra: 'Recompra',
-      reactivacion: 'Reactivación'
-    };
-
-    const subcategoryFormatted = (task.template_subcategory || task.subcategory)
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-
-    return `${categoryLabels[task.category]} – ${subcategoryFormatted}`;
+  const openWhatsApp = () => {
+    const url = phoneIsVerified && !needsProductLink ? whatsappUrl(contact.phone, editedMessage) : '';
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  if (!task || !contact) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#6E6E73]">Cargando...</p>
-      </div>
-    );
+  const updateMessage = value => {
+    setEditedMessage(value);
+    setCopyStatus('');
+    if (!taskId || !selectedTemplate?.id) return;
+    sessionStorage.setItem(`zynergia:message-draft:${taskId}`, JSON.stringify({ templateId: selectedTemplate.id, message: value }));
+  };
+
+  if (isLoading) {
+    return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="loading" title="Preparando tu mensaje" description="Estamos reuniendo la tarea y el contacto." /></main>;
+  }
+
+  if (hasError) {
+    return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="error" title="No pudimos preparar el mensaje" description="Tus datos siguen guardados. Revisa tu conexión e intenta de nuevo." actionLabel="Intentar de nuevo" onAction={retry} /></main>;
+  }
+
+  if (!taskId || !task || !contact) {
+    return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="error" title="Esta tarea ya no está disponible" description="Vuelve a Hoy para elegir otra tarea." actionLabel="Volver a Hoy" onAction={() => navigate(createPageUrl('Tasks'), { replace: true })} /></main>;
+  }
+
+  if (!templates.length || !message) {
+    return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="error" title="Falta el mensaje de esta tarea" description="La tarea sigue guardada. Revisa tus plantillas y vuelve a intentarlo." actionLabel="Abrir plantillas" onAction={() => navigate(createPageUrl('Templates'))} /></main>;
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center justify-between">
-        <button
-          onClick={() => navigate(createPageUrl('Tasks'))}
-          className="w-10 h-10 flex items-center justify-center -ml-2"
-        >
-          <ArrowLeft className="w-6 h-6 text-[#27251f]" />
+    <main className="min-h-dvh bg-slate-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <header className="border-b border-slate-100 bg-white px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <button type="button" onClick={goBack} className="flex min-h-12 items-center gap-2 rounded-2xl pr-3 text-[17px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <span className="flex h-12 w-12 items-center justify-center"><ArrowLeft className="h-6 w-6" aria-hidden="true" /></span>
+          Volver
         </button>
-        <h1 className="text-lg font-semibold text-[#27251f]">{formatTitle()}</h1>
-        <div className="w-10" />
-      </div>
+      </header>
 
-      <div className="px-5 space-y-3 pb-6">
-        {templates.map(template => (
-          <div
-            key={template.id}
-            onClick={() => handleSelectTone(template)}
-            className={`bg-white rounded-2xl p-5 border-2 cursor-pointer transition-all ${
-              selectedTone === template.tone
-                ? 'border-[#004afe] shadow-lg'
-                : 'border-[#EAEAEA] hover:border-[#CBD5E1]'
-            }`}
-          >
-            <h3 className="text-[15px] font-semibold text-[#27251f] mb-3">
-              {toneLabels[template.tone]}
-            </h3>
-            <p className="text-[14px] text-[#64748B] leading-relaxed whitespace-pre-wrap">
-              {replaceVariables(template.content)}
-            </p>
-          </div>
-        ))}
+      <section className="mx-auto max-w-lg px-5 py-6">
+        <p className="text-[15px] font-semibold text-primary">Mensaje para {contact.full_name}</p>
+        <h1 className="mt-1 text-2xl font-bold leading-tight">{task.task_name || 'Seguimiento'}</h1>
+        {product && <p className="mt-2 text-[15px] text-muted-foreground">Producto: {product.name}</p>}
 
-        {templates.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-[#6E6E73] text-sm">
-              No hay plantillas disponibles para esta tarea
-            </p>
+        <fieldset className="mt-6">
+          <legend className="mb-3 text-[16px] font-bold">Elige cómo quieres decirlo</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {toneOptions.map(tone => (
+              <button
+                key={tone}
+                type="button"
+                onClick={() => { setSelectedTone(tone); setCopyStatus(''); }}
+                aria-pressed={selectedTone === tone}
+                className={`min-h-12 rounded-2xl px-2 text-[15px] font-bold ${selectedTone === tone ? 'bg-primary text-white' : 'bg-white text-muted-foreground shadow-sm'}`}
+              >
+                {toneLabels[tone] || tone}
+              </button>
+            ))}
           </div>
+        </fieldset>
+
+        <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <label htmlFor="outgoing-message" className="mb-2 block text-[15px] font-bold text-muted-foreground">REVISA EL MENSAJE</label>
+          <textarea
+            id="outgoing-message"
+            value={editedMessage}
+            onChange={event => updateMessage(event.target.value)}
+            className="min-h-44 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[17px] leading-relaxed text-slate-950 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Los cambios son sólo para este envío. La plantilla original no cambia.</p>
+        </div>
+
+        {needsProductLink && (
+          <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-[15px] leading-relaxed text-amber-950" role="status">
+            Este producto todavía no tiene enlace. Agrégalo para evitar enviar un mensaje incompleto.
+          </p>
         )}
-      </div>
-    </div>
+        {needsProductLink && product && (
+          <Button type="button" size="lg" variant="outline" className="mt-3 w-full bg-white" onClick={() => navigate(createPageUrl(`EditProduct?id=${product.id}`))}>
+            Agregar enlace del producto
+          </Button>
+        )}
+        {!phoneIsVerified && (
+          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-[15px] leading-relaxed text-red-800" role="alert">
+            El teléfono de {contact.full_name} no tiene un código de país confirmado. Corrígelo antes de abrir WhatsApp.
+          </p>
+        )}
+        {copyStatus && <p className="mt-4 text-[15px] font-semibold text-primary" role="status">{copyStatus}</p>}
+
+        <div className="mt-6 space-y-3">
+          <Button type="button" size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={!phoneIsVerified || needsProductLink || !editedMessage.trim()} onClick={openWhatsApp}>
+            <MessageCircle aria-hidden="true" /> Abrir WhatsApp
+          </Button>
+          <Button type="button" size="lg" variant="outline" className="w-full bg-white" onClick={copyMessage}>
+            <Clipboard aria-hidden="true" /> Copiar mensaje
+          </Button>
+          {!phoneIsVerified && (
+            <Button type="button" size="lg" variant="outline" className="w-full bg-white" onClick={() => navigate(createPageUrl(`EditContact?id=${contact.id}`))}>
+              Agregar teléfono
+            </Button>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }

@@ -39,16 +39,16 @@ export async function runNotificationEngine({ userId, tasks, sales, products, pa
     const start = new Date(sorted[0].start_date);
     const deadline = new Date(start);
     deadline.setDate(deadline.getDate() + 120);
-    daysRemaining = Math.max(0, Math.floor((deadline - new Date()) / 86400000));
+    daysRemaining = Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 86400000));
   }
 
   // ── A) Q-Team en riesgo ────────────────────────────────────────────────────
   if (activePremierClients < 4 && partnersCount > 0) {
-    const title = 'Estás en riesgo de perder tu bono';
+    const title = 'Revisa el avance de tu equipo';
     if (!alreadyNotifiedToday(existing, title)) {
       await createNotif({
         title,
-        body: 'Tienes menos de 4 clientes activos. Debes mantener mínimo 4.',
+        body: 'Hay una meta de seguimiento que necesita tu atención. Revisa el tablero antes de continuar.',
         type: 'danger',
         related_entity_type: 'dashboard'
       });
@@ -57,33 +57,33 @@ export async function runNotificationEngine({ userId, tasks, sales, products, pa
 
   // ── B) Te falta poco ──────────────────────────────────────────────────────
   if (activePremierClients === 3) {
-    const title = 'Te falta 1 cliente para cobrar tu bono Q-Team';
+    const title = 'Estás cerca de una meta';
     if (!notifiedWithinHours(existing, title, 48)) {
       await createNotif({
         title,
-        body: 'Estás a 1 cliente de desbloquear el bono Q-Team.',
+        body: 'Revisa el progreso y define la siguiente acción con tu equipo.',
         type: 'warning',
         related_entity_type: 'dashboard'
       });
     }
   }
   if (partnersCount === 1) {
-    const title = 'Te falta 1 partner para cobrar tu bono Nivel 1';
+    const title = 'Tu equipo está avanzando';
     if (!notifiedWithinHours(existing, title, 48)) {
       await createNotif({
         title,
-        body: 'Agrega 1 partner más para desbloquear el bono FS Nivel 1.',
+        body: 'Revisa el tablero y prepara el siguiente seguimiento.',
         type: 'warning',
         related_entity_type: 'dashboard'
       });
     }
   }
   if (activePremierClients === 9) {
-    const title = 'Te falta 1 cliente para cobrar tu bono X-Team';
+    const title = 'Estás cerca de una meta de equipo';
     if (!notifiedWithinHours(existing, title, 48)) {
       await createNotif({
         title,
-        body: 'Estás a 1 cliente de desbloquear el bono X-Team.',
+        body: 'Revisa el progreso antes de comunicar cualquier resultado.',
         type: 'warning',
         related_entity_type: 'dashboard'
       });
@@ -96,7 +96,7 @@ export async function runNotificationEngine({ userId, tasks, sales, products, pa
     if (!alreadyNotifiedToday(existing, title)) {
       await createNotif({
         title,
-        body: `Te quedan ${daysRemaining} día${daysRemaining > 1 ? 's' : ''} para completar tus bonos.`,
+        body: `Te quedan ${daysRemaining} día${daysRemaining > 1 ? 's' : ''} para revisar las metas configuradas.`,
         type: 'warning',
         related_entity_type: 'dashboard'
       });

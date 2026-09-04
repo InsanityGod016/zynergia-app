@@ -1,12 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
-import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ArrowLeft, Trash2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import TagAutocomplete from '@/components/contacts/TagAutocomplete';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -19,166 +16,408 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  cancelFutureTasksByArea,
+  createPartnerTasks,
+  createProspectoPartnerTasks,
+  createProspectoProductoTasks,
+  createReferralTask,
+} from '@/components/tasks/taskEngine';
+import PhoneField from '@/components/contacts/PhoneField';
+import { normalizePhone, splitPhone } from '@/lib/phone';
+
+/**
+ * @typedef {{
+ *   full_name: string,
+ *   phone: string,
+ *   country_code: string,
+ *   notes: string,
+ *   tag_ids: string[],
+ *   contact_type: string,
+ * }} ContactForm
+ */
+
+/** @type {ContactForm} */
+const emptyForm = {
+  full_name: '',
+  phone: '',
+  country_code: '+52',
+  notes: '',
+  tag_ids: [],
+  contact_type: '',
+};
+
+function formFromContact(contact) {
+  const parsedPhone = splitPhone(contact.phone, contact.country_code || '+52');
+  return {
+    full_name: contact.full_name || '',
+    phone: parsedPhone.nationalNumber,
+    country_code: parsedPhone.dialCode,
+    notes: contact.notes || '',
+    tag_ids: contact.tag_ids || [],
+    contact_type: contact.contact_type || '',
+  };
+}
+
+function EditState(/** @type {{ title: string, description: string, actionLabel?: string, onAction?: () => unknown, onBack: () => void }} */ {
+  title,
+  description,
+  actionLabel,
+  onAction,
+  onBack,
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-5">
+        <button type="button" onClick={onBack} className="flex min-h-12 items-center gap-2 rounded-2xl pr-3 text-[17px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <span className="flex h-12 w-12 items-center justify-center"><ArrowLeft aria-hidden="true" className="h-6 w-6" /></span>
+          Volver
+        </button>
+      </header>
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-6 text-center" role="status">
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <p className="mt-2 text-[17px] leading-7 text-muted-foreground">{description}</p>
+        {onAction && (
+          <button type="button" onClick={onAction} className="mt-6 min-h-14 rounded-2xl bg-primary px-6 text-[17px] font-semibold text-primary-foreground">
+            {actionLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function EditContact() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const params = new URLSearchParams(window.location.search);
-  const contactId = params.get('id');
+  const [searchParams] = useSearchParams();
+  const contactId = searchParams.get('id');
+  const [formData, setFormData] = useState(emptyForm);
+  const [initialForm, setInitialForm] = useState(null);
+  const [initializedContactId, setInitializedContactId] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState(/** @type {Record<string, string>} */ ({}));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    notes: '',
-    tag_ids: [],
-    contact_type: 'prospecto_producto'
-  });
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
-  const { data: contact } = useQuery({
+  const contactQuery = useQuery({
     queryKey: ['contact', contactId],
     queryFn: () => db.Contact.filter({ id: contactId }),
-    select: (data) => data[0]
+    select: (data) => data[0],
+    enabled: Boolean(contactId),
   });
+  const contact = contactQuery.data;
 
   useEffect(() => {
-    if (contact) {
-      setFormData({
-        full_name: contact.full_name || '',
-        phone: contact.phone || '',
-        notes: contact.notes || '',
-        tag_ids: contact.tag_ids || [],
-        contact_type: contact.contact_type || 'prospecto_producto'
-      });
+    if (contact && initializedContactId !== contactId) {
+      const nextForm = formFromContact(contact);
+      setFormData(nextForm);
+      setInitialForm(nextForm);
+      setInitializedContactId(contactId);
+      setFieldErrors({});
     }
-  }, [contact]);
+  }, [contact, contactId, initializedContactId]);
+
+  const isDirty = useMemo(
+    () => Boolean(initialForm) && JSON.stringify(formData) !== JSON.stringify(initialForm),
+    [formData, initialForm],
+  );
+
+  useEffect(() => {
+    const warnBeforeUnload = (event) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [isDirty]);
+
+  const detailUrl = createPageUrl(`ContactDetail?id=${contactId}`);
+  const leaveEditor = useCallback(() => {
+    if (location.key && location.key !== 'default') navigate(-1);
+    else navigate(detailUrl, { replace: true });
+  }, [detailUrl, location.key, navigate]);
+  const requestLeave = useCallback(() => {
+    if (isDirty) setShowDiscardDialog(true);
+    else leaveEditor();
+  }, [isDirty, leaveEditor]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('zynergia:dirty-state', { detail: { dirty: isDirty } }));
+  }, [isDirty]);
+
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('zynergia:dirty-state', { detail: { dirty: false } }));
+  }, []);
+
+  useEffect(() => {
+    const handleBackRequest = () => requestLeave();
+    window.addEventListener('zynergia:request-back', handleBackRequest);
+    return () => window.removeEventListener('zynergia:request-back', handleBackRequest);
+  }, [requestLeave]);
+
+  const setField = (name, value) => {
+    setFormData((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => ({ ...current, [name]: '' }));
+  };
 
   const updateMutation = useMutation({
-    mutationFn: (data) => db.Contact.update(contactId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['contact', contactId] });
-      navigate(createPageUrl(`ContactDetail?id=${contactId}`));
-    }
+    mutationFn: async (/** @type {ContactForm} */ data) => {
+      const previousType = contact?.contact_type || null;
+      const newType = data.contact_type || null;
+      await db.Contact.update(contactId, { ...data, contact_type: newType });
+      if (newType === previousType) return;
+
+      const existingTasks = await db.Task.list();
+      if (previousType === 'prospecto_produto' || previousType === 'prospecto_producto') {
+        await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_producto', existingTasks });
+      }
+      if (previousType === 'prospecto_partner') {
+        await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_partner', existingTasks });
+      }
+      if (!newType) {
+        await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_producto', existingTasks });
+        await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_partner', existingTasks });
+      }
+      if (newType === 'prospecto_producto') {
+        await createProspectoProductoTasks({ contactId, existingTasks: await db.Task.list() });
+      }
+      if (newType === 'prospecto_partner') {
+        await createProspectoPartnerTasks({ contactId, existingTasks: await db.Task.list() });
+      }
+      if (newType === 'partner') {
+        const partners = await db.Partner.list();
+        if (!partners.some((partner) => partner.contact_id === contactId)) {
+          const startDate = new Date().toISOString().split('T')[0];
+          const deadline = new Date();
+          deadline.setDate(deadline.getDate() + 120);
+          await db.Partner.create({
+            contact_id: contactId,
+            start_date: startDate,
+            fast_start_deadline: deadline.toISOString().split('T')[0],
+            fast_start_status: 'activo',
+            fase_actual: 1,
+            qteam_completed: false,
+            fs_level1_completed: false,
+            fs_level2_completed: false,
+            xteam_completed: false,
+          });
+          await createPartnerTasks({ contactId, startDate });
+        }
+      }
+      if (newType === 'cliente_producto' || newType === 'partner') {
+        await createReferralTask({
+          contactId,
+          contactCreatedAt: contact?.created_at,
+          existingTasks: await db.Task.list(),
+        });
+      }
+    },
+    onSuccess: async () => {
+      setInitialForm(formData);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['contact', contactId] }),
+        queryClient.invalidateQueries({ queryKey: ['partners'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+      ]);
+      navigate(detailUrl, { replace: true });
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => db.Contact.delete(contactId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      navigate(createPageUrl('Contacts'));
-    }
+    mutationFn: () => db.Contact.anonymize(contactId),
+    onSuccess: async () => {
+      setInitialForm(formData);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['partners'] }),
+        queryClient.invalidateQueries({ queryKey: ['sales'] }),
+      ]);
+      navigate(createPageUrl('Contacts'), { replace: true });
+    },
   });
 
-  const handleSubmit = () => {
-    if (!formData.full_name || !formData.phone) return;
-    updateMutation.mutate(formData);
+  const submit = (event) => {
+    event.preventDefault();
+    const errors = /** @type {Record<string, string>} */ ({});
+    if (!formData.full_name.trim()) errors.full_name = 'Escribe el nombre del contacto.';
+    const normalizedPhone = normalizePhone(formData.country_code, formData.phone);
+    if (!normalizedPhone.valid) errors.phone = 'Revisa el número y el código de país.';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    updateMutation.mutate({
+      ...formData,
+      full_name: formData.full_name.trim(),
+      phone: normalizedPhone.e164,
+      notes: formData.notes.trim(),
+    });
   };
 
+  if (!contactId) {
+    return <EditState title="No encontramos este contacto" description="El enlace está incompleto." actionLabel="Volver a contactos" onAction={() => navigate(createPageUrl('Contacts'), { replace: true })} onBack={() => navigate(createPageUrl('Contacts'), { replace: true })} />;
+  }
+  if (contactQuery.isError) {
+    return <EditState title="No pudimos abrir el contacto" description="Revisa tu conexión. Tus datos siguen seguros." actionLabel="Intentar de nuevo" onAction={() => contactQuery.refetch()} onBack={requestLeave} />;
+  }
+  if (contactQuery.isPending) {
+    return <EditState title="Cargando contacto" description="Esto sólo tomará un momento." onBack={requestLeave} />;
+  }
+  if (!contact) {
+    return <EditState title="Contacto no disponible" description="Puede que haya sido eliminado o que este enlace ya no funcione." actionLabel="Volver a contactos" onAction={() => navigate(createPageUrl('Contacts'), { replace: true })} onBack={requestLeave} />;
+  }
+  if (!initialForm || initializedContactId !== contactId) {
+    return <EditState title="Preparando formulario" description="Esto sólo tomará un momento." onBack={requestLeave} />;
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={() => navigate(createPageUrl(`ContactDetail?id=${contactId}`))}
-            className="w-10 h-10 flex items-center justify-center -ml-2"
-          >
-            <ArrowLeft className="w-6 h-6 text-[#27251f]" />
-          </button>
-          <h1 className="text-lg font-semibold text-[#27251f] ml-2">Editar contacto</h1>
-        </div>
+    <div className="min-h-screen bg-background pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <header className="sticky top-0 z-20 flex items-center border-b border-border bg-background/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur sm:px-5">
         <button
-          onClick={() => setShowDeleteDialog(true)}
-          className="w-10 h-10 flex items-center justify-center -mr-2"
+          type="button"
+          onClick={requestLeave}
+          className="flex min-h-12 items-center gap-2 rounded-2xl pr-3 text-[17px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Volver al contacto"
         >
-          <Trash2 className="w-5 h-5 text-red-500" />
+          <span className="flex h-12 w-12 items-center justify-center"><ArrowLeft aria-hidden="true" className="h-6 w-6" /></span>
+          Volver
         </button>
-      </div>
+        <h1 className="ml-auto pr-2 text-xl font-bold text-foreground">Editar</h1>
+      </header>
 
-      <div className="px-5 space-y-5 pb-6">
+      <form id="edit-contact-form" onSubmit={submit} noValidate className="space-y-6 px-4 py-5 sm:px-5">
         <div>
-          <Label>Nombre completo</Label>
-          <Input
+          <label htmlFor="contact-name" className="block text-[15px] font-semibold text-foreground">Nombre completo</label>
+          <input
+            id="contact-name"
             value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            placeholder="Nombre del contacto"
-            className="mt-1.5 h-12 rounded-xl"
+            onChange={(event) => setField('full_name', event.target.value)}
+            autoComplete="name"
+            aria-invalid={Boolean(fieldErrors.full_name)}
+            aria-describedby={fieldErrors.full_name ? 'contact-name-error' : undefined}
+            className="mt-2 h-14 w-full rounded-2xl border border-border bg-card px-4 text-[17px] text-foreground outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
           />
+          {fieldErrors.full_name && <p id="contact-name-error" className="mt-2 text-[15px] text-destructive" role="alert">{fieldErrors.full_name}</p>}
         </div>
 
         <div>
-          <Label>Teléfono</Label>
-          <Input
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="+52 55 1234 5678"
-            className="mt-1.5 h-12 rounded-xl"
-          />
+          <label htmlFor="contact-phone" className="block text-[15px] font-semibold text-foreground">Teléfono</label>
+          <div className="mt-2">
+            <PhoneField
+              id="contact-phone"
+              dialCode={formData.country_code}
+              nationalNumber={formData.phone}
+              onDialCodeChange={value => setField('country_code', value)}
+              onNationalNumberChange={value => setField('phone', value)}
+              invalid={Boolean(fieldErrors.phone)}
+              describedBy={fieldErrors.phone ? 'contact-phone-error' : 'contact-phone-help'}
+            />
+          </div>
+          <p id="contact-phone-help" className="mt-2 text-[15px] text-muted-foreground">Confirma el país y el número antes de abrir WhatsApp.</p>
+          {fieldErrors.phone && <p id="contact-phone-error" className="mt-2 text-[15px] text-destructive" role="alert">{fieldErrors.phone}</p>}
         </div>
 
         <div>
-          <Label>Tipo de contacto</Label>
-          <Select
-            value={formData.contact_type}
-            onValueChange={(v) => setFormData({ ...formData, contact_type: v })}
-          >
-            <SelectTrigger className="mt-1.5 h-12 rounded-xl">
-              <SelectValue />
+          <label id="contact-type-label" className="block text-[15px] font-semibold text-foreground">Tipo de contacto</label>
+          <Select value={formData.contact_type || '__none__'} onValueChange={(value) => setField('contact_type', value === '__none__' ? '' : value)}>
+            <SelectTrigger aria-labelledby="contact-type-label" className="mt-2 h-14 rounded-2xl bg-card px-4 text-[17px]">
+              <SelectValue placeholder="Sin tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="prospecto_producto">Prospecto producto</SelectItem>
-              <SelectItem value="prospecto_partner">Prospecto partner</SelectItem>
-              <SelectItem value="cliente_producto">Cliente producto</SelectItem>
-              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="__none__" className="min-h-12 text-[17px]">Sin tipo</SelectItem>
+              <SelectItem value="prospecto_producto" className="min-h-12 text-[17px]">Prospecto de producto</SelectItem>
+              <SelectItem value="prospecto_partner" className="min-h-12 text-[17px]">Prospecto de negocio</SelectItem>
+              <SelectItem value="cliente_producto" className="min-h-12 text-[17px]">Cliente</SelectItem>
+              <SelectItem value="partner" className="min-h-12 text-[17px]">Socio</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
-          <Label>Etiquetas</Label>
-          <div className="mt-1.5">
-            <TagAutocomplete
-              selectedTagIds={formData.tag_ids}
-              onChange={(tagIds) => setFormData({ ...formData, tag_ids: tagIds })}
-            />
+          <label id="contact-tags-label" className="block text-[15px] font-semibold text-foreground">Etiquetas</label>
+          <div className="mt-2" aria-labelledby="contact-tags-label">
+            <TagAutocomplete selectedTagIds={formData.tag_ids} onChange={(tagIds) => setField('tag_ids', tagIds)} />
           </div>
         </div>
 
         <div>
-          <Label>Notas (opcional)</Label>
-          <Textarea
+          <label htmlFor="contact-notes" className="block text-[15px] font-semibold text-foreground">Notas <span className="font-normal text-muted-foreground">(opcional)</span></label>
+          <textarea
+            id="contact-notes"
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="Notas adicionales..."
-            className="mt-1.5 h-24 rounded-xl"
+            onChange={(event) => setField('notes', event.target.value)}
+            rows={5}
+            placeholder="Escribe algo que quieras recordar"
+            className="mt-2 min-h-32 w-full resize-y rounded-2xl border border-border bg-card px-4 py-3 text-[17px] leading-6 text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
           />
         </div>
 
+        {updateMutation.isError && (
+          <p className="rounded-2xl bg-destructive/5 p-4 text-[15px] leading-6 text-destructive" role="alert">
+            No pudimos terminar de guardar todos los cambios. Tus datos siguen aquí. Intenta de nuevo.
+          </p>
+        )}
+
+        <section className="border-t border-border pt-4" aria-labelledby="delete-contact-title">
+          <h2 id="delete-contact-title" className="text-[17px] font-semibold text-foreground">Administrar contacto</h2>
+          <button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            className="mt-2 min-h-12 rounded-xl px-3 text-left text-[17px] font-semibold text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+          >
+            Eliminar contacto
+          </button>
+          {deleteMutation.isError && <p className="mt-2 text-[15px] text-destructive" role="alert">No pudimos eliminarlo. Tus datos no cambiaron. Intenta de nuevo.</p>}
+        </section>
+      </form>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button
-          onClick={handleSubmit}
-          disabled={updateMutation.isPending || !formData.full_name || !formData.phone}
-          className="w-full h-12 bg-[#004afe] hover:bg-[#330077] text-white rounded-xl text-[15px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          type="submit"
+          form="edit-contact-form"
+          disabled={updateMutation.isPending || !isDirty}
+          className="mx-auto block min-h-14 w-full max-w-lg rounded-2xl bg-primary px-5 text-[17px] font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50"
         >
-          Guardar cambios
+          {updateMutation.isPending ? 'Guardando…' : isDirty ? 'Guardar cambios' : 'Sin cambios pendientes'}
         </button>
       </div>
 
-      {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar contacto?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminarán también todas las ventas asociadas.
+            <AlertDialogTitle className="text-xl">¿Salir sin guardar?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] leading-6">Los cambios que hiciste en este formulario se perderán.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="min-h-12 text-[15px]">Seguir editando</AlertDialogCancel>
+            <AlertDialogAction onClick={leaveEditor} className="min-h-12 text-[15px]">Salir sin guardar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => { if (!deleteMutation.isPending) setShowDeleteDialog(open); }}>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">¿Eliminar este contacto?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] leading-6">
+              Borraremos su nombre, teléfono, notas y tareas futuras. Las ventas históricas se conservarán sin datos personales como “Contacto eliminado”.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          {deleteMutation.isError && <p className="text-[15px] text-destructive" role="alert">No pudimos eliminarlo. Tus datos no cambiaron.</p>}
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="min-h-12 text-[15px]">Conservar contacto</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate()}
-              className="bg-red-500 hover:bg-red-600"
+              onClick={(event) => {
+                event.preventDefault();
+                deleteMutation.mutate();
+              }}
+              disabled={deleteMutation.isPending}
+              className="min-h-12 bg-destructive text-[15px] text-destructive-foreground hover:bg-destructive/90"
             >
-              Eliminar
+              {deleteMutation.isPending ? 'Eliminando…' : 'Eliminar contacto'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

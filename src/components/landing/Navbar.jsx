@@ -1,37 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Loader2 } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Automatizaciones', href: '#automatizaciones' },
-  { label: 'Fast Start', href: '#fast-start' },
+  { label: 'Equipo', href: '#fast-start' },
+  { label: 'Precio', href: '#precios' },
 ];
-
-async function startCheckout(setLoading) {
-  setLoading(true);
-  try {
-    const res = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: 'monthly' }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || 'Error al iniciar el pago. Intenta de nuevo.');
-    }
-  } catch {
-    alert('Error de conexión. Por favor intenta de nuevo.');
-  } finally {
-    setLoading(false);
-  }
-}
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -54,7 +33,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
 
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2.5">
+        <a href="/" className="flex items-center gap-2.5">
           <img
             src="/Zynergia%20Logo.png"
             alt="Zynergia"
@@ -87,21 +66,27 @@ export default function Navbar() {
         {/* CTA desktop */}
         <div className="hidden md:flex items-center gap-3">
           <a
-            href="/"
+            href="/app"
+            className={`text-sm font-medium transition-colors ${
+              scrolled ? 'text-[#64748B] hover:text-[#004AFE]' : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Descargar app
+          </a>
+          <a
+            href="/iniciar-sesion"
             className={`text-sm font-medium transition-colors ${
               scrolled ? 'text-[#64748B] hover:text-[#004AFE]' : 'text-white/70 hover:text-white'
             }`}
           >
             Iniciar sesión
           </a>
-          <button
-            onClick={() => startCheckout(setLoading)}
-            disabled={loading}
-            className="bg-[#004AFE] hover:bg-[#0039CC] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 disabled:opacity-70"
+          <a
+            href="/crear-cuenta"
+            className="bg-[#004AFE] hover:bg-[#0039CC] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors flex items-center gap-2"
           >
-            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            Suscribirme $17/mes
-          </button>
+            Crear cuenta
+          </a>
         </div>
 
         {/* Mobile hamburger */}
@@ -109,6 +94,8 @@ export default function Navbar() {
           className={`md:hidden transition-colors ${scrolled ? 'text-[#0F172A]' : 'text-white'}`}
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menú"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
         >
           {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -116,7 +103,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-5 py-4 flex flex-col gap-4">
+        <div id="mobile-navigation" className="md:hidden bg-white border-t border-gray-100 px-5 py-4 flex flex-col gap-4">
           {NAV_LINKS.map((link) => (
             <button
               key={link.href}
@@ -127,19 +114,25 @@ export default function Navbar() {
             </button>
           ))}
           <a
-            href="/"
+            href="/iniciar-sesion"
             className="text-sm font-medium text-[#64748B] hover:text-[#004AFE] transition-colors"
           >
             Iniciar sesión
           </a>
-          <button
-            onClick={() => { setMenuOpen(false); startCheckout(setLoading); }}
-            disabled={loading}
-            className="bg-[#004AFE] text-white text-sm font-semibold px-5 py-3 rounded-full text-center flex items-center justify-center gap-2 disabled:opacity-70"
+          <a
+            href="/app"
+            onClick={() => setMenuOpen(false)}
+            className="text-sm font-medium text-[#64748B] hover:text-[#004AFE] transition-colors"
           >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Suscribirme $17/mes
-          </button>
+            Descargar app
+          </a>
+          <a
+            href="/crear-cuenta"
+            onClick={() => setMenuOpen(false)}
+            className="bg-[#004AFE] text-white text-sm font-semibold px-5 py-3 rounded-full text-center flex items-center justify-center gap-2"
+          >
+            Crear cuenta — 17 USD/mes
+          </a>
         </div>
       )}
     </nav>

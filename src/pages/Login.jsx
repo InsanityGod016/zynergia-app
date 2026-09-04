@@ -1,38 +1,52 @@
 import { useState } from 'react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import BrandMark from '@/components/ui/BrandMark';
 import { supabase } from '@/lib/supabaseClient';
-import { toast } from 'sonner';
 
-export default function Login() {
-  const [mode, setMode] = useState('login'); // 'login' | 'reset'
+const canonicalUrl = import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zynergia.pro';
+const passwordResetUrl = new URL('/set-password', canonicalUrl).toString();
+
+export default function Login({ initialMode = 'login', showRegistration = true, registrationUrl = '/crear-cuenta' }) {
+  const location = useLocation();
+  const returnsToDeletion = new URLSearchParams(location.search).get('returnTo') === '/eliminar-cuenta';
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async event => {
+    event.preventDefault();
     setLoading(true);
+    setError('');
+    setMessage('');
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       if (mode === 'reset') {
-        if (!email) { setLoading(false); return; }
-        // URL absoluta: en la app nativa window.location.origin es capacitor://localhost
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: 'https://zynergia.pro/set-password',
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: passwordResetUrl,
         });
-        if (error) throw error;
-        toast.success('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja y spam.');
-        setMode('login');
-      } else {
-        if (!email || !password) { setLoading(false); return; }
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) throw error;
+        if (resetError) throw resetError;
+        setMessage('Listo. Busca un correo de “Zynergia” con el asunto “Zynergia — restablece tu contraseña”. Revisa también Spam o Correo no deseado.');
+        return;
       }
-    } catch (err) {
-      const msg = err.message?.toLowerCase() || '';
-      if (msg.includes('invalid login')) {
-        toast.error('Correo o contraseña incorrectos. Si la olvidaste, toca "¿Olvidaste tu contraseña?".');
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+      if (signInError) throw signInError;
+    } catch (requestError) {
+      const text = requestError?.message?.toLowerCase() || '';
+      if (text.includes('invalid login')) {
+        setError('El correo o la contraseña no coinciden. Puedes intentar de nuevo o recuperar tu contraseña.');
+      } else if (text.includes('email not confirmed')) {
+        setError('Primero confirma tu correo. Revisa tu bandeja de entrada y también Spam.');
+      } else if (text.includes('fetch') || text.includes('network')) {
+        setError('No pudimos conectar con el servicio de cuentas. Tu contraseña no fue rechazada; intenta de nuevo más tarde.');
       } else {
-        toast.error(err.message || 'Error al iniciar sesión');
+        setError('No pudimos continuar. Tus datos siguen aquí. Intenta de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -40,82 +54,52 @@ export default function Login() {
   };
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col items-center justify-center px-6">
-      {/* Logo */}
-      <div className="mb-10 text-center">
-        <div className="w-20 h-20 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-4">
-          <span className="text-white text-3xl font-bold">Z</span>
-        </div>
-        <h1 className="text-[28px] font-bold text-[#0F172A]">Zynergia</h1>
-        <p className="text-[15px] text-[#64748B] mt-1">
-          {mode === 'login' ? 'Inicia sesión para continuar' : 'Restablecer contraseña'}
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Correo electrónico
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="tu@correo.com"
-            required
-            autoComplete="email"
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
-
-        {mode === 'login' && (
-          <div>
-            <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              autoComplete="current-password"
-              className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-            />
+    <main className="auth-page">
+      <section className="auth-card" aria-labelledby="login-title">
+        <Link to="/" className="brand-link" aria-label="Zynergia"><BrandMark className="brand-mark" /></Link>
+        <p className="eyebrow">{mode === 'login' ? 'Bienvenido' : 'Recupera tu acceso'}</p>
+        <h1 id="login-title">{mode === 'login' ? 'Iniciar sesión' : 'Restablecer contraseña'}</h1>
+        <p className="auth-lead">{mode === 'login' ? 'Usa el mismo correo y contraseña de tu cuenta.' : 'Te enviaremos un enlace seguro a tu correo.'}</p>
+        {mode === 'login' && returnsToDeletion && <p className="instruction-card">Al entrar, volverás a la solicitud para eliminar tu cuenta.</p>}
+        {mode === 'reset' && (
+          <div className="instruction-card instruction-card--block" role="note">
+            <strong>Busca este correo:</strong>
+            <span className="email-highlight">Remitente: Zynergia</span>
+            <span className="email-highlight">Asunto: Zynergia — restablece tu contraseña</span>
+            <p className="email-help">Si no aparece en tu bandeja, revisa Spam o Correo no deseado.</p>
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || !email || (mode === 'login' && !password)}
-          className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center"
-        >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : mode === 'login' ? (
-            'Iniciar sesión'
-          ) : (
-            'Enviarme el correo'
-          )}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <label htmlFor="login-email">Correo electrónico</label>
+          <input id="login-email" name="email" type="email" inputMode="email" autoCapitalize="none" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required />
 
-      {mode === 'login' ? (
-        <button
-          onClick={() => setMode('reset')}
-          className="mt-5 text-[14px] text-[#004AFE] font-medium"
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
-      ) : (
-        <button
-          onClick={() => setMode('login')}
-          className="mt-5 text-[14px] text-[#64748B] font-medium"
-        >
-          ← Volver a iniciar sesión
-        </button>
-      )}
-    </div>
+          {mode === 'login' && <>
+            <label htmlFor="login-password">Contraseña</label>
+            <div className="password-field">
+              <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required />
+              <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              </button>
+            </div>
+          </>}
+
+          {error && <p className="form-error" role="alert">{error}</p>}
+          {message && <p className="form-success" role="status">{message}</p>}
+
+          <button type="submit" className="primary-action" disabled={loading || !email || (mode === 'login' && !password)}>
+            {loading && <Loader2 className="spinner" aria-hidden="true" />}
+            {loading ? 'Espera…' : mode === 'login' ? 'Iniciar sesión' : 'Enviarme el enlace'}
+          </button>
+        </form>
+
+        {mode === 'login' ? <>
+          <button type="button" className="text-action" onClick={() => { setMode('reset'); setError(''); }}>¿Olvidaste tu contraseña?</button>
+          {showRegistration && <p className="auth-switch">¿Aún no tienes cuenta? <Link to={registrationUrl}>Crear cuenta</Link></p>}
+        </> : (
+          <button type="button" className="text-action" onClick={() => { setMode('login'); setError(''); setMessage(''); }}>← Volver a iniciar sesión</button>
+        )}
+      </section>
+    </main>
   );
 }

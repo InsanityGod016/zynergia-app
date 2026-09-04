@@ -30,7 +30,7 @@ export default function NavigationTracker() {
             pageName = matchedKey || null;
         }
 
-        // Navigation logging removed (no longer using Base44)
+        // Navigation logging is intentionally disabled.
     }, [location, isAuthenticated, Pages, mainPageKey]);
 
     return null;

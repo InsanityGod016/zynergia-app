@@ -7,7 +7,7 @@ const STEPS = [
     number: '01',
     icon: UserPlus,
     title: 'Agrega un contacto',
-    description: 'Crea el contacto con su nombre y teléfono de WhatsApp. Solo tarda 10 segundos.',
+    description: 'Crea el contacto con su nombre y teléfono de WhatsApp.',
     detail: 'Juan Pérez · +52 55 1234 5678',
   },
   {
@@ -21,8 +21,8 @@ const STEPS = [
     number: '03',
     icon: ListChecks,
     title: 'Zynergia genera las tareas',
-    description: 'Automáticamente crea la secuencia de 6 mensajes con fechas perfectas.',
-    detail: '6 tareas creadas en 0.5 segundos',
+    description: 'La app prepara la secuencia de mensajes con sus fechas de seguimiento.',
+    detail: 'Tareas listas para revisar',
   },
   {
     number: '04',
@@ -66,7 +66,7 @@ export default function DemoFlow() {
             De contacto a mensaje en 4 pasos
           </h2>
           <p className="text-[#64748B] max-w-xl mx-auto">
-            El flujo completo tarda menos de un minuto la primera vez. Después, Zynergia lo hace solo.
+            Un flujo claro para saber qué hacer ahora y qué viene después.
           </p>
         </motion.div>
 

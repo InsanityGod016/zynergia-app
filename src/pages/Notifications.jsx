@@ -5,6 +5,7 @@ import { ChevronLeft, Bell, CheckCheck } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import StateView from '@/components/ui/StateView';
 
 const TYPE_COLORS = {
   info:    { bar: '#004AFE', bg: '#EEF2FF' },
@@ -13,18 +14,20 @@ const TYPE_COLORS = {
   success: { bar: '#22C55E', bg: '#F0FDF4' },
 };
 
-const ENTITY_ROUTES = {
-  task:      'Tasks',
-  partner:   'Partners',
-  dashboard: 'Partners',
-  contact:   'Contacts',
-};
+function notificationRoute(notification) {
+  const id = notification.related_entity_id;
+  if (notification.related_entity_type === 'task' && id) return createPageUrl(`Tasks?taskId=${encodeURIComponent(id)}`);
+  if (notification.related_entity_type === 'contact' && id) return createPageUrl(`ContactDetail?id=${encodeURIComponent(id)}`);
+  if (notification.related_entity_type === 'partner' && id) return createPageUrl(`Partners?partnerId=${encodeURIComponent(id)}`);
+  if (['partner', 'dashboard'].includes(notification.related_entity_type)) return createPageUrl('Partners');
+  return createPageUrl('Tasks');
+}
 
 export default function Notifications() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: notifications = [] } = useQuery({
+  const { data: notifications = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => db.Notification.list('-created_date', 100)
   });
@@ -44,9 +47,7 @@ export default function Notifications() {
 
   const handleTap = (notif) => {
     if (!notif.is_read) markReadMutation.mutate(notif.id);
-    if (notif.related_entity_type) {
-      navigate(createPageUrl(ENTITY_ROUTES[notif.related_entity_type] || 'Tasks'));
-    }
+    navigate(notificationRoute(notif));
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -57,31 +58,37 @@ export default function Notifications() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#F1F5F9] transition-colors"
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate(createPageUrl('Tasks'))}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-[#F1F5F9] transition-colors"
+            aria-label="Volver a Hoy"
           >
-            <ChevronLeft className="w-6 h-6 text-[#0F172A]" />
+            <ChevronLeft className="w-6 h-6 text-[#0F172A]" aria-hidden="true" />
           </button>
           <h1 className="text-[20px] font-bold text-[#0F172A]">Notificaciones</h1>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={() => markAllReadMutation.mutate()}
-            className="flex items-center gap-1.5 text-[13px] text-[#004AFE] font-medium px-3 py-1.5 rounded-full hover:bg-[#EEF2FF] transition-colors"
+            className="min-h-12 flex items-center gap-2 text-[15px] text-[#004AFE] font-semibold px-3 py-2 rounded-xl hover:bg-[#EEF2FF] transition-colors disabled:opacity-60"
+            disabled={markAllReadMutation.isPending}
           >
-            <CheckCheck className="w-4 h-4" />
+            <CheckCheck className="w-4 h-4" aria-hidden="true" />
             Leer todas
           </button>
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      {isLoading ? (
+        <StateView state="loading" title="Cargando avisos" />
+      ) : isError ? (
+        <StateView state="error" title="No pudimos cargar tus avisos" description="Revisa tu conexión e intenta de nuevo." actionLabel="Intentar de nuevo" onAction={() => refetch()} />
+      ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="w-16 h-16 rounded-full bg-[#F1F5F9] flex items-center justify-center">
             <Bell className="w-8 h-8 text-[#94A3B8]" strokeWidth={1.5} />
           </div>
           <p className="text-[16px] font-medium text-[#0F172A]">Sin notificaciones</p>
-          <p className="text-[14px] text-[#64748B] text-center">Cuando tengas notificaciones, aparecerán aquí.</p>
+          <p className="text-[15px] text-[#64748B] text-center">Cuando tengas notificaciones, aparecerán aquí.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -94,23 +101,23 @@ export default function Notifications() {
               <button
                 key={notif.id}
                 onClick={() => handleTap(notif)}
-                className="w-full text-left flex items-stretch rounded-2xl overflow-hidden transition-colors active:opacity-70"
+                className="w-full min-h-16 text-left flex items-stretch rounded-2xl overflow-hidden transition-colors active:opacity-70"
                 style={{ backgroundColor: notif.is_read ? '#F8FAFC' : colors.bg }}
               >
                 {/* Color bar */}
                 <div className="w-1 flex-shrink-0" style={{ backgroundColor: colors.bar }} />
                 <div className="flex-1 px-4 py-3.5">
                   <div className="flex items-start justify-between gap-2">
-                    <p className={`text-[14px] leading-snug ${notif.is_read ? 'font-medium text-[#64748B]' : 'font-semibold text-[#0F172A]'}`}>
+                    <p className={`text-[15px] leading-snug ${notif.is_read ? 'font-medium text-[#475569]' : 'font-semibold text-[#0F172A]'}`}>
                       {notif.title}
                     </p>
                     {!notif.is_read && (
-                      <div className="w-2 h-2 rounded-full bg-[#004AFE] flex-shrink-0 mt-1.5" />
+                      <div className="w-2 h-2 rounded-full bg-[#004AFE] flex-shrink-0 mt-1.5" aria-hidden="true" />
                     )}
                   </div>
-                  <p className="text-[13px] text-[#64748B] mt-0.5 leading-snug">{notif.body}</p>
+                  <p className="text-[15px] text-[#475569] mt-1 leading-snug">{notif.body}</p>
                   {timeAgo && (
-                    <p className="text-[11px] text-[#94A3B8] mt-1.5">{timeAgo}</p>
+                    <p className="text-[15px] text-[#64748B] mt-1.5">{timeAgo}</p>
                   )}
                 </div>
               </button>

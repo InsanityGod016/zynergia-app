@@ -1,69 +1,70 @@
-import { useState, useEffect } from 'react';
-
-import { supabase } from '@/lib/supabaseClient';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import BrandMark from '@/components/ui/BrandMark';
+import {
+  clearRememberedPasswordRecovery,
+  isRememberedPasswordRecovery,
+} from '@/lib/passwordRecovery';
+import { APP_LANDING_URL } from '@/lib/app-links';
+import { clearLocalSupabaseSession, supabase } from '@/lib/supabaseClient';
 
 export default function SetPassword() {
-  const [step, setStep] = useState('waiting'); // waiting | form | saving | done | error
+  const [step, setStep] = useState('waiting');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    // Detect error in URL hash (expired/invalid token from Supabase)
-    const hash = window.location.hash;
-    if (hash.includes('error=')) {
-      const params = new URLSearchParams(hash.replace('#', '?'));
-      const desc = params.get('error_description') || 'El enlace expiró o ya fue usado.';
-      setErrorMsg(decodeURIComponent(desc).replace(/\+/g, ' '));
-      setStep('error');
-      return;
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const query = new URLSearchParams(window.location.search);
+    if (hash.has('error') || query.has('error')) {
+      setStep('invalid');
+      return undefined;
     }
 
+    let active = true;
     let settled = false;
+    let checking = false;
+    const acceptRecovery = session => {
+      if (!active || settled || !isRememberedPasswordRecovery(session)) return;
+      settled = true;
+      setStep('form');
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (settled) return;
-      if (session && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-        settled = true;
-        setStep('form');
+    const checkRecovery = async () => {
+      if (!active || settled || checking) return;
+      checking = true;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        acceptRecovery(session);
+      } finally {
+        checking = false;
       }
-    });
+    };
+    checkRecovery();
+    const interval = window.setInterval(checkRecovery, 250);
 
-    // Fallback: check existing session after a short delay
-    // (handles cases where the event already fired before our listener was attached)
-    setTimeout(() => {
-      if (settled) return;
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session && !settled) {
-          settled = true;
-          setStep('form');
-        }
-      });
-    }, 800);
-
-    // Hard timeout: if after 12s nothing happened, the token is bad
-    const timeout = setTimeout(() => {
-      if (!settled) {
-        setErrorMsg('El enlace expiró o no es válido. Pide uno nuevo a soporte.');
-        setStep('error');
-      }
-    }, 12000);
+    const timeout = window.setTimeout(() => {
+      if (!settled && active) setStep('invalid');
+    }, 10000);
 
     return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
+      active = false;
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
     };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async event => {
+    event.preventDefault();
     setFormError('');
 
-    if (password.length < 6) {
-      setFormError('La contraseña debe tener al menos 6 caracteres.');
+    if (password.length < 8) {
+      setFormError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
     if (password !== password2) {
@@ -71,165 +72,120 @@ export default function SetPassword() {
       return;
     }
 
-    setStep('saving');
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        localStorage.setItem(`zynergia_onboarding_done_${session.user.id}`, 'true');
-      }
-
-      setStep('done');
-      // Recarga completa: este branch público no tiene ruta "/" en su Router
-      setTimeout(() => window.location.replace('/'), 2000);
-    } catch (err) {
-      setErrorMsg(err.message || 'No se pudo guardar la contraseña. Intenta de nuevo.');
-      setStep('error');
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setSaving(false);
+      setFormError('No pudimos guardar. Tus contraseñas siguen aquí. Intenta de nuevo.');
+      return;
     }
+
+    clearRememberedPasswordRecovery();
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    clearLocalSupabaseSession();
+    setSaving(false);
+    setStep('done');
   };
 
   if (step === 'waiting') {
     return (
-      <div className="fixed inset-0 bg-[#004AFE] flex items-center justify-center">
-        <div className="text-center px-6">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-            className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl"
-          >
-            <span className="text-[#004AFE] text-4xl font-bold">Z</span>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <p className="text-white font-bold text-[24px] mb-2">Verificando tu acceso…</p>
-            <p className="text-blue-200 text-[15px]">Un momento</p>
-            <div className="mt-6 flex justify-center">
-              <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
-            </div>
-          </motion.div>
-        </div>
-      </div>
+      <main className="auth-page">
+        <section className="auth-card auth-card--center" aria-live="polite">
+          <BrandMark className="brand-mark auth-centered-mark" />
+          <h1>Verificando tu enlace…</h1>
+          <p className="auth-lead">Esto puede tardar unos segundos.</p>
+          <Loader2 className="hero-spinner" aria-hidden="true" />
+        </section>
+      </main>
     );
   }
 
-  if (step === 'saving') {
+  if (step === 'invalid') {
     return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center">
-        <div className="text-center px-6">
-          <div className="w-20 h-20 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-6">
-            <span className="text-white text-3xl font-bold">Z</span>
-          </div>
-          <Loader2 className="w-8 h-8 text-[#004AFE] animate-spin mx-auto mb-4" />
-          <p className="text-[#0F172A] font-bold text-[20px]">Guardando contraseña…</p>
-        </div>
-      </div>
+      <main className="auth-page">
+        <section className="auth-card auth-card--center">
+          <div className="auth-icon auth-icon--warning"><AlertCircle aria-hidden="true" /></div>
+          <h1>Este enlace ya no funciona</h1>
+          <p className="auth-lead">Puede haber expirado o haberse usado antes. Pide un enlace nuevo.</p>
+          <Link className="primary-action" to="/recuperar-contrasena">Enviar un enlace nuevo</Link>
+          <Link className="text-action" to="/iniciar-sesion">Volver a iniciar sesión</Link>
+        </section>
+      </main>
     );
   }
 
   if (step === 'done') {
     return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="text-center px-6"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 18 }}
-            className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5"
-          >
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
-          </motion.div>
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="text-[#0F172A] font-bold text-[24px]">
-            ¡Contraseña creada!
-          </motion.p>
-          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-            className="text-[#64748B] text-[15px] mt-1">
-            Entrando a la app…
-          </motion.p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (step === 'error') {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center px-6">
-        <div className="text-center max-w-sm w-full">
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <AlertCircle className="w-8 h-8 text-red-500" />
-          </div>
-          <h1 className="text-[22px] font-bold text-[#0F172A] mb-2">Enlace inválido</h1>
-          <p className="text-[#64748B] text-[15px] leading-relaxed mb-7">{errorMsg}</p>
-          <a href="/" className="block w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl text-center">
-            Ir a iniciar sesión
-          </a>
-        </div>
-      </div>
+      <main className="auth-page">
+        <section className="auth-card auth-card--center">
+          <BrandMark className="brand-mark auth-centered-mark" />
+          <div className="auth-icon auth-icon--success"><CheckCircle2 aria-hidden="true" /></div>
+          <h1>Contraseña actualizada</h1>
+          <p className="auth-lead">Abre Zynergia e inicia sesión con tu correo y tu nueva contraseña.</p>
+          <a className="primary-action" href={APP_LANDING_URL}>Abrir Zynergia</a>
+          <p className="email-help">En una computadora verás el enlace y el código QR para continuar en tu teléfono.</p>
+        </section>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      <div className="mb-8 text-center">
-        <div className="w-16 h-16 rounded-3xl bg-[#004AFE] flex items-center justify-center mx-auto mb-4">
-          <span className="text-white text-2xl font-bold">Z</span>
-        </div>
-        <h1 className="text-[26px] font-bold text-[#0F172A]">Crea tu contraseña</h1>
-        <p className="text-[15px] text-[#64748B] mt-1">Elige una contraseña para entrar a Zynergia</p>
-      </div>
+    <main className="auth-page">
+      <section className="auth-card" aria-labelledby="password-title">
+        <BrandMark className="brand-mark" />
+        <p className="eyebrow">Recupera tu acceso</p>
+        <h1 id="password-title">Crea una nueva contraseña</h1>
+        <p className="auth-lead">Debe tener al menos 8 caracteres.</p>
 
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Contraseña
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
+        <form className="auth-form" onSubmit={handleSubmit} aria-busy={saving}>
+          <label htmlFor="new-password">Nueva contraseña</label>
+          <div className="password-field password-field--labeled">
+            <input
+              id="new-password"
+              name="new-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={event => { setPassword(event.target.value); setFormError(''); }}
+              minLength={8}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+            />
+            <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Ocultar la nueva contraseña' : 'Ver la nueva contraseña'}>
+              {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              <span>{showPassword ? 'Ocultar' : 'Ver'}</span>
+            </button>
+          </div>
 
-        <div>
-          <label className="block text-[13px] font-medium text-[#64748B] mb-1.5">
-            Repite la contraseña
-          </label>
-          <input
-            type="password"
-            value={password2}
-            onChange={e => setPassword2(e.target.value)}
-            placeholder="Repite tu contraseña"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] focus:ring-2 focus:ring-[#004AFE]/20 transition-colors"
-          />
-        </div>
+          <label htmlFor="repeat-password">Repite la contraseña</label>
+          <div className="password-field password-field--labeled">
+            <input
+              id="repeat-password"
+              name="confirm-password"
+              type={showConfirmation ? 'text' : 'password'}
+              value={password2}
+              onChange={event => { setPassword2(event.target.value); setFormError(''); }}
+              minLength={8}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+            />
+            <button type="button" onClick={() => setShowConfirmation(value => !value)} aria-label={showConfirmation ? 'Ocultar la contraseña repetida' : 'Ver la contraseña repetida'}>
+              {showConfirmation ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              <span>{showConfirmation ? 'Ocultar' : 'Ver'}</span>
+            </button>
+          </div>
 
-        {formError && (
-          <p className="text-[13px] text-red-500 bg-red-50 px-4 py-3 rounded-xl">{formError}</p>
-        )}
+          {formError && <p className="form-error" role="alert">{formError}</p>}
 
-        <button
-          type="submit"
-          disabled={!password || password.length < 6 || password !== password2}
-          className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60"
-        >
-          Guardar y entrar
-        </button>
-      </form>
-    </div>
+          <button type="submit" className="primary-action" disabled={saving || !password || !password2}>
+            {saving && <Loader2 className="spinner" aria-hidden="true" />}
+            {saving ? 'Guardando…' : 'Guardar y continuar'}
+          </button>
+        </form>
+      </section>
+    </main>
   );
 }

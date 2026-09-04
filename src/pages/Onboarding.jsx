@@ -1,377 +1,225 @@
-import { useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Search, UserRound } from 'lucide-react';
 import { db } from '@/api/db';
+import BrandMark from '@/components/ui/BrandMark';
 import { useAuth } from '@/lib/AuthContext';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Camera, Globe, Phone, User, ArrowRight, CheckCircle2, Hash, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { scheduleTaskReminders } from '@/lib/localNotifications';
 import { seedDefaultData } from '@/lib/seedData';
 import { supabase } from '@/lib/supabaseClient';
+import { normalizePartnerCode, partnerLinkErrorMessage } from '@/lib/partnerLinking';
 
 const CURRENCIES = [
-  { value: 'MXN', label: 'MXN — Peso Mexicano' },
-  { value: 'USD', label: 'USD — Dólar' },
-  { value: 'EUR', label: 'EUR — Euro' },
-  { value: 'ARS', label: 'ARS — Peso Argentino' },
-  { value: 'COP', label: 'COP — Peso Colombiano' },
-  { value: 'CLP', label: 'CLP — Peso Chileno' },
-  { value: 'PEN', label: 'PEN — Sol Peruano' },
-  { value: 'BRL', label: 'BRL — Real Brasileño' },
+  ['MXN', 'Peso mexicano'],
+  ['USD', 'Dólar estadounidense'],
+  ['EUR', 'Euro'],
+  ['ARS', 'Peso argentino'],
+  ['COP', 'Peso colombiano'],
+  ['CLP', 'Peso chileno'],
+  ['PEN', 'Sol peruano'],
+  ['BRL', 'Real brasileño'],
 ];
 
-function generatePartnerCode(name) {
-  const letters = name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
-  const digits = String(Math.floor(Math.random() * 90) + 10);
-  return letters + digits;
-}
-
-function imageToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-const STEPS = [
-  {
-    id: 0,
-    emoji: '🚀',
-    title: 'Bienvenido a Zynergia',
-    description: 'La herramienta diseñada para distribuidores que quieren crecer de forma organizada, consistente y sin perder el control de su negocio.',
-    bg: '#EEF2FF',
-    color: '#004AFE',
-  },
-  {
-    id: 1,
-    emoji: '🌐',
-    title: 'Haz crecer tu red',
-    description: 'Registra a tus socios, sigue su avance en el programa Fast Start y recibe alertas cuando están cerca de ganar un bono.',
-    bg: '#F0FDF4',
-    color: '#16A34A',
-  },
-  {
-    id: 2,
-    emoji: '✅',
-    title: 'Tareas, contactos y más',
-    description: 'Zynergia crea automáticamente las tareas de seguimiento por ti. Solo enfócate en hacer las llamadas y cerrar las ventas.',
-    bg: '#FFF7ED',
-    color: '#EA580C',
-  },
-];
-
-// mode="intro"   → shows only the 3 info slides (before login, no auth needed)
-// mode="profile" → shows only the profile setup form (after login, new user)
-export default function Onboarding({ onComplete, mode = 'profile' }) {
-  const queryClient = useQueryClient();
+export default function Onboarding({ onComplete }) {
   const { user } = useAuth();
-  const fileInputRef = useRef(null);
-  const [step, setStep] = useState(mode === 'intro' ? 0 : 3);
-  const [direction, setDirection] = useState(1);
-  const [saving, setSaving] = useState(false);
-
-  const [profile, setProfile] = useState({
-    user_name: '',
-    user_phone: '',
-    default_currency: 'MXN',
-    user_photo: '',
-  });
-  const [photoPreview, setPhotoPreview] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
-  const [inviteUser, setInviteUser] = useState(null);   // { user_id, user_name }
-  const [inviteLoading, setInviteLoading] = useState(false);
-
-  const handleNext = () => {
-    if (mode === 'intro' && step === 2) {
-      // Last intro slide → done, go to login
-      onComplete();
-      return;
-    }
-    if (step < 3) {
-      setDirection(1);
-      setStep(s => s + 1);
-    }
-  };
-
-  const handleSkip = () => {
-    if (mode === 'intro') {
-      onComplete();
-      return;
-    }
-    setDirection(1);
-    setStep(3);
-  };
-
-  const handleInviteCode = async (val) => {
-    const v = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-    setInviteCode(v);
-    setInviteUser(null);
-    if (v.length < 4) return;
-    setInviteLoading(true);
+  const queryClient = useQueryClient();
+  const draftKey = `zynergia_onboarding_draft_${user?.id || 'unknown'}`;
+  const initialDraft = useMemo(() => {
     try {
-      const { data } = await supabase.rpc('lookup_partner_code', { code: v });
-      if (data && data.length > 0) setInviteUser({ user_id: data[0].found_user_id, user_name: data[0].found_user_name });
-    } catch {}
-    setInviteLoading(false);
-  };
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const base64 = await imageToBase64(file);
-      setPhotoPreview(base64);
-      setProfile(prev => ({ ...prev, user_photo: base64 }));
+      return JSON.parse(localStorage.getItem(draftKey) || '{}');
     } catch {
-      toast.error('No se pudo cargar la imagen');
+      return {};
     }
-  };
+  }, [draftKey]);
 
-  const handleFinish = async () => {
-    if (!profile.user_name.trim()) {
-      toast.error('Por favor escribe tu nombre');
+  const [step, setStep] = useState(initialDraft.step === 2 ? 2 : 1);
+  const [name, setName] = useState(initialDraft.name || user?.user_metadata?.full_name || '');
+  const [currency, setCurrency] = useState(initialDraft.currency || 'MXN');
+  const [inviteCode, setInviteCode] = useState(initialDraft.inviteCode || '');
+  const [inviteUser, setInviteUser] = useState(null);
+  const [lookupState, setLookupState] = useState('idle');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const lookupRequest = useRef(0);
+
+  useEffect(() => {
+    localStorage.setItem(draftKey, JSON.stringify({ step, name, currency, inviteCode }));
+  }, [currency, draftKey, inviteCode, name, step]);
+
+  useEffect(() => {
+    let cancelled = false;
+    db.Settings.list().then(settings => {
+      const current = settings?.[0];
+      if (!cancelled && current) {
+        if (current.user_name) setName(current.user_name);
+        if (current.default_currency) setCurrency(current.default_currency);
+      }
+    }).catch(() => {
+      if (!cancelled) setError('No pudimos recuperar tu avance. Tus datos siguen aquí; puedes continuar.');
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleInviteCode = async value => {
+    const normalized = normalizePartnerCode(value);
+    const requestId = ++lookupRequest.current;
+    setInviteCode(normalized);
+    setInviteUser(null);
+    setError('');
+
+    if (!normalized) {
+      setLookupState('idle');
       return;
     }
-    setSaving(true);
-    try {
-      const partner_code = generatePartnerCode(profile.user_name.trim());
-      await db.Settings.create({
-        user_name: profile.user_name.trim(),
-        user_phone: profile.user_phone.trim(),
-        default_currency: profile.default_currency,
-        user_photo: profile.user_photo,
-        notifications_enabled: true,
-        partner_code,
-        parent_id: inviteUser?.user_id || null,
-      });
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
-
-      // Auto-register as partner in upline's account
-      if (inviteUser?.user_id) {
-        await supabase.rpc('register_as_partner', {
-          p_upline_user_id: inviteUser.user_id,
-          p_new_user_name: profile.user_name.trim(),
-          p_new_user_id: user?.id,
-        }).catch(() => {});
-      }
-    } catch (err) {
-      console.warn('[Onboarding] Settings save failed:', err);
+    if (normalized.length < 4) {
+      setLookupState('short');
+      return;
     }
-    localStorage.setItem(`zynergia_onboarding_done_${user?.id}`, 'true');
-    scheduleTaskReminders({}).catch(() => {});
-    seedDefaultData().catch(() => {}); // Non-blocking: create default templates & products
-    setSaving(false);
-    onComplete();
+
+    setLookupState('loading');
+    const { data, error: lookupError } = await supabase.rpc('lookup_partner_code', { code: normalized });
+    if (requestId !== lookupRequest.current) return;
+    if (lookupError) {
+      setLookupState('error');
+      setError(partnerLinkErrorMessage(lookupError));
+      return;
+    }
+    if (!data?.length) {
+      setLookupState('missing');
+      return;
+    }
+    setInviteUser({ user_id: data[0].found_user_id, user_name: data[0].found_user_name });
+    setLookupState('found');
   };
 
-  const initials = profile.user_name
-    ? profile.user_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
-    : '?';
+  const goNext = event => {
+    event.preventDefault();
+    setError('');
+    if (name.trim().length < 2) {
+      setError('Escribe tu nombre para continuar.');
+      return;
+    }
+    setStep(2);
+  };
 
-  const variants = {
-    enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0 }),
+  const finish = async event => {
+    event.preventDefault();
+    if (saving) return;
+    if (inviteCode && lookupState !== 'found') {
+      setError('Revisa el código o deja el campo vacío para continuar sin líder.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      const profile = {
+        user_name: name.trim(),
+        default_currency: currency,
+      };
+      const currentSettings = (await db.Settings.list())?.[0];
+      if (currentSettings?.id) await db.Settings.update(currentSettings.id, profile);
+      else await db.Settings.create({
+        ...profile,
+        user_phone: '',
+        user_photo: '',
+        notifications_enabled: false,
+      });
+
+      const { error: codeError } = await supabase.rpc('ensure_partner_code');
+      if (codeError) throw codeError;
+
+      if (inviteCode) {
+        const { error: partnerError } = await supabase.rpc('join_upline_by_code', {
+          p_code: inviteCode,
+        });
+        if (partnerError) throw partnerError;
+      }
+
+      const { error: completionError } = await supabase.rpc('complete_onboarding');
+      if (completionError) throw completionError;
+
+      const savedSettings = await db.Settings.list();
+      if (!savedSettings?.[0]?.onboarding_completed_at) throw new Error('onboarding_not_confirmed');
+
+      localStorage.removeItem(draftKey);
+      await queryClient.invalidateQueries({ queryKey: ['settings'] });
+      Promise.allSettled([seedDefaultData()]);
+      onComplete();
+    } catch (saveError) {
+      console.error('[Onboarding] Save failed', saveError);
+      setError(partnerLinkErrorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col overflow-hidden">
-      {/* Progress dots */}
-      <div className="flex items-center justify-center gap-2 pt-14 pb-2 px-5">
-        {(mode === 'intro' ? [0, 1, 2] : [3]).map(i => (
-          <div
-            key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === step ? 'w-8 bg-[#004AFE]' : i < step ? 'w-3 bg-[#004AFE]/40' : 'w-3 bg-[#E2E8F0]'
-            }`}
-          />
-        ))}
-      </div>
+    <main className="min-h-dvh overflow-y-auto bg-slate-50 px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(2rem+env(safe-area-inset-top))] text-slate-950">
+      <section className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-7 flex items-center justify-between">
+          <BrandMark className="h-12 w-12 rounded-2xl" />
+          <span className="text-[15px] font-semibold text-slate-500">Paso {step} de 2</span>
+        </div>
 
-      {/* Content area */}
-      <div className="flex-1 relative overflow-hidden">
-        <AnimatePresence custom={direction} mode="wait">
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ type: 'tween', duration: 0.28 }}
-            className="absolute inset-0"
-          >
-            {step < 3 ? (
-              // Steps 0-2: Informational
-              <div className="h-full flex flex-col items-center justify-center px-8 text-center">
-                <div
-                  className="w-28 h-28 rounded-3xl flex items-center justify-center text-6xl mb-8 shadow-sm"
-                  style={{ backgroundColor: STEPS[step].bg }}
-                >
-                  {STEPS[step].emoji}
-                </div>
-                <h2 className="text-[26px] font-bold text-[#0F172A] leading-tight mb-4">
-                  {STEPS[step].title}
-                </h2>
-                <p className="text-[16px] text-[#64748B] leading-relaxed max-w-xs">
-                  {STEPS[step].description}
-                </p>
-              </div>
-            ) : (
-              // Step 3: Profile form
-              <div className="h-full overflow-y-auto px-6 pt-4 pb-8">
-                <div className="text-center mb-6">
-                  <h2 className="text-[24px] font-bold text-[#0F172A]">Crea tu perfil</h2>
-                  <p className="text-[15px] text-[#64748B] mt-1">Personaliza tu cuenta de Zynergia</p>
-                </div>
+        {step === 1 ? (
+          <form onSubmit={goNext}>
+            <p className="mb-2 text-[15px] font-bold uppercase tracking-wide text-primary">Tu cuenta</p>
+            <h1 className="text-3xl font-bold tracking-tight">Confirma tus datos</h1>
+            <p className="mt-3 text-[17px] leading-relaxed text-slate-600">Sólo necesitamos tu nombre y la moneda que usas. Puedes cambiarlo después.</p>
 
-                {/* Avatar */}
-                <div className="flex flex-col items-center mb-6">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative w-24 h-24 rounded-full overflow-hidden bg-[#EEF2FF] flex items-center justify-center active:scale-95 transition-transform shadow-md"
-                  >
-                    {photoPreview ? (
-                      <img src={photoPreview} alt="Foto" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[32px] font-bold text-[#004AFE]">{initials}</span>
-                    )}
-                    <div className="absolute inset-0 bg-black/20 flex items-end justify-center pb-2">
-                      <Camera className="w-5 h-5 text-white" />
-                    </div>
-                  </button>
-                  <p className="text-[12px] text-[#94A3B8] mt-2">Agregar foto (opcional)</p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  {/* Nombre */}
-                  <div>
-                    <label className="flex items-center gap-2 text-[13px] font-semibold text-[#64748B] mb-1.5">
-                      <User className="w-4 h-4" />
-                      Nombre completo *
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.user_name}
-                      onChange={e => setProfile(prev => ({ ...prev, user_name: e.target.value }))}
-                      placeholder="Tu nombre completo"
-                      className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] transition-colors"
-                    />
-                  </div>
-
-                  {/* WhatsApp */}
-                  <div>
-                    <label className="flex items-center gap-2 text-[13px] font-semibold text-[#64748B] mb-1.5">
-                      <Phone className="w-4 h-4" />
-                      WhatsApp (opcional)
-                    </label>
-                    <input
-                      type="tel"
-                      value={profile.user_phone}
-                      onChange={e => setProfile(prev => ({ ...prev, user_phone: e.target.value }))}
-                      placeholder="+52 55 0000 0000"
-                      className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:border-[#004AFE] transition-colors"
-                    />
-                  </div>
-
-                  {/* Código de invitación */}
-                  <div>
-                    <label className="flex items-center gap-2 text-[13px] font-semibold text-[#64748B] mb-1.5">
-                      <Hash className="w-4 h-4" />
-                      Código de invitación <span className="font-normal text-[#94A3B8]">(opcional)</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={inviteCode}
-                        onChange={e => handleInviteCode(e.target.value)}
-                        placeholder="Ej: RAFA23"
-                        className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#004AFE] font-bold tracking-widest placeholder:text-[#CBD5E1] placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-[#004AFE] transition-colors uppercase"
-                        autoCapitalize="characters"
-                      />
-                      {inviteLoading && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Loader2 className="w-4 h-4 text-[#004AFE] animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                    {inviteUser && (
-                      <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-[#F0FDF4] rounded-xl border border-[#86EFAC]">
-                        <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
-                        <p className="text-[13px] font-semibold text-[#16A34A]">Invitado por {inviteUser.user_name}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Moneda */}
-                  <div>
-                    <label className="flex items-center gap-2 text-[13px] font-semibold text-[#64748B] mb-1.5">
-                      <Globe className="w-4 h-4" />
-                      Moneda de tu país
-                    </label>
-                    <select
-                      value={profile.default_currency}
-                      onChange={e => setProfile(prev => ({ ...prev, default_currency: e.target.value }))}
-                      className="w-full px-4 py-3.5 rounded-xl border border-[#E2E8F0] text-[15px] text-[#0F172A] focus:outline-none focus:border-[#004AFE] transition-colors bg-white"
-                    >
-                      {CURRENCIES.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
-                      ))}
-                    </select>
-                  </div>
+            <div className="mt-8 space-y-5">
+              <div>
+                <label htmlFor="onboarding-name" className="mb-2 block text-[15px] font-semibold">Nombre</label>
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                  <input id="onboarding-name" autoComplete="name" value={name} onChange={event => setName(event.target.value)} className="min-h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-4 text-[17px] outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
                 </div>
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+              <div>
+                <label htmlFor="onboarding-currency" className="mb-2 block text-[15px] font-semibold">Moneda</label>
+                <select id="onboarding-currency" value={currency} onChange={event => setCurrency(event.target.value)} className="min-h-14 w-full rounded-2xl border border-slate-300 bg-white px-4 text-[17px] outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                  {CURRENCIES.map(([value, label]) => <option key={value} value={value}>{value} — {label}</option>)}
+                </select>
+              </div>
+            </div>
 
-      {/* Bottom buttons */}
-      <div className="px-6 pb-10 pt-4 space-y-3">
-        {step < 3 ? (
-          <>
-            <button
-              onClick={handleNext}
-              className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-            >
-              {mode === 'intro' && step === 2 ? 'Comenzar' : 'Siguiente'}
-              <ArrowRight className="w-5 h-5" />
+            {error && <p className="mt-5 rounded-2xl bg-red-50 p-4 text-[15px] font-medium text-red-700" role="alert">{error}</p>}
+            <button type="submit" className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[17px] font-bold text-white outline-none transition-transform duration-150 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+              Continuar <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </button>
-            {mode === 'intro' && step < 2 && (
-              <button
-                onClick={handleSkip}
-                className="w-full py-3 text-[#94A3B8] font-medium text-[15px] text-center"
-              >
-                Saltar
-              </button>
-            )}
-          </>
+          </form>
         ) : (
-          <button
-            onClick={handleFinish}
-            disabled={saving}
-            className="w-full py-4 bg-[#004AFE] text-white font-bold text-[16px] rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {saving ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                Empezar con Zynergia
-              </>
-            )}
-          </button>
+          <form onSubmit={finish}>
+            <button type="button" onClick={() => { setStep(1); setError(''); }} className="mb-6 flex min-h-12 items-center gap-2 rounded-xl px-1 text-[16px] font-semibold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" /> Volver
+            </button>
+            <p className="mb-2 text-[15px] font-bold uppercase tracking-wide text-primary">Tu equipo</p>
+            <h1 className="text-3xl font-bold tracking-tight">¿Tienes código de líder?</h1>
+            <p className="mt-3 text-[17px] leading-relaxed text-slate-600">Es opcional. Si alguien te invitó, escribe su código. Si no, deja el campo vacío.</p>
+
+            <div className="mt-8">
+              <label htmlFor="onboarding-code" className="mb-2 block text-[15px] font-semibold">Código de líder (opcional)</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                <input id="onboarding-code" value={inviteCode} onChange={event => handleInviteCode(event.target.value)} autoCapitalize="characters" autoComplete="off" placeholder="Ejemplo: MARIA25" className="min-h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-4 text-[17px] font-semibold uppercase tracking-wide outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="mt-3 min-h-7 text-[15px]" aria-live="polite">
+                {lookupState === 'loading' && <span className="flex items-center gap-2 text-slate-600"><Loader2 className="h-4 w-4 animate-spin" /> Buscando…</span>}
+                {lookupState === 'found' && <span className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" /> Líder: {inviteUser?.user_name}</span>}
+                {lookupState === 'missing' && <span className="text-red-700">No encontramos ese código.</span>}
+                {lookupState === 'short' && <span className="text-slate-500">Escribe al menos 4 caracteres.</span>}
+                {lookupState === 'error' && <span className="text-red-700">No pudimos buscarlo. Intenta de nuevo.</span>}
+              </div>
+            </div>
+
+            {error && <p className="mt-5 rounded-2xl bg-red-50 p-4 text-[15px] font-medium text-red-700" role="alert">{error}</p>}
+            <button type="submit" disabled={saving || lookupState === 'loading'} className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[17px] font-bold text-white outline-none transition-transform duration-150 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60">
+              {saving && <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />}
+              {saving ? 'Guardando…' : 'Entrar a Zynergia'}
+            </button>
+          </form>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

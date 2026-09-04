@@ -1,30 +1,7 @@
-import { useState } from 'react';
-import { Zap, Loader2 } from 'lucide-react';
-
-async function startCheckout(setLoading) {
-  setLoading(true);
-  try {
-    const res = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: 'monthly' }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || 'Error al iniciar el pago. Intenta de nuevo.');
-    }
-  } catch {
-    alert('Error de conexión. Por favor intenta de nuevo.');
-  } finally {
-    setLoading(false);
-  }
-}
+import { Zap } from 'lucide-react';
+import DownloadChoices from '@/components/DownloadChoices';
 
 export default function CTA() {
-  const [loading, setLoading] = useState(false);
-
   return (
     <section className="bg-[#0A0F1E] py-24 px-5">
       <div className="max-w-3xl mx-auto text-center">
@@ -43,21 +20,26 @@ export default function CTA() {
           automáticamente para que tú te enfoques en crecer.
         </p>
 
-        <button
-          onClick={() => startCheckout(setLoading)}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-10 py-4 rounded-full text-base transition-colors hover:shadow-[0_0_32px_rgba(0,74,254,0.45)] disabled:opacity-70"
+        <a
+          href="/crear-cuenta"
+          className="inline-flex items-center justify-center gap-2 bg-[#004AFE] hover:bg-[#0039CC] text-white font-semibold px-10 py-4 rounded-full text-base transition-colors hover:shadow-[0_0_32px_rgba(0,74,254,0.45)]"
         >
-          {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-          Empezar ahora — $17/mes
-        </button>
+          Crear mi cuenta — 17 USD/mes
+        </a>
 
-        <div className="mt-8 flex items-center justify-center gap-6 text-white/40 text-xs">
-          <span>✓ Sin contrato</span>
+        <div className="mt-8 flex items-center justify-center gap-6 text-xs text-white/70">
+          <span>✓ Precio final</span>
           <span className="w-px h-4 bg-white/10"></span>
           <span>✓ Cancela cuando quieras</span>
           <span className="w-px h-4 bg-white/10"></span>
-          <span>✓ Pago seguro con Stripe</span>
+          <span>✓ Gestiona el pago desde tu cuenta web</span>
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-white/10 bg-white p-5 text-left shadow-2xl">
+          <p className="mb-4 text-center text-[15px] font-semibold text-slate-600">
+            ¿Ya tienes cuenta? Descarga la app oficial.
+          </p>
+          <DownloadChoices className="landing-downloads" showQr={false} />
         </div>
       </div>
     </section>

@@ -1,8 +1,14 @@
 node_modules
 android
+ios
+tests
+supabase
 video
 video2
 *.mp4
 *.csv
+*.jks
+*.keystore
+.env*
 public/animations
 dist/animations

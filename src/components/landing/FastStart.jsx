@@ -4,52 +4,40 @@ import { useRef } from 'react';
 
 const PHASES = [
   {
-    phase: 'Q-Team',
-    days: 'Días 1–30',
+    phase: 'Primeros contactos',
     icon: Users,
     color: 'text-[#004AFE]',
     bg: 'bg-[#004AFE]',
     lightBg: 'bg-[#004AFE]/5',
     border: 'border-[#004AFE]/20',
-    goal: '4 clientes activos con pedido automático',
-    reward: 'Bono Q-Team',
-    bonus: '€100',
+    goal: 'Ve a quién necesita contactar y cuál es la siguiente acción.',
   },
   {
-    phase: 'Fast Start N1',
-    days: 'Días 35–60',
+    phase: 'Primeras ventas',
     icon: Star,
     color: 'text-purple-600',
     bg: 'bg-purple-500',
     lightBg: 'bg-purple-50',
     border: 'border-purple-200',
-    goal: '2 partners activos reclutados en tu equipo',
-    reward: 'Bono Nivel 1',
-    bonus: '€400',
+    goal: 'Mantén visibles las tareas y el avance de cada integrante.',
   },
   {
-    phase: 'Fast Start N2',
-    days: 'Días 75–90',
+    phase: 'Duplicación',
     icon: Trophy,
     color: 'text-amber-600',
     bg: 'bg-amber-500',
     lightBg: 'bg-amber-50',
     border: 'border-amber-200',
-    goal: 'Tus 2 partners con 4 clientes activos cada uno',
-    reward: 'Bono Nivel 2',
-    bonus: '€1,200',
+    goal: 'Detecta pronto quién necesita apoyo para continuar.',
   },
   {
-    phase: 'X-Team',
-    days: 'Días 110–120',
+    phase: 'Seguimiento constante',
     icon: Zap,
     color: 'text-green-600',
     bg: 'bg-green-500',
     lightBg: 'bg-green-50',
     border: 'border-green-200',
-    goal: '10+ clientes activos en total en la red',
-    reward: 'Bono X-Team',
-    bonus: '€150',
+    goal: 'Consulta el progreso sin depender de notas o memoria.',
   },
 ];
 
@@ -69,14 +57,13 @@ export default function FastStart() {
           className="text-center mb-16"
         >
           <p className="text-[#004AFE] text-sm font-semibold uppercase tracking-widest mb-3">
-            Programa Fast Start
+            Seguimiento de equipo
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] leading-tight mb-4">
-            120 días para alcanzar los 4 bonos
+            Acompaña a cada partner sin perder de vista lo importante
           </h2>
           <p className="text-[#64748B] max-w-xl mx-auto">
-            Zynergia rastrea en qué fase está cada partner de tu red y genera las tareas
-            de apoyo correctas en cada etapa.
+            Zynergia reúne el avance y las tareas de apoyo en una vista sencilla.
           </p>
         </motion.div>
 
@@ -120,30 +107,16 @@ export default function FastStart() {
                     </span>
                   </motion.div>
 
-                  {/* Day range chip */}
+                  {/* Stage chip */}
                   <span className={`text-xs font-semibold ${phase.color} ${phase.lightBg} border ${phase.border} px-3 py-1 rounded-full mb-3`}>
-                    {phase.days}
+                    Etapa {index + 1}
                   </span>
 
                   {/* Phase name */}
                   <h3 className="text-base font-bold text-[#0F172A] mb-2">{phase.phase}</h3>
 
                   {/* Goal */}
-                  <p className="text-[#64748B] text-sm leading-relaxed mb-3">{phase.goal}</p>
-
-                  {/* Bonus reward */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: false }}
-                    transition={{ duration: 0.4, delay: index * 0.12 + 0.35, type: 'spring', stiffness: 220 }}
-                    className={`${phase.lightBg} border ${phase.border} rounded-xl px-3 py-2.5 w-full`}
-                  >
-                    <p className={`text-[10px] font-semibold ${phase.color} uppercase tracking-wide`}>
-                      {phase.reward}
-                    </p>
-                    <p className={`text-base font-bold ${phase.color} mt-0.5`}>{phase.bonus}</p>
-                  </motion.div>
+                  <p className="text-[#64748B] text-sm leading-relaxed">{phase.goal}</p>
                 </motion.div>
               );
             })}
@@ -158,11 +131,11 @@ export default function FastStart() {
           className="mt-14 bg-[#F8FAFC] rounded-2xl border border-gray-100 p-6 text-center"
         >
           <p className="text-[#64748B] text-sm">
-            Si un partner cae por debajo del Q-Team,{' '}
+            Los requisitos, plazos e importes de cualquier programa externo pueden cambiar.{' '}
             <span className="font-semibold text-[#0F172A]">
-              Zynergia genera automáticamente una alerta de urgencia
+              Confírmalos siempre en la documentación oficial vigente
             </span>{' '}
-            para que actúes antes de perder el bono.
+            de tu empresa.
           </p>
         </motion.div>
       </div>

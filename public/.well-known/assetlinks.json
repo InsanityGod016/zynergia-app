@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.zynergia.app",
+      "sha256_cert_fingerprints": [
+        "48:E3:32:2F:76:49:4B:3A:86:2D:F0:E4:9D:23:7C:0E:25:C0:03:F7:4A:7A:C4:11:51:5F:09:68:78:DA:D0:61"
+      ]
+    }
+  }
+]

@@ -1,261 +1,240 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Filter, Plus } from 'lucide-react';
 import { db } from '@/api/db';
-import { scheduleTaskReminders } from '@/lib/localNotifications';
-import { AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { createPageUrl } from '@/utils';
 import MainHeader from '@/components/ui/MainHeader';
-import ProgressCircle from '@/components/tasks/ProgressCircle';
+import StateView from '@/components/ui/StateView';
 import TaskCard from '@/components/tasks/TaskCard';
-import CategoryFilterSheet from '@/components/tasks/CategoryFilterSheet';
-import TimeFilterSheet from '@/components/tasks/TimeFilterSheet';
-import AreaFilterSheet from '@/components/tasks/AreaFilterSheet';
+import TaskFilterSheet from '@/components/tasks/TaskFilterSheet';
+import {
+  matchesTaskTime,
+  TASK_REASONS,
+  taskReasonValue,
+  todayProgress,
+} from '@/lib/taskPresentation';
 
-const timeLabels = {
-  overdue: 'Atrasadas',
-  today: 'Hoy',
-  week: 'Esta semana',
-  month: 'Este mes'
-};
+const timeOptions = [
+  { value: 'due', label: 'Pendientes' },
+  { value: 'overdue', label: 'Atrasadas' },
+  { value: 'today', label: 'Hoy' },
+  { value: 'upcoming', label: 'Próximas' },
+  { value: 'completed', label: 'Hechas' },
+];
 
-const categoryLabels = {
-  all: 'Todas',
-  recompra: 'Recompra',
-  seguimiento: 'Seguimiento',
-  reactivacion: 'Reactivación'
-};
-
-const areaLabels = {
-  all: 'Todas',
-  producto: 'Producto',
-  partner: 'Partner',
-  prospecto_producto: 'Prosp. producto',
-  prospecto_partner: 'Prosp. partner'
-};
+function localDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export default function Tasks() {
-  const [timeFilter, setTimeFilter] = useState('today');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [areaFilter, setAreaFilter] = useState('all');
-  const [showCategorySheet, setShowCategorySheet] = useState(false);
-  const [showTimeSheet, setShowTimeSheet] = useState(false);
-  const [showAreaSheet, setShowAreaSheet] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightedTaskId = searchParams.get('taskId');
+  const [timeFilter, setTimeFilter] = useState('due');
+  const [reasonFilter, setReasonFilter] = useState('all');
+  const [contactFilter, setContactFilter] = useState('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => db.Task.list()
-  });
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: () => db.Contact.list()
-  });
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => db.Product.list()
-  });
-
-  // Recordatorios locales en el dispositivo (solo corre en app nativa)
-  useEffect(() => {
-    if (tasks.length === 0) return;
-    const today = new Date();
-    const y = today.getFullYear(), m = today.getMonth() + 1, d = today.getDate();
-    const todayStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const todayPending = tasks.filter(t => !t.completed && t.due_date === todayStr).length;
-    scheduleTaskReminders({ todayPending });
-  }, [tasks]);
+  const tasksQuery = useQuery({ queryKey: ['tasks'], queryFn: () => db.Task.list() });
+  const contactsQuery = useQuery({ queryKey: ['contacts'], queryFn: () => db.Contact.list() });
+  const productsQuery = useQuery({ queryKey: ['products'], queryFn: () => db.Product.list() });
+  const tasks = tasksQuery.data ?? [];
+  const contacts = contactsQuery.data ?? [];
+  const products = productsQuery.data ?? [];
+  const today = localDateString();
+  const isLoading = tasksQuery.isLoading || contactsQuery.isLoading || productsQuery.isLoading;
+  const loadError = tasksQuery.error || contactsQuery.error || productsQuery.error;
 
   const completeMutation = useMutation({
-    mutationFn: ({ taskId, completed }) => {
-      return db.Task.update(taskId, { completed: !completed });
+    mutationFn: (/** @type {{ taskId: string, completed: boolean }} */ { taskId, completed }) => db.Task.update(taskId, { completed: !completed }),
+    onMutate: async (/** @type {{ taskId: string, completed: boolean }} */ { taskId, completed }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      const previous = /** @type {any[] | undefined} */ (queryClient.getQueryData(['tasks']));
+      queryClient.setQueryData(['tasks'], (/** @type {any[] | undefined} */ current = []) => current.map(task => (
+        task.id === taskId ? { ...task, completed: !completed } : task
+      )));
+      return { previous };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(['tasks'], context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 
-  const filteredTasks = useMemo(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    return tasks.filter(task => {
-      // Parse task date from string format "YYYY-MM-DD"
-      const [year, month, day] = task.due_date.split('-').map(Number);
-      const taskDate = new Date(year, month - 1, day);
-      
-      // Time filter
-      let passesTimeFilter = false;
-      if (timeFilter === 'overdue') {
-        passesTimeFilter = taskDate < today;
-      } else if (timeFilter === 'today') {
-        passesTimeFilter = taskDate.toDateString() === today.toDateString();
-      } else if (timeFilter === 'week') {
-        const weekEnd = new Date(today);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        passesTimeFilter = taskDate >= today && taskDate <= weekEnd;
-      } else if (timeFilter === 'month') {
-        const monthEnd = new Date(today);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-        passesTimeFilter = taskDate >= today && taskDate <= monthEnd;
-      }
+  const getContact = contactId => contacts.find(contact => contact.id === contactId);
+  const getProduct = productId => products.find(product => product.id === productId);
 
-      // Category filter
-      const passesCategoryFilter = categoryFilter === 'all' || task.category === categoryFilter;
+  const filteredTasks = useMemo(() => tasks
+    .filter(task => matchesTaskTime(task, timeFilter, today))
+    .filter(task => reasonFilter === 'all' || taskReasonValue(task) === reasonFilter)
+    .filter(task => contactFilter === 'all' || task.contact_id === contactFilter)
+    .sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      return String(a.due_date || '').localeCompare(String(b.due_date || ''));
+    }), [contactFilter, reasonFilter, tasks, timeFilter, today]);
 
-      // Area filter (tasks without task_area default to 'producto')
-      const taskArea = task.task_area || 'producto';
-      const passesAreaFilter = areaFilter === 'all' || taskArea === areaFilter;
-
-      return passesTimeFilter && passesCategoryFilter && passesAreaFilter;
-    }).sort((a, b) => {
-      // Completed tasks always go to the bottom
-      if (a.completed === b.completed) return 0;
-      return a.completed ? 1 : -1;
+  useEffect(() => {
+    if (!highlightedTaskId || isLoading) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`task-${highlightedTaskId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-  }, [tasks, timeFilter, categoryFilter, areaFilter]);
+    return () => cancelAnimationFrame(frame);
+  }, [highlightedTaskId, isLoading, filteredTasks]);
 
-  const taskCounts = useMemo(() => {
-    return {
-      recompra: filteredTasks.filter(t => t.category === 'recompra').length,
-      reactivacion: filteredTasks.filter(t => t.category === 'reactivacion').length,
-      seguimiento: filteredTasks.filter(t => t.category === 'seguimiento').length,
-      completed: filteredTasks.filter(t => t.completed).length,
-      total: filteredTasks.length
-    };
-  }, [filteredTasks]);
+  const progress = useMemo(() => todayProgress(tasks, today), [tasks, today]);
+  const percentage = progress.total ? Math.round((progress.completed / progress.total) * 100) : 0;
 
-  // Determine which category rows to show in the progress section
-  const visibleCategories = useMemo(() => {
-    if (areaFilter === 'producto') {
-      return ['recompra', 'reactivacion', 'seguimiento'];
-    }
-    if (areaFilter === 'partner' || areaFilter === 'prospecto_producto' || areaFilter === 'prospecto_partner') {
-      return ['seguimiento'];
-    }
-    // areaFilter === 'all': show only categories that exist in current filtered set
-    const cats = [];
-    if (taskCounts.recompra > 0) cats.push('recompra');
-    if (taskCounts.reactivacion > 0) cats.push('reactivacion');
-    if (taskCounts.seguimiento > 0) cats.push('seguimiento');
-    return cats;
-  }, [areaFilter, taskCounts]);
+  const taskGroups = useMemo(() => {
+    if (timeFilter === 'completed') return [{ key: 'completed', title: 'Hechas', tasks: filteredTasks }];
+    return [
+      { key: 'overdue', title: 'Atrasadas', tasks: filteredTasks.filter(task => task.due_date < today) },
+      { key: 'today', title: 'Hoy', tasks: filteredTasks.filter(task => task.due_date === today) },
+      { key: 'upcoming', title: 'Próximas', tasks: filteredTasks.filter(task => task.due_date > today) },
+    ].filter(group => group.tasks.length);
+  }, [filteredTasks, timeFilter, today]);
 
-  const handleWhatsApp = (phone) => {
-    if (phone) {
-      window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank');
-    }
+  const contactOptions = useMemo(() => [
+    { value: 'all', label: 'Todos los contactos' },
+    ...contacts
+      .filter(contact => contact.id && contact.full_name)
+      .sort((a, b) => a.full_name.localeCompare(b.full_name, 'es'))
+      .map(contact => ({ value: contact.id, label: contact.full_name })),
+  ], [contacts]);
+
+  const activeFilterCount = Number(reasonFilter !== 'all') + Number(contactFilter !== 'all');
+  const retry = () => Promise.all([tasksQuery.refetch(), contactsQuery.refetch(), productsQuery.refetch()]);
+  const clearFilters = () => {
+    setReasonFilter('all');
+    setContactFilter('all');
   };
 
-  const getContact = (contactId) => contacts.find(c => c.id === contactId);
-  const getProduct = (productId) => products.find(p => p.id === productId);
-
   return (
-    <div className="px-5 pt-8 pb-6">
-      <MainHeader title="Lista de tareas" />
+    <div className="px-4 pb-32 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-5">
+      <MainHeader title="Hoy" />
 
-      {/* Progress Section */}
-      <div className="bg-white rounded-2xl border border-[#F1F5F9] shadow-sm p-4 flex items-center gap-5 mb-6">
-        <ProgressCircle completed={taskCounts.completed} total={taskCounts.total} />
-        <div className="flex-1 space-y-2">
-          {visibleCategories.includes('recompra') && (
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#64748B]">Recompras</span>
-              <span className="text-[13px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{taskCounts.recompra}</span>
-            </div>
-          )}
-          {visibleCategories.includes('reactivacion') && (
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#64748B]">Reactivación</span>
-              <span className="text-[13px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{taskCounts.reactivacion}</span>
-            </div>
-          )}
-          {visibleCategories.includes('seguimiento') && (
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#64748B]">Seguimiento</span>
-              <span className="text-[13px] font-bold text-[#004AFE] bg-blue-50 px-2 py-0.5 rounded-full">{taskCounts.seguimiento}</span>
-            </div>
-          )}
-          {visibleCategories.length === 0 && (
-            <p className="text-[13px] text-[#94A3B8]">Sin tareas</p>
-          )}
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-card" aria-labelledby="today-progress-title">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="today-progress-title" className="text-[17px] font-bold text-foreground">
+              {progress.completed} de {progress.total} tareas de hoy
+            </h2>
+            <p className="mt-1 text-[15px] text-muted-foreground">
+              {progress.total === 0 ? 'No tienes tareas programadas para hoy.' : percentage === 100 ? 'Terminaste todo lo de hoy.' : 'Avanza una tarea a la vez.'}
+            </p>
+          </div>
+          <span className="shrink-0 text-[17px] font-bold text-primary">{percentage}%</span>
         </div>
-      </div>
+        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+          <div className="h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none" style={{ width: `${percentage}%` }} />
+        </div>
+      </section>
 
-      {/* Filters */}
-      <div className="flex items-center justify-center gap-3 mb-5">
-        {/* Time Filter */}
-        <button
-          onClick={() => setShowTimeSheet(true)}
-          className="flex items-center gap-2 px-4 h-10 bg-[#EEF0F3] rounded-full text-[14px] font-medium text-[#0F172A] hover:bg-[#E5E7EB] transition-colors"
-        >
-          <span>{timeLabels[timeFilter]}</span>
-          <ChevronDown className="w-4 h-4 text-[#64748B]" />
-        </button>
+      <section className="mt-6" aria-labelledby="tasks-title">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="tasks-title" className="text-2xl font-bold tracking-tight text-foreground">Tus tareas</h2>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="relative flex min-h-12 items-center gap-2 rounded-xl border border-border bg-card px-3 text-[15px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <Filter className="h-5 w-5" aria-hidden="true" />
+            Filtrar
+            {activeFilterCount > 0 && <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1 text-[15px] font-bold text-primary-foreground">{activeFilterCount}</span>}
+          </button>
+        </div>
 
-        {/* Category Filter */}
-        <button
-          onClick={() => setShowCategorySheet(true)}
-          className="flex items-center gap-2 px-4 h-10 bg-[#EEF0F3] rounded-full text-[14px] font-medium text-[#0F172A] hover:bg-[#E5E7EB] transition-colors"
-        >
-          <span>{categoryLabels[categoryFilter]}</span>
-          <ChevronDown className="w-4 h-4 text-[#64748B]" />
-        </button>
+        <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Estado de las tareas">
+          <div className="flex w-max gap-2">
+            {timeOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={timeFilter === option.value}
+                onClick={() => setTimeFilter(option.value)}
+                className={`min-h-12 shrink-0 rounded-full px-4 text-[15px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  timeFilter === option.value ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-foreground'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* Area Filter */}
-        <button
-          onClick={() => setShowAreaSheet(true)}
-          className="flex items-center gap-2 px-4 h-10 bg-[#EEF0F3] rounded-full text-[14px] font-medium text-[#0F172A] hover:bg-[#E5E7EB] transition-colors"
-        >
-          <span>{areaLabels[areaFilter]}</span>
-          <ChevronDown className="w-4 h-4 text-[#64748B]" />
-        </button>
-      </div>
-
-      {/* Time Filter Sheet */}
-      <TimeFilterSheet
-        isOpen={showTimeSheet}
-        onClose={() => setShowTimeSheet(false)}
-        selectedTime={timeFilter}
-        onSelect={setTimeFilter}
-      />
-
-      {/* Category Filter Sheet */}
-      <CategoryFilterSheet
-        isOpen={showCategorySheet}
-        onClose={() => setShowCategorySheet(false)}
-        selectedCategory={categoryFilter}
-        onSelect={setCategoryFilter}
-      />
-
-      {/* Area Filter Sheet */}
-      <AreaFilterSheet
-        isOpen={showAreaSheet}
-        onClose={() => setShowAreaSheet(false)}
-        selectedArea={areaFilter}
-        onSelect={setAreaFilter}
-      />
-
-      {/* Task List */}
-      <div className="space-y-2">
-        <AnimatePresence mode="popLayout">
-          {filteredTasks.map(task => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              contact={getContact(task.contact_id)}
-              product={getProduct(task.product_id)}
-              onComplete={(taskId, completed) => completeMutation.mutate({ taskId, completed })}
-              onWhatsApp={handleWhatsApp}
-            />
-          ))}
-        </AnimatePresence>
-        
-        {filteredTasks.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-[#64748B] text-[15px]">No hay tareas para mostrar</p>
+        {completeMutation.isError && (
+          <div className="mt-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-[15px] text-destructive" role="alert">
+            No pudimos guardar. Tus datos siguen aquí. Intenta de nuevo.
           </div>
         )}
-      </div>
+
+        <div className="mt-4">
+          {isLoading ? (
+            <StateView state="loading" title="Preparando tu día" description="Estamos reuniendo tus tareas y contactos." />
+          ) : loadError ? (
+            <StateView state="error" actionLabel="Intentar de nuevo" onAction={retry} />
+          ) : filteredTasks.length === 0 ? (
+            <StateView
+              state="empty"
+              title={activeFilterCount ? 'No hay coincidencias' : 'No hay tareas aquí'}
+              description={activeFilterCount ? 'Prueba con otro contacto o motivo.' : 'Cambia de categoría o crea una tarea nueva.'}
+              actionLabel={activeFilterCount ? 'Limpiar filtros' : 'Crear tarea'}
+              onAction={activeFilterCount ? clearFilters : () => navigate(createPageUrl('NewTask'))}
+            />
+          ) : (
+            <div className="space-y-6">
+              {taskGroups.map(group => (
+                <section key={group.key} aria-labelledby={`task-group-${group.key}`}>
+                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                    <h3 id={`task-group-${group.key}`} className={`text-[17px] font-bold ${group.key === 'overdue' ? 'text-amber-900' : 'text-foreground'}`}>
+                      {group.title}
+                    </h3>
+                    <span className="text-[15px] font-semibold text-muted-foreground">{group.tasks.length}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {group.tasks.map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        contact={getContact(task.contact_id)}
+                        product={getProduct(task.product_id)}
+                        onComplete={(taskId, completed) => completeMutation.mutate({ taskId, completed })}
+                        isUpdating={completeMutation.isPending && completeMutation.variables?.taskId === task.id}
+                        highlighted={String(task.id) === String(highlightedTaskId)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <TaskFilterSheet
+        isOpen={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filtrar tareas"
+        description="Elige un motivo o una persona. Puedes usar ambos."
+        sections={[
+          { key: 'reason', label: 'Motivo', options: TASK_REASONS, selected: reasonFilter, onSelect: setReasonFilter },
+          { key: 'contact', label: 'Contacto', options: contactOptions, selected: contactFilter, onSelect: setContactFilter },
+        ]}
+        onClear={clearFilters}
+      />
+
+      <Link
+        to={createPageUrl('NewTask')}
+        className="fixed bottom-24 right-5 z-30 flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#004AFE] px-5 text-[16px] font-bold text-white shadow-lg outline-none transition-transform duration-150 active:scale-[0.98] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        aria-label="Crear una tarea nueva"
+      >
+        <Plus className="h-6 w-6" aria-hidden="true" /> Nueva tarea
+      </Link>
     </div>
   );
 }

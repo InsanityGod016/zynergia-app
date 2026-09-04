@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/api/db';
 import { createPageUrl } from '@/utils';
-import { Menu, Bell } from 'lucide-react';
-import SideDrawer from './SideDrawer';
+import { Bell } from 'lucide-react';
 
 export default function MainHeader({ title }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
 
   const { data: notifications = [] } = useQuery({
@@ -19,31 +16,23 @@ export default function MainHeader({ title }) {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#F1F5F9] transition-colors"
-        >
-          <Menu className="w-6 h-6 text-[#0F172A]" strokeWidth={2} />
-        </button>
+    <header className="mb-7 flex min-h-14 items-center gap-3">
+      <h1 className="min-w-0 flex-1 truncate text-left text-2xl font-bold tracking-tight text-foreground">{title}</h1>
 
-        <h1 className="text-[20px] font-bold text-[#0F172A]">{title}</h1>
-
-        <button
-          onClick={() => navigate(createPageUrl('Notifications'))}
-          className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#F1F5F9] transition-colors"
-        >
-          <Bell className="w-6 h-6 text-[#0F172A]" strokeWidth={2} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-[#EF4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
-    </>
+      <button
+        type="button"
+        onClick={() => navigate(createPageUrl('Notifications'))}
+        className="relative flex h-14 min-w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-2 text-[15px] font-semibold text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
+        aria-label={unreadCount > 0 ? `Avisos, ${unreadCount} sin leer` : 'Avisos'}
+      >
+        <Bell className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+        <span>Avisos</span>
+        {unreadCount > 0 && (
+          <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-destructive px-1 text-[15px] font-bold leading-none text-destructive-foreground">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+    </header>
   );
 }

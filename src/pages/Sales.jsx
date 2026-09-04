@@ -1,24 +1,40 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
-import { db } from '@/api/db';
-import { Plus, ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { format, startOfToday, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Area, AreaChart as RechartsAreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import ProductFilterSheet from '@/components/sales/ProductFilterSheet';
+import { db } from '@/api/db';
 import DateFilterSheet from '@/components/sales/DateFilterSheet';
+import ProductFilterSheet from '@/components/sales/ProductFilterSheet';
 import MainHeader from '@/components/ui/MainHeader';
+import StateView from '@/components/ui/StateView';
+import { clearSaleDraft, hasSaleDraft, readSaleDraft, saleDraftStep, saleDraftUrl, updateSaleDraft } from '@/lib/saleDraft';
 
 const dateLabels = {
-  today: 'Hoy',
-  last7: 'Últimos 7 días',
-  thisMonth: 'Este mes',
-  lastMonth: 'Mes pasado',
-  last30: 'Últimos 30 días'
+  today: 'Hoy', last7: 'Últimos 7 días', thisMonth: 'Este mes', lastMonth: 'Mes pasado', last30: 'Últimos 30 días',
 };
+
+function parseLocalDate(value) {
+  const [year, month, day] = String(value || '').split('-').map(Number);
+  return year && month && day ? new Date(year, month - 1, day) : new Date(Number.NaN);
+}
+
+function dateBounds(range) {
+  const today = startOfToday();
+  if (range === 'today') return { start: today, end: today };
+  if (range === 'thisMonth') return { start: startOfMonth(today), end: endOfMonth(today) };
+  if (range === 'lastMonth') {
+    const month = subMonths(today, 1);
+    return { start: startOfMonth(month), end: endOfMonth(month) };
+  }
+  return { start: subDays(today, range === 'last30' ? 29 : 6), end: today };
+}
+
+function readableDate(value) {
+  const date = parseLocalDate(value);
+  return Number.isNaN(date.getTime()) ? 'Fecha no disponible' : format(date, "d 'de' MMM", { locale: es });
+}
 
 export default function Sales() {
   const navigate = useNavigate();
@@ -26,204 +42,95 @@ export default function Sales() {
   const [dateRange, setDateRange] = useState('last7');
   const [showProductSheet, setShowProductSheet] = useState(false);
   const [showDateSheet, setShowDateSheet] = useState(false);
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: () => db.Contact.list()
-  });
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => db.Product.list()
-  });
-
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales'],
-    queryFn: () => db.Sale.list('-purchase_date')
-  });
-
-  const getDateRangeFilter = () => {
-    const today = startOfToday();
-    switch (dateRange) {
-      case 'today':
-        return { start: today, end: today };
-      case 'last7':
-        return { start: subDays(today, 6), end: today };
-      case 'thisMonth':
-        return { start: startOfMonth(today), end: endOfMonth(today) };
-      case 'lastMonth':
-        const lastMonth = subMonths(today, 1);
-        return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
-      case 'last30':
-        return { start: subDays(today, 29), end: today };
-      default:
-        return { start: subDays(today, 6), end: today };
-    }
-  };
+  const [draft, setDraft] = useState(() => readSaleDraft());
+  const contactsQuery = useQuery({ queryKey: ['contacts'], queryFn: () => db.Contact.list() });
+  const productsQuery = useQuery({ queryKey: ['products'], queryFn: () => db.Product.list() });
+  const salesQuery = useQuery({ queryKey: ['sales'], queryFn: () => db.Sale.list('-purchase_date') });
+  const contacts = contactsQuery.data || [];
+  const products = productsQuery.data || [];
+  const sales = salesQuery.data || [];
 
   const filteredSales = useMemo(() => {
-    const { start, end } = getDateRangeFilter();
+    const { start, end } = dateBounds(dateRange);
     return sales.filter(sale => {
-      const saleDate = new Date(sale.purchase_date);
-      const matchesDateRange = saleDate >= start && saleDate <= end;
-      const matchesProduct = selectedProducts.length === 0 || selectedProducts.includes(sale.product_id);
-      return matchesDateRange && matchesProduct;
+      const date = parseLocalDate(sale.purchase_date);
+      return date >= start && date <= end && (!selectedProducts.length || selectedProducts.includes(sale.product_id));
     });
-  }, [sales, selectedProducts, dateRange]);
+  }, [dateRange, sales, selectedProducts]);
 
-  const chartData = useMemo(() => {
-    const { start, end } = getDateRangeFilter();
-    const data = [];
-    const current = new Date(start);
-    
-    while (current <= end) {
-      const dateStr = format(current, 'yyyy-MM-dd');
-      const count = filteredSales.filter(s => s.purchase_date === dateStr).length;
-      data.push({
-        date: format(current, 'd MMM', { locale: es }),
-        ventas: count
-      });
-      current.setDate(current.getDate() + 1);
+  const names = useMemo(() => ({
+    contacts: new Map(contacts.map(contact => [contact.id, contact.full_name || 'Contacto'])),
+    products: new Map(products.map(product => [product.id, product.name || 'Producto'])),
+  }), [contacts, products]);
+
+  const beginSale = () => {
+    if (hasSaleDraft(draft)) {
+      navigate(saleDraftUrl(saleDraftStep(draft), draft));
+      return;
     }
-    
-    return data;
-  }, [filteredSales, dateRange]);
-
-  const getContactName = (contactId) => {
-    const contact = contacts.find(c => c.id === contactId);
-    return contact?.full_name || 'Contacto';
+    const next = updateSaleDraft({});
+    setDraft(next);
+    navigate(saleDraftUrl('NewSale1', next));
   };
 
-  const getProductName = (productId) => {
-    const product = products.find(p => p.id === productId);
-    return product?.name || 'Producto';
+  const discardDraft = () => {
+    if (!window.confirm('¿Descartar la venta que dejaste sin terminar?')) return;
+    clearSaleDraft();
+    setDraft({});
   };
 
   return (
-    <div className="px-5 pt-8 pb-6">
+    <main className="min-h-dvh px-5 pb-32 pt-8">
       <MainHeader title="Ventas" />
 
-      {/* Filters */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <button
-          onClick={() => setShowProductSheet(true)}
-          className={`flex items-center justify-between px-4 h-11 rounded-full text-[14px] font-medium transition-colors ${
-            selectedProducts.length > 0
-              ? 'bg-[#282B31] text-white'
-              : 'bg-[#EEF0F3] text-[#0F172A] hover:bg-[#E5E7EB]'
-          }`}
-        >
-          <span>{selectedProducts.length > 0 ? `${selectedProducts.length} seleccionado${selectedProducts.length > 1 ? 's' : ''}` : 'Todos'}</span>
-          <ChevronDown className={`w-4 h-4 ${selectedProducts.length > 0 ? 'text-white' : 'text-[#64748B]'}`} />
-        </button>
-
-        <button
-          onClick={() => setShowDateSheet(true)}
-          className="flex items-center justify-between px-4 h-11 bg-[#EEF0F3] rounded-full text-[14px] font-medium text-[#0F172A] hover:bg-[#E5E7EB] transition-colors"
-        >
-          <span>{dateLabels[dateRange]}</span>
-          <ChevronDown className="w-4 h-4 text-[#64748B]" />
-        </button>
-      </div>
-
-      {/* Filter Sheets */}
-      <ProductFilterSheet
-        isOpen={showProductSheet}
-        onClose={() => setShowProductSheet(false)}
-        products={products}
-        selectedProducts={selectedProducts}
-        onApply={setSelectedProducts}
-      />
-      <DateFilterSheet
-        isOpen={showDateSheet}
-        onClose={() => setShowDateSheet(false)}
-        selectedDate={dateRange}
-        onSelect={setDateRange}
-      />
-
-      {/* Chart */}
-      <div className="mb-6 -mx-2">
-        <ChartContainer
-          config={{
-            ventas: {
-              label: "Ventas",
-              color: "#004AFE",
-            },
-          }}
-          className="h-[180px] w-full"
-        >
-          <RechartsAreaChart data={chartData} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
-            <defs>
-              <linearGradient id="fillVentas" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#004AFE" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#004AFE" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={12}
-            />
-            <YAxis hide />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Area
-              dataKey="ventas"
-              type="monotone"
-              fill="url(#fillVentas)"
-              stroke="#004AFE"
-              strokeWidth={2}
-            />
-          </RechartsAreaChart>
-        </ChartContainer>
-      </div>
-
-      {/* Recent Sales */}
-      <h2 className="text-[16px] font-bold text-[#0F172A] mb-3">Ventas recientes</h2>
-      <div className="space-y-2">
-        {filteredSales.slice(0, 20).map((sale) => (
-          <div
-            key={sale.id}
-            className="bg-white rounded-2xl border border-[#F1F5F9] shadow-sm px-4 py-3 flex items-center justify-between"
-          >
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#0F172A] text-[14px] truncate">
-                {getContactName(sale.contact_id)}
-              </h3>
-              <p className="text-[12px] text-[#94A3B8] mt-0.5 truncate">
-                {getProductName(sale.product_id)}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0 ml-3">
-              <p className="text-[12px] font-medium text-[#64748B]">
-                {format(new Date(sale.purchase_date), "d MMM", { locale: es })}
-              </p>
-              {sale.status === 'cancelled' && (
-                <span className="text-[11px] text-[#EF4444] font-semibold">Cancelado</span>
-              )}
-              {sale.status !== 'cancelled' && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">{sale.sale_type === 'nueva' ? 'Nueva' : 'Recompra'}</span>
-              )}
-            </div>
+      {hasSaleDraft(draft) && (
+        <section className="mb-5 rounded-3xl border border-[#BFD0FF] bg-[#F5F8FF] p-5" aria-labelledby="sale-draft-title">
+          <p className="text-[15px] font-bold text-[#004AFE]">VENTA SIN TERMINAR</p>
+          <h2 id="sale-draft-title" className="mt-1 text-[19px] font-bold text-[#0F172A]">Continúa donde te quedaste</h2>
+          <p className="mt-1 text-[15px] leading-6 text-[#64748B]">Lo que ya elegiste sigue guardado.</p>
+          <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+            <button type="button" onClick={beginSale} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#004AFE] px-4 text-[16px] font-bold text-white"><RotateCcw className="h-5 w-5" /> Continuar</button>
+            <button type="button" onClick={discardDraft} className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#D7E1F0] bg-white text-red-700" aria-label="Descartar venta sin terminar"><Trash2 className="h-5 w-5" /></button>
           </div>
-        ))}
+        </section>
+      )}
 
-        {filteredSales.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-[#64748B] text-[15px]">No hay ventas en este período</p>
-          </div>
-        )}
+      <section className="mb-5 grid grid-cols-2 gap-3" aria-label="Resumen de ventas">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">En el periodo</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : filteredSales.filter(sale => sale.status !== 'cancelled').length}</p></div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">Total histórico</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : sales.filter(sale => sale.status !== 'cancelled').length}</p></div>
+      </section>
+
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <button type="button" onClick={() => setShowProductSheet(true)} className={`flex min-h-12 items-center justify-between rounded-xl px-3 text-[15px] font-semibold ${selectedProducts.length ? 'bg-[#EAF0FF] text-[#004AFE]' : 'bg-[#EEF0F3] text-[#334155]'}`} aria-haspopup="dialog" aria-expanded={showProductSheet}>
+          <span className="truncate">{selectedProducts.length ? `${selectedProducts.length} producto${selectedProducts.length === 1 ? '' : 's'}` : 'Todos los productos'}</span><ChevronDown className="h-5 w-5 shrink-0" />
+        </button>
+        <button type="button" onClick={() => setShowDateSheet(true)} className="flex min-h-12 items-center justify-between rounded-xl bg-[#EEF0F3] px-3 text-[15px] font-semibold text-[#334155]" aria-haspopup="dialog" aria-expanded={showDateSheet}>
+          <span>{dateLabels[dateRange]}</span><ChevronDown className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* FAB - Sin cambios */}
-      <button
-        onClick={() => navigate(createPageUrl('NewSale1'))}
-        className="bg-[#004AFE] rounded-full fixed bottom-24 right-5 w-14 h-14 flex items-center justify-center shadow-lg transition-colors"
-      >
-        <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
+      <ProductFilterSheet isOpen={showProductSheet} onClose={() => setShowProductSheet(false)} products={products} selectedProducts={selectedProducts} onApply={setSelectedProducts} />
+      <DateFilterSheet isOpen={showDateSheet} onClose={() => setShowDateSheet(false)} selectedDate={dateRange} onSelect={setDateRange} />
+
+      <section aria-labelledby="recent-sales-title">
+        <h2 id="recent-sales-title" className="mb-3 text-[19px] font-bold text-[#0F172A]">Ventas recientes</h2>
+        {salesQuery.isPending && <StateView state="loading" title="Cargando ventas" />}
+        {salesQuery.isError && <StateView state="error" title="No pudimos cargar tus ventas" description="Tus registros siguen guardados. Revisa tu conexión e intenta de nuevo." actionLabel="Intentar de nuevo" onAction={() => salesQuery.refetch()} />}
+        {!salesQuery.isPending && !salesQuery.isError && (contactsQuery.isError || productsQuery.isError) && <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-4" role="status"><p className="text-[15px] text-amber-900">No pudimos mostrar algunos nombres. Las ventas siguen guardadas.</p><button type="button" onClick={() => Promise.all([contactsQuery.refetch(), productsQuery.refetch()])} className="mt-2 min-h-12 rounded-xl px-3 text-[15px] font-bold text-[#004AFE]">Intentar de nuevo</button></div>}
+        {!salesQuery.isPending && !salesQuery.isError && filteredSales.length === 0 && <StateView state="empty" title="No hay ventas en este periodo" description="Cambia los filtros o registra una venta nueva." />}
+        <div className="space-y-3">
+          {!salesQuery.isPending && !salesQuery.isError && filteredSales.slice(0, 30).map(sale => (
+            <article key={sale.id} className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm">
+              <div className="min-w-0 flex-1"><h3 className="truncate text-[17px] font-bold text-[#0F172A]">{names.contacts.get(sale.contact_id) || 'Contacto'}</h3><p className="mt-0.5 truncate text-[15px] text-[#64748B]">{names.products.get(sale.product_id) || 'Producto'}</p></div>
+              <div className="shrink-0 text-right"><p className="text-[15px] font-semibold text-[#475569]">{readableDate(sale.purchase_date)}</p>{sale.status === 'cancelled' ? <span className="text-[15px] font-semibold text-red-700">Cancelada</span> : <span className="text-[15px] font-semibold text-[#15805D]">{sale.sale_type === 'recompra' ? 'Recompra' : 'Nueva'}</span>}</div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <button type="button" onClick={beginSale} className="fixed bottom-24 right-5 z-30 flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#004AFE] px-5 text-[16px] font-bold text-white shadow-lg active:scale-[0.98]" aria-label={hasSaleDraft(draft) ? 'Continuar venta' : 'Registrar una venta'}>
+        {hasSaleDraft(draft) ? <RotateCcw className="h-5 w-5" /> : <Plus className="h-6 w-6" />} {hasSaleDraft(draft) ? 'Continuar venta' : 'Registrar venta'}
       </button>
-    </div>
+    </main>
   );
 }

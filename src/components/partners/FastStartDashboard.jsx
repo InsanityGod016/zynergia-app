@@ -1,240 +1,172 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Lock, AlertTriangle, TrendingUp } from 'lucide-react';
-import { BONUS_TABLE, formatBonus } from './bonusTable';
-
-function ProgressBar({ value, max, color = '#004AFE' }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  return (
-    <div className="w-full h-2 bg-[#F0F0F0] rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${pct}%`, backgroundColor: color }}
-      />
-    </div>
-  );
-}
+import { AlertTriangle, CalendarDays, CheckCircle2, CircleHelp, Lock, TrendingUp } from 'lucide-react';
+import { FAST_START_STAGES, formatBonus } from './bonusTable';
+import { calculateFastStartProgress, countActivePremierClients } from './partnerEngine';
 
 function StatusBadge({ status }) {
-  const cfg = {
-    completado: { label: 'Completado', bg: '#D1FAE5', color: '#065F46', icon: CheckCircle2 },
-    en_progreso: { label: 'En progreso', bg: '#EEF2FF', color: '#004AFE', icon: TrendingUp },
-    bloqueado: { label: 'Bloqueado', bg: '#F1F5F9', color: '#94A3B8', icon: Lock },
-    en_riesgo: { label: 'En riesgo', bg: '#FEF3C7', color: '#92400E', icon: AlertTriangle },
-  }[status] || { label: status, bg: '#F1F5F9', color: '#64748B', icon: null };
+  const config = {
+    completado: { label: 'Completado', className: 'bg-emerald-100 text-emerald-800', Icon: CheckCircle2 },
+    en_progreso: { label: 'En progreso', className: 'bg-primary/10 text-primary', Icon: TrendingUp },
+    bloqueado: { label: 'Pendiente', className: 'bg-slate-100 text-slate-600', Icon: Lock },
+    en_riesgo: { label: 'En riesgo', className: 'bg-amber-100 text-amber-900', Icon: AlertTriangle },
+    sin_datos: { label: 'Sin datos', className: 'bg-amber-100 text-amber-900', Icon: CircleHelp },
+  }[status] || { label: status, className: 'bg-slate-100 text-slate-600', Icon: CircleHelp };
 
-  const Icon = cfg.icon;
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-      style={{ backgroundColor: cfg.bg, color: cfg.color }}
-    >
-      {Icon && <Icon className="w-3 h-3" />}
-      {cfg.label}
+    <span className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-[15px] font-semibold ${config.className}`}>
+      <config.Icon className="h-4 w-4" aria-hidden="true" />
+      {config.label}
     </span>
   );
 }
 
-function BonusCard({ bonusKey, currency, status, current, target, motivationalText }) {
-  const isBlocked = status === 'bloqueado';
-  const isCompleted = status === 'completado';
-  const barColor = isCompleted ? '#22C55E' : status === 'en_riesgo' ? '#F59E0B' : '#004AFE';
+function ProgressBar({ current, target, status }) {
+  const percentage = Math.min(100, Math.round((current / target) * 100));
+  const color = status === 'completado' ? 'bg-emerald-600' : status === 'en_riesgo' ? 'bg-amber-600' : 'bg-primary';
 
   return (
-    <div className={`rounded-2xl border-2 p-4 ${isBlocked ? 'border-[#E2E8F0] opacity-60' : isCompleted ? 'border-[#22C55E]' : 'border-[#E2E8F0]'}`}>
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-[12px] text-[#64748B] font-medium">{BONUS_TABLE[bonusKey].subtitle}</p>
-          <p className="text-[15px] font-bold text-[#0F172A] mt-0.5">{BONUS_TABLE[bonusKey].label}</p>
-        </div>
-        <StatusBadge status={status} />
-      </div>
-
-      <p className="text-[22px] font-bold text-[#004AFE] mb-3">{formatBonus(bonusKey, currency)}</p>
-
-      {!isBlocked && (
-        <>
-          <ProgressBar value={current} max={target} color={barColor} />
-          <div className="flex justify-between mt-1.5">
-            <p className="text-[12px] text-[#64748B]">{current} / {target}</p>
-          </div>
-        </>
-      )}
-
-      {motivationalText && (
-        <p className="text-[12px] text-[#64748B] mt-2 italic">{motivationalText}</p>
-      )}
+    <div className="h-2.5 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${current} de ${target}`} aria-valuemin={0} aria-valuemax={target} aria-valuenow={Math.min(current, target)}>
+      <div className={`h-full rounded-full transition-[width] duration-200 motion-reduce:transition-none ${color}`} style={{ width: `${percentage}%` }} />
     </div>
   );
 }
 
-export default function FastStartDashboard({ partners, sales, products, currency }) {
-  const cur = currency || 'MXN';
+function StageCard({ stageKey, stage, currency, detail }) {
+  const config = FAST_START_STAGES[stageKey];
+  const showProgress = !['bloqueado', 'sin_datos'].includes(stage.status);
 
-  const metrics = useMemo(() => {
-    // Count active premier kit clients
-    const premierKitProductIds = new Set(
-      products
-        .filter(p => p.category === 'Premier Kits')
-        .map(p => p.id)
-    );
-    const activePremierClients = new Set(
-      sales
-        .filter(s => s.status !== 'cancelled' && premierKitProductIds.has(s.product_id))
-        .map(s => s.contact_id)
-    ).size;
+  return (
+    <article className={`rounded-2xl border-2 bg-card p-4 ${stage.status === 'completado' ? 'border-emerald-500' : stage.status === 'sin_datos' ? 'border-amber-300' : 'border-border'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold text-muted-foreground">{config.subtitle}</p>
+          <h3 className="mt-0.5 text-[17px] font-bold text-foreground">{config.label}</h3>
+        </div>
+        <StatusBadge status={stage.status} />
+      </div>
 
-    const partnersCount = partners.length;
+      <p className="mt-3 text-[22px] font-bold tracking-tight text-primary">{formatBonus(stageKey, currency)}</p>
+      <p className="mt-1 text-[15px] text-muted-foreground">{config.goal}</p>
 
-    // Global fast start dates — based on oldest partner
-    let startDateGlobal = null;
-    let deadlineGlobal = null;
-    let daysElapsed = 0;
-    let daysRemaining = 0;
+      {showProgress && (
+        <div className="mt-3">
+          <ProgressBar current={stage.current} target={stage.target} status={stage.status} />
+          <p className="mt-2 text-[15px] font-bold text-foreground">{stage.current} de {stage.target}</p>
+        </div>
+      )}
 
-    if (partners.length > 0) {
-      const sorted = [...partners].sort((a, b) => a.start_date.localeCompare(b.start_date));
-      startDateGlobal = sorted[0].start_date;
-      const start = new Date(startDateGlobal);
-      const deadline = new Date(start);
-      deadline.setDate(deadline.getDate() + 120);
-      deadlineGlobal = deadline.toISOString().split('T')[0];
+      <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{detail}</p>
+    </article>
+  );
+}
 
-      const today = new Date();
-      daysElapsed = Math.max(0, Math.floor((today - start) / 86400000));
-      daysRemaining = Math.max(0, Math.floor((deadline - today) / 86400000));
-    }
+function startDateLabel(value) {
+  if (!value) return null;
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+  if (!Number.isFinite(date.getTime())) return null;
+  return new Intl.DateTimeFormat('es-419', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+}
 
-    return { activePremierClients, partnersCount, startDateGlobal, deadlineGlobal, daysElapsed, daysRemaining };
-  }, [partners, sales, products]);
+export default function FastStartDashboard({
+  partners = [],
+  sales = [],
+  products = [],
+  currency = 'MXN',
+  startDate = null,
+  directBranchMetrics = [],
+  metricsLoading = false,
+  metricsError = false,
+  onEditStartDate,
+}) {
+  const progress = useMemo(() => calculateFastStartProgress({
+    premierClients: countActivePremierClients(sales, products),
+    directPartners: partners.length,
+    directBranches: directBranchMetrics,
+    startDate,
+  }), [directBranchMetrics, partners.length, products, sales, startDate]);
 
-  // Determine bono statuses
-  const qteamCompleted = metrics.activePremierClients >= 4;
-  const fs1Completed = qteamCompleted && metrics.partnersCount >= 2;
-  const xteamCompleted = qteamCompleted && metrics.activePremierClients >= 10;
+  const { stages, timeline } = progress;
+  const globalStatus = !timeline
+    ? 'Fecha pendiente'
+    : progress.completed
+      ? 'Completado'
+      : timeline.expired
+        ? 'Periodo concluido'
+        : 'Activo';
+  const formattedStartDate = startDateLabel(startDate);
 
-  const today = new Date().toISOString().split('T')[0];
-  const isExpired = metrics.deadlineGlobal && today > metrics.deadlineGlobal;
-
-  let globalStatus = 'no_iniciado';
-  if (partners.length > 0) {
-    if (isExpired && !fs1Completed) globalStatus = 'vencido';
-    else if (fs1Completed && xteamCompleted) globalStatus = 'completado';
-    else globalStatus = 'activo';
-  }
-
-  const qteamStatus = metrics.activePremierClients >= 4
-    ? 'completado'
-    : metrics.activePremierClients > 0
-    ? 'en_progreso'
-    : 'en_progreso';
-
-  const fs1Status = !qteamCompleted ? 'bloqueado'
-    : metrics.partnersCount >= 2 ? 'completado'
-    : 'en_progreso';
-
-  const fs2Status = !fs1Completed ? 'bloqueado' : 'en_progreso';
-
-  const xteamStatus = !fs1Completed ? 'bloqueado'
-    : metrics.activePremierClients >= 10 ? 'completado'
-    : metrics.activePremierClients >= 4 ? 'en_progreso'
-    : 'bloqueado';
-
-  const qteamMotivational = metrics.activePremierClients >= 4
-    ? '¡Bono desbloqueado!'
-    : `Te ${4 - metrics.activePremierClients === 1 ? 'falta 1 cliente' : `faltan ${4 - metrics.activePremierClients} clientes`} para cobrar ${formatBonus('qteam', cur)}`;
-
-  const fs1Motivational = !qteamCompleted
-    ? 'Completa Q-Team primero'
-    : metrics.partnersCount >= 2
-    ? '¡Bono desbloqueado!'
-    : `Te ${2 - metrics.partnersCount === 1 ? 'falta 1 partner' : `faltan ${2 - metrics.partnersCount} partners`} para cobrar ${formatBonus('fs_nivel1', cur)}`;
-
-  const xteamMotivational = !fs1Completed
-    ? 'Completa Nivel 1 primero'
-    : metrics.activePremierClients >= 10
-    ? '¡Bono desbloqueado!'
-    : `Te faltan ${10 - metrics.activePremierClients} clientes para cobrar ${formatBonus('xteam', cur)}`;
-
-  const globalStatusLabel = {
-    activo: { text: 'Activo', color: '#004AFE' },
-    completado: { text: '¡Completado!', color: '#22C55E' },
-    vencido: { text: 'Vencido', color: '#EF4444' },
-    no_iniciado: { text: 'No iniciado', color: '#94A3B8' },
-  }[globalStatus] || { text: '', color: '#64748B' };
+  const branchDetail = !stages.fs_nivel1.completed
+    ? 'Primero completa Q-Team y registra 2 partners directos.'
+    : stages.fs_nivel2.completed
+      ? 'Dos ramas directas tienen Q-Team verificado.'
+      : metricsLoading
+        ? 'Estamos verificando el avance de tus ramas directas.'
+        : metricsError
+          ? 'No pudimos verificar tus ramas. Intenta de nuevo más tarde.'
+          : progress.unknownBranches > 0
+            ? `${progress.qteamBranches} de 2 ramas verificadas. Vincula a tus partners para consultar su avance real.`
+            : `Te ${2 - progress.qteamBranches === 1 ? 'falta 1 rama' : `faltan ${Math.max(0, 2 - progress.qteamBranches)} ramas`} con Q-Team.`;
 
   return (
     <div className="mb-6">
-      {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#004AFE] to-[#0039CC] p-5 mb-4 text-white">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[18px] font-bold">Fast Start (120 días)</p>
-          <span
-            className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-          >
-            {globalStatusLabel.text}
-          </span>
+      <section className="mb-4 rounded-3xl bg-gradient-to-br from-primary to-[#0039CC] p-5 text-white" aria-labelledby="fast-start-heading">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="fast-start-heading" className="text-xl font-bold">Fast Start</h2>
+          <span className="rounded-full bg-white/20 px-3 py-1 text-[15px] font-semibold">{globalStatus}</span>
         </div>
-        {globalStatus === 'no_iniciado' ? (
-          <p className="text-[13px] opacity-70 mt-2">Agrega tu primer partner para iniciar el conteo de 120 días</p>
-        ) : (
-          <div className="flex gap-4 mt-3">
-            <div>
-              <p className="text-[11px] opacity-70">Días transcurridos</p>
-              <p className="text-[20px] font-bold">{metrics.daysElapsed}</p>
-            </div>
-            <div className="w-px bg-white/20" />
-            <div>
-              <p className="text-[11px] opacity-70">Días restantes</p>
-              <p className={`text-[20px] font-bold ${metrics.daysRemaining <= 10 ? 'text-yellow-300' : ''}`}>{metrics.daysRemaining}</p>
-            </div>
-            <div className="w-px bg-white/20" />
-            <div>
-              <p className="text-[11px] opacity-70">Clientes Premier</p>
-              <p className="text-[20px] font-bold">{metrics.activePremierClients}</p>
-            </div>
-            <div className="w-px bg-white/20" />
-            <div>
-              <p className="text-[11px] opacity-70">Partners</p>
-              <p className="text-[20px] font-bold">{metrics.partnersCount}</p>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Bonus cards */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {[
+            [timeline ? `Día ${Math.min(timeline.daysElapsed, 120)}` : '—', 'de 120'],
+            [timeline ? timeline.daysRemaining : '—', 'días restantes'],
+            [progress.premierClients, 'clientes Premier'],
+            [progress.directPartners, progress.directPartners === 1 ? 'partner directo' : 'partners directos'],
+          ].map(([value, label]) => (
+            <div key={label} className="rounded-2xl bg-white/15 px-3 py-2.5">
+              <p className="text-[22px] font-bold leading-tight">{value}</p>
+              <p className="mt-0.5 text-[15px] leading-tight text-blue-100">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {!timeline && (
+          <p className="mt-3 rounded-2xl bg-white/15 px-3 py-2.5 text-[15px] leading-relaxed text-blue-50">
+            Falta configurar tu fecha de inicio para mostrar los días y vencimientos.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onEditStartDate}
+          className="mt-3 flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 text-left text-[15px] font-semibold text-primary transition-transform active:scale-[0.98]"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <CalendarDays className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{formattedStartDate ? `Inicio: ${formattedStartDate}` : 'Configurar fecha de inicio'}</span>
+          </span>
+          <span className="shrink-0">{formattedStartDate ? 'Cambiar' : 'Elegir'}</span>
+        </button>
+      </section>
+
       <div className="space-y-3">
-        <BonusCard
-          bonusKey="qteam"
-          currency={cur}
-          status={qteamStatus}
-          current={metrics.activePremierClients}
-          target={4}
-          motivationalText={qteamMotivational}
+        <StageCard
+          stageKey="qteam"
+          stage={stages.qteam}
+          currency={currency}
+          detail={stages.qteam.completed ? 'Meta registrada con tus clientes activos.' : `Te ${4 - stages.qteam.current === 1 ? 'falta 1 cliente Premier' : `faltan ${Math.max(0, 4 - stages.qteam.current)} clientes Premier`}.`}
         />
-        <BonusCard
-          bonusKey="fs_nivel1"
-          currency={cur}
-          status={fs1Status}
-          current={metrics.partnersCount}
-          target={2}
-          motivationalText={fs1Motivational}
+        <StageCard
+          stageKey="fs_nivel1"
+          stage={stages.fs_nivel1}
+          currency={currency}
+          detail={!stages.qteam.completed ? 'Primero completa Q-Team.' : stages.fs_nivel1.completed ? 'Meta registrada con tu equipo directo.' : `Te ${2 - stages.fs_nivel1.current === 1 ? 'falta 1 partner directo' : `faltan ${Math.max(0, 2 - stages.fs_nivel1.current)} partners directos`}.`}
         />
-        <BonusCard
-          bonusKey="fs_nivel2"
-          currency={cur}
-          status={fs2Status}
-          current={0}
-          target={1}
-          motivationalText={!fs1Completed ? 'Completa Nivel 1 primero' : 'En progreso: enfócate en duplicación'}
-        />
-        <BonusCard
-          bonusKey="xteam"
-          currency={cur}
-          status={xteamStatus}
-          current={metrics.activePremierClients}
-          target={10}
-          motivationalText={xteamMotivational}
+        <StageCard stageKey="fs_nivel2" stage={stages.fs_nivel2} currency={currency} detail={branchDetail} />
+        <StageCard
+          stageKey="xteam"
+          stage={stages.xteam}
+          currency={currency}
+          detail={!stages.fs_nivel1.completed ? 'Primero completa el Nivel 1.' : stages.xteam.completed ? 'Meta registrada con tus clientes activos.' : `Te faltan ${Math.max(0, 10 - stages.xteam.current)} clientes Premier.`}
         />
       </div>
     </div>

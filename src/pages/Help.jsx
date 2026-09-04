@@ -13,11 +13,11 @@ const FAQ = [
       },
       {
         q: '¿Qué significa el tipo de contacto?',
-        a: 'Hay 3 tipos: Prospecto Producto (persona interesada en comprar), Prospecto Partner (persona interesada en ser distribuidor), y Partner (ya es parte de tu red). Cambiar el tipo genera automáticamente las tareas de seguimiento correctas.'
+        a: 'Puedes usar Prospecto Producto, Prospecto Partner, Cliente o Partner. Cambiar el tipo genera automáticamente las tareas de seguimiento correspondientes.'
       },
       {
         q: '¿Cómo cambio el tipo a varios contactos a la vez?',
-        a: 'En la lista de Contactos, mantén presionado un contacto para entrar al modo selección. Selecciona los que quieras y toca "Cambiar tipo" en la barra inferior.'
+        a: 'En Contactos, toca el botón "Seleccionar", elige las personas y después toca "Cambiar tipo".'
       },
     ]
   },
@@ -56,7 +56,7 @@ const FAQ = [
     items: [
       {
         q: '¿Qué es el programa Fast Start?',
-        a: 'Fast Start es el programa de arranque de Zynergia. Tienes 120 días para completar 4 fases: Q-Team (4 clientes activos), FS Level 1 (2 socios activos), FS Level 2 (socios con 4 clientes) y X-Team (10 clientes). Cada fase tiene un bono.'
+        a: 'La sección Fast Start organiza el avance inicial de tu equipo. Las metas visibles son referencias de seguimiento y deben compararse con el plan oficial vigente de tu mercado; Zynergia no garantiza bonos ni ingresos.'
       },
       {
         q: '¿Cómo agrego un partner?',
@@ -64,7 +64,7 @@ const FAQ = [
       },
       {
         q: '¿Cuándo recibo las notificaciones de Fast Start?',
-        a: 'Zynergia te notifica cuando un socio está a 7, 3 y 1 día de vencer su plazo Fast Start, y también cuando están cerca de alcanzar un bono (a 1 cliente o socio de distancia).'
+        a: 'Zynergia puede avisarte cuando se acerca una fecha de seguimiento o cuando conviene revisar el avance de un integrante del equipo.'
       },
     ]
   },
@@ -73,7 +73,7 @@ const FAQ = [
     items: [
       {
         q: '¿Cómo genero un código QR?',
-        a: 'Ve a Marketing → QR. Pega la URL que quieres convertir, elige el estilo del QR y toca "Generar". Puedes agregar tu logo encima del QR y descargarlo o compartirlo directamente.'
+        a: 'Ve a Herramientas → Generador QR. Pega un enlace que comience con http:// o https:// y toca “Crear QR”. Puedes descargarlo, compartirlo o colocarlo sobre una imagen. Todo se prepara en tu dispositivo.'
       },
       {
         q: '¿Puedo editar las plantillas de mensajes?',
@@ -90,7 +90,7 @@ const FAQ = [
       },
       {
         q: '¿Cómo cancelo mi suscripción?',
-        a: 'Las suscripciones se gestionan directamente desde tu cuenta de App Store (iOS) o Google Play (Android). Ve a Ajustes → tu nombre → Suscripciones en tu iPhone, o a Play Store → Suscripciones en Android.'
+        a: 'Ve a Configuración → Estado de la cuenta → Cancelar mi suscripción. No habrá otro cobro y conservarás el acceso hasta que termine el periodo pagado.'
       },
     ]
   },
@@ -102,12 +102,13 @@ function FaqItem({ q, a }) {
     <div className="border-b border-[#F1F5F9] last:border-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-start justify-between py-4 text-left gap-3"
+          className="w-full min-h-14 flex items-start justify-between py-4 text-left gap-3"
+          aria-expanded={open}
       >
-        <span className="text-[15px] font-medium text-[#0F172A] leading-snug">{q}</span>
+        <span className="text-[16px] font-medium text-[#0F172A] leading-snug">{q}</span>
         {open
-          ? <ChevronUp className="w-4 h-4 text-[#94A3B8] shrink-0 mt-0.5" />
-          : <ChevronDown className="w-4 h-4 text-[#94A3B8] shrink-0 mt-0.5" />
+          ? <ChevronUp className="w-5 h-5 text-[#64748B] shrink-0 mt-0.5" aria-hidden="true" />
+          : <ChevronDown className="w-5 h-5 text-[#64748B] shrink-0 mt-0.5" aria-hidden="true" />
         }
       </button>
       <AnimatePresence>
@@ -119,7 +120,7 @@ function FaqItem({ q, a }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <p className="text-[14px] text-[#64748B] leading-relaxed pb-4">{a}</p>
+            <p className="text-[15px] text-[#64748B] leading-relaxed pb-4">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -135,20 +136,21 @@ export default function Help() {
       {/* Header */}
       <div className="bg-white px-5 pt-14 pb-4 flex items-center gap-3 border-b border-[#F1F5F9]">
         <button
-          onClick={() => navigate(-1)}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-[#F1F5F9] active:scale-95 transition-transform"
+          onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/Settings')}
+          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-[#F1F5F9] active:scale-95 transition-transform"
+          aria-label="Volver a Configuración"
         >
-          <ChevronLeft className="w-5 h-5 text-[#0F172A]" />
+          <ChevronLeft className="w-5 h-5 text-[#0F172A]" aria-hidden="true" />
         </button>
         <h1 className="text-[18px] font-bold text-[#0F172A]">Ayuda</h1>
       </div>
 
       <div className="px-5 py-5 space-y-4">
-        <p className="text-[14px] text-[#64748B]">Preguntas frecuentes sobre Zynergia</p>
+        <p className="text-[16px] text-[#64748B]">Preguntas frecuentes sobre Zynergia</p>
 
         {FAQ.map(section => (
           <div key={section.category} className="bg-white rounded-2xl border border-[#F1F5F9] shadow-sm px-5">
-            <p className="text-[11px] font-bold text-[#004AFE] uppercase tracking-widest pt-4 pb-1">
+            <p className="text-[15px] font-bold text-[#004AFE] uppercase tracking-widest pt-4 pb-1">
               {section.category}
             </p>
             {section.items.map(item => (
@@ -157,9 +159,14 @@ export default function Help() {
           </div>
         ))}
 
-        <p className="text-center text-[12px] text-[#CBD5E1] pb-4">
-          ¿Necesitas más ayuda? Contáctanos en soporte@zynergia.app
-        </p>
+        <a
+          href="https://zynergia.pro/soporte"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="min-h-12 flex items-center justify-center rounded-xl text-center text-[15px] font-semibold text-[#004AFE] active:bg-[#EEF2FF]"
+        >
+          Abrir el centro de soporte
+        </a>
       </div>
     </div>
   );

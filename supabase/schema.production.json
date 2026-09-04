@@ -1,0 +1,1150 @@
+{
+  "columns": [
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "contacts",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "contacts",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "full_name",
+      "nullable": "NO",
+      "position": 3,
+      "table": "contacts",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "phone",
+      "nullable": "YES",
+      "position": 4,
+      "table": "contacts",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "country_code",
+      "nullable": "YES",
+      "position": 5,
+      "table": "contacts",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "contact_type",
+      "nullable": "YES",
+      "position": 6,
+      "table": "contacts",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "notes",
+      "nullable": "YES",
+      "position": 7,
+      "table": "contacts",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "'[]'::jsonb",
+      "name": "tag_ids",
+      "nullable": "YES",
+      "position": 8,
+      "table": "contacts",
+      "type": "jsonb",
+      "udt": "jsonb"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 9,
+      "table": "contacts",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "notifications",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "notifications",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "title",
+      "nullable": "YES",
+      "position": 3,
+      "table": "notifications",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "body",
+      "nullable": "YES",
+      "position": 4,
+      "table": "notifications",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "type",
+      "nullable": "YES",
+      "position": 5,
+      "table": "notifications",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "related_entity_type",
+      "nullable": "YES",
+      "position": 6,
+      "table": "notifications",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "false",
+      "name": "is_read",
+      "nullable": "YES",
+      "position": 7,
+      "table": "notifications",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": null,
+      "name": "created_date",
+      "nullable": "YES",
+      "position": 8,
+      "table": "notifications",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 9,
+      "table": "notifications",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "partners",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "partners",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "contact_id",
+      "nullable": "YES",
+      "position": 3,
+      "table": "partners",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "start_date",
+      "nullable": "YES",
+      "position": 4,
+      "table": "partners",
+      "type": "date",
+      "udt": "date"
+    },
+    {
+      "default": null,
+      "name": "fast_start_deadline",
+      "nullable": "YES",
+      "position": 5,
+      "table": "partners",
+      "type": "date",
+      "udt": "date"
+    },
+    {
+      "default": "'activo'::text",
+      "name": "fast_start_status",
+      "nullable": "YES",
+      "position": 6,
+      "table": "partners",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "1",
+      "name": "fase_actual",
+      "nullable": "YES",
+      "position": 7,
+      "table": "partners",
+      "type": "integer",
+      "udt": "int4"
+    },
+    {
+      "default": "false",
+      "name": "qteam_completed",
+      "nullable": "YES",
+      "position": 8,
+      "table": "partners",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": "false",
+      "name": "fs_level1_completed",
+      "nullable": "YES",
+      "position": 9,
+      "table": "partners",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": "false",
+      "name": "fs_level2_completed",
+      "nullable": "YES",
+      "position": 10,
+      "table": "partners",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": "false",
+      "name": "xteam_completed",
+      "nullable": "YES",
+      "position": 11,
+      "table": "partners",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 12,
+      "table": "partners",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": null,
+      "name": "partner_user_id",
+      "nullable": "YES",
+      "position": 13,
+      "table": "partners",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "product_links",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "product_links",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "product_id",
+      "nullable": "NO",
+      "position": 3,
+      "table": "product_links",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "''::text",
+      "name": "link_url",
+      "nullable": "YES",
+      "position": 4,
+      "table": "product_links",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 5,
+      "table": "product_links",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "sales",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "sales",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "contact_id",
+      "nullable": "YES",
+      "position": 3,
+      "table": "sales",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "product_id",
+      "nullable": "YES",
+      "position": 4,
+      "table": "sales",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "purchase_date",
+      "nullable": "YES",
+      "position": 5,
+      "table": "sales",
+      "type": "date",
+      "udt": "date"
+    },
+    {
+      "default": null,
+      "name": "sale_type",
+      "nullable": "YES",
+      "position": 6,
+      "table": "sales",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "'active'::text",
+      "name": "status",
+      "nullable": "YES",
+      "position": 7,
+      "table": "sales",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 8,
+      "table": "sales",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "settings",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "settings",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_name",
+      "nullable": "YES",
+      "position": 3,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "user_phone",
+      "nullable": "YES",
+      "position": 4,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "'MXN'::text",
+      "name": "default_currency",
+      "nullable": "YES",
+      "position": 5,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "true",
+      "name": "notifications_enabled",
+      "nullable": "YES",
+      "position": 6,
+      "table": "settings",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": null,
+      "name": "user_photo",
+      "nullable": "YES",
+      "position": 7,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 8,
+      "table": "settings",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": null,
+      "name": "partner_code",
+      "nullable": "YES",
+      "position": 9,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "parent_id",
+      "nullable": "YES",
+      "position": 10,
+      "table": "settings",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": "now()",
+      "name": "last_active",
+      "nullable": "YES",
+      "position": 11,
+      "table": "settings",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "'active'::text",
+      "name": "subscription_status",
+      "nullable": "YES",
+      "position": 12,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "false",
+      "name": "stripe_paid",
+      "nullable": "YES",
+      "position": 13,
+      "table": "settings",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": null,
+      "name": "stripe_session_id",
+      "nullable": "YES",
+      "position": 14,
+      "table": "settings",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "tags",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "tags",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "name",
+      "nullable": "NO",
+      "position": 3,
+      "table": "tags",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "'condition'::text",
+      "name": "category",
+      "nullable": "YES",
+      "position": 4,
+      "table": "tags",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 5,
+      "table": "tags",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "tasks",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "tasks",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "contact_id",
+      "nullable": "YES",
+      "position": 3,
+      "table": "tasks",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "product_id",
+      "nullable": "YES",
+      "position": 4,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "category",
+      "nullable": "YES",
+      "position": 5,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "subcategory",
+      "nullable": "YES",
+      "position": 6,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "template_subcategory",
+      "nullable": "YES",
+      "position": 7,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "task_name",
+      "nullable": "YES",
+      "position": 8,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "task_area",
+      "nullable": "YES",
+      "position": 9,
+      "table": "tasks",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "due_date",
+      "nullable": "YES",
+      "position": 10,
+      "table": "tasks",
+      "type": "date",
+      "udt": "date"
+    },
+    {
+      "default": "false",
+      "name": "completed",
+      "nullable": "YES",
+      "position": 11,
+      "table": "tasks",
+      "type": "boolean",
+      "udt": "bool"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 12,
+      "table": "tasks",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    },
+    {
+      "default": "gen_random_uuid()",
+      "name": "id",
+      "nullable": "NO",
+      "position": 1,
+      "table": "user_templates",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "user_id",
+      "nullable": "NO",
+      "position": 2,
+      "table": "user_templates",
+      "type": "uuid",
+      "udt": "uuid"
+    },
+    {
+      "default": null,
+      "name": "template_id",
+      "nullable": "NO",
+      "position": 3,
+      "table": "user_templates",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": null,
+      "name": "content",
+      "nullable": "YES",
+      "position": 4,
+      "table": "user_templates",
+      "type": "text",
+      "udt": "text"
+    },
+    {
+      "default": "now()",
+      "name": "created_at",
+      "nullable": "YES",
+      "position": 5,
+      "table": "user_templates",
+      "type": "timestamp with time zone",
+      "udt": "timestamptz"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "contacts_pkey",
+      "table": "contacts",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "contacts_user_id_fkey",
+      "table": "contacts",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "notifications_pkey",
+      "table": "notifications",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "notifications_user_id_fkey",
+      "table": "notifications",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "partners_pkey",
+      "table": "partners",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "partners_user_id_fkey",
+      "table": "partners",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "product_links_pkey",
+      "table": "product_links",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "product_links_user_id_fkey",
+      "table": "product_links",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (user_id, product_id)",
+      "name": "product_links_user_id_product_id_key",
+      "table": "product_links",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "sales_pkey",
+      "table": "sales",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "sales_user_id_fkey",
+      "table": "sales",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (partner_code)",
+      "name": "settings_partner_code_key",
+      "table": "settings",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "settings_pkey",
+      "table": "settings",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "settings_user_id_fkey",
+      "table": "settings",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (user_id)",
+      "name": "settings_user_id_key",
+      "table": "settings",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "tags_pkey",
+      "table": "tags",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "tags_user_id_fkey",
+      "table": "tags",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "tasks_pkey",
+      "table": "tasks",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "tasks_user_id_fkey",
+      "table": "tasks",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "user_templates_pkey",
+      "table": "user_templates",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)",
+      "name": "user_templates_user_id_fkey",
+      "table": "user_templates",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (user_id, template_id)",
+      "name": "user_templates_user_id_template_id_key",
+      "table": "user_templates",
+      "type": "u"
+    }
+  ],
+  "functions": [
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.get_partner_partners_count(p_user_id uuid)\n RETURNS integer\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT COUNT(*)::INTEGER FROM partners WHERE user_id = p_user_id;\r\n$function$\n",
+      "identity_arguments": "p_user_id uuid",
+      "name": "get_partner_partners_count",
+      "result": "integer",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.get_partner_sales_data(p_user_id uuid)\n RETURNS TABLE(product_id text, contact_id uuid, status text)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT \r\n    product_id,\r\n    contact_id,\r\n    COALESCE(status, 'active') as status\r\n  FROM sales\r\n  WHERE user_id = p_user_id;\r\n$function$\n",
+      "identity_arguments": "p_user_id uuid",
+      "name": "get_partner_sales_data",
+      "result": "TABLE(product_id text, contact_id uuid, status text)",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.get_partner_stats(p_user_id uuid)\n RETURNS json\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE result JSON;\r\nBEGIN\r\n  SELECT json_build_object(\r\n    'clients', (SELECT COUNT(*) FROM contacts WHERE user_id = p_user_id AND contact_type = 'cliente_producto'),\r\n    'active_sales', (SELECT COUNT(*) FROM sales WHERE user_id = p_user_id AND status = 'active'),\r\n    'partners', (SELECT COUNT(*) FROM partners WHERE user_id = p_user_id),\r\n    'active_partners', (SELECT COUNT(*) FROM partners WHERE user_id = p_user_id AND fast_start_status = 'activo'),\r\n    'tasks_done', (SELECT COUNT(*) FROM tasks WHERE user_id = p_user_id AND status = 'completed')\r\n  ) INTO result;\r\n  RETURN result;\r\nEND;\r\n$function$\n",
+      "identity_arguments": "p_user_id uuid",
+      "name": "get_partner_stats",
+      "result": "json",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.get_partners_activity(user_ids uuid[])\n RETURNS TABLE(user_id uuid, last_active timestamp with time zone, subscription_status text)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT user_id, last_active, subscription_status \r\n  FROM settings WHERE user_id = ANY(user_ids);\r\n$function$\n",
+      "identity_arguments": "user_ids uuid[]",
+      "name": "get_partners_activity",
+      "result": "TABLE(user_id uuid, last_active timestamp with time zone, subscription_status text)",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.get_partners_fs_metrics(user_ids uuid[], premier_product_ids text[])\n RETURNS TABLE(user_id uuid, premier_clients integer, partners_count integer)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  WITH premier AS (\r\n    SELECT s.user_id, COUNT(DISTINCT s.contact_id)::INTEGER as premier_clients\r\n    FROM sales s\r\n    WHERE s.user_id = ANY(user_ids)\r\n      AND s.product_id = ANY(premier_product_ids)\r\n      AND (s.status IS NULL OR s.status <> 'cancelled')\r\n    GROUP BY s.user_id\r\n  ),\r\n  partcount AS (\r\n    SELECT p.user_id, COUNT(*)::INTEGER as partners_count\r\n    FROM partners p\r\n    WHERE p.user_id = ANY(user_ids)\r\n    GROUP BY p.user_id\r\n  )\r\n  SELECT \r\n    u.id as user_id,\r\n    COALESCE(pr.premier_clients, 0) as premier_clients,\r\n    COALESCE(pc.partners_count, 0) as partners_count\r\n  FROM unnest(user_ids) u(id)\r\n  LEFT JOIN premier pr ON pr.user_id = u.id\r\n  LEFT JOIN partcount pc ON pc.user_id = u.id;\r\n$function$\n",
+      "identity_arguments": "user_ids uuid[], premier_product_ids text[]",
+      "name": "get_partners_fs_metrics",
+      "result": "TABLE(user_id uuid, premier_clients integer, partners_count integer)",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.import_partner_clients(p_partner_user_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  imported INTEGER := 0;\r\n  r RECORD;\r\n  caller_id UUID := auth.uid();\r\nBEGIN\r\n  FOR r IN \r\n    SELECT * FROM contacts \r\n    WHERE user_id = p_partner_user_id AND contact_type = 'cliente_producto'\r\n  LOOP\r\n    INSERT INTO contacts (user_id, full_name, phone, country_code, notes, contact_type, tag_ids)\r\n    VALUES (caller_id, r.full_name, r.phone, r.country_code, r.notes, 'cliente_producto', r.tag_ids);\r\n    imported := imported + 1;\r\n  END LOOP;\r\n  RETURN imported;\r\nEND;\r\n$function$\n",
+      "identity_arguments": "p_partner_user_id uuid",
+      "name": "import_partner_clients",
+      "result": "integer",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.lookup_partner_code(code text)\n RETURNS TABLE(found_user_id uuid, found_user_name text)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT user_id, user_name FROM settings WHERE partner_code = upper(code) LIMIT 1;\r\n$function$\n",
+      "identity_arguments": "code text",
+      "name": "lookup_partner_code",
+      "result": "TABLE(found_user_id uuid, found_user_name text)",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.register_as_partner(p_upline_user_id uuid, p_new_user_name text, p_new_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_contact_id UUID;\r\n  v_today TEXT := to_char(NOW(), 'YYYY-MM-DD');\r\n  v_deadline TEXT := to_char(NOW() + INTERVAL '120 days', 'YYYY-MM-DD');\r\nBEGIN\r\n  -- Create contact in upline's account\r\n  INSERT INTO contacts (user_id, full_name, contact_type, phone, country_code, notes)\r\n  VALUES (p_upline_user_id, p_new_user_name, 'partner', '', '+52', 'Agregado por código de invitación')\r\n  RETURNING id INTO v_contact_id;\r\n\r\n  -- Create partner record\r\n  INSERT INTO partners (user_id, contact_id, partner_user_id, start_date, fast_start_deadline,\r\n    fast_start_status, fase_actual, qteam_completed, fs_level1_completed, fs_level2_completed, xteam_completed)\r\n  VALUES (p_upline_user_id, v_contact_id, p_new_user_id, v_today, v_deadline,\r\n    'activo', 1, false, false, false, false);\r\nEND;\r\n$function$\n",
+      "identity_arguments": "p_upline_user_id uuid, p_new_user_name text, p_new_user_id uuid",
+      "name": "register_as_partner",
+      "result": "void",
+      "security_definer": true
+    },
+    {
+      "definition": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n",
+      "identity_arguments": "",
+      "name": "rls_auto_enable",
+      "result": "event_trigger",
+      "security_definer": true
+    }
+  ],
+  "generated_at": "2026-09-01T17:13:46.763993+00:00",
+  "indexes": [
+    {
+      "definition": "CREATE UNIQUE INDEX contacts_pkey ON public.contacts USING btree (id)",
+      "name": "contacts_pkey",
+      "table": "contacts"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)",
+      "name": "notifications_pkey",
+      "table": "notifications"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX partners_pkey ON public.partners USING btree (id)",
+      "name": "partners_pkey",
+      "table": "partners"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX product_links_pkey ON public.product_links USING btree (id)",
+      "name": "product_links_pkey",
+      "table": "product_links"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX product_links_user_id_product_id_key ON public.product_links USING btree (user_id, product_id)",
+      "name": "product_links_user_id_product_id_key",
+      "table": "product_links"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX sales_pkey ON public.sales USING btree (id)",
+      "name": "sales_pkey",
+      "table": "sales"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX settings_partner_code_key ON public.settings USING btree (partner_code)",
+      "name": "settings_partner_code_key",
+      "table": "settings"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)",
+      "name": "settings_pkey",
+      "table": "settings"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX settings_user_id_key ON public.settings USING btree (user_id)",
+      "name": "settings_user_id_key",
+      "table": "settings"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX tags_pkey ON public.tags USING btree (id)",
+      "name": "tags_pkey",
+      "table": "tags"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)",
+      "name": "tasks_pkey",
+      "table": "tasks"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX user_templates_pkey ON public.user_templates USING btree (id)",
+      "name": "user_templates_pkey",
+      "table": "user_templates"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX user_templates_user_id_template_id_key ON public.user_templates USING btree (user_id, template_id)",
+      "name": "user_templates_user_id_template_id_key",
+      "table": "user_templates"
+    }
+  ],
+  "policies": [
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_contacts",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "contacts",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_notifications",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "notifications",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_partners",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "partners",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_product_links",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "product_links",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_sales",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "sales",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_settings",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "settings",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_tags",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "tags",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_tasks",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "tasks",
+      "using": "(auth.uid() = user_id)"
+    },
+    {
+      "check": null,
+      "command": "ALL",
+      "name": "users_own_user_templates",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "public"
+      ],
+      "table": "user_templates",
+      "using": "(auth.uid() = user_id)"
+    }
+  ],
+  "project_ref": "sbezuysumqlwqnvrhckg",
+  "tables": [
+    {
+      "kind": "r",
+      "name": "contacts",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "notifications",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "partners",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "product_links",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "sales",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "settings",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "tags",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "tasks",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "kind": "r",
+      "name": "user_templates",
+      "rls_enabled": true,
+      "rls_forced": false
+    }
+  ],
+  "triggers": []
+}

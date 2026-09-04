@@ -1,0 +1,10 @@
+{
+  "extends": "./jsconfig.json",
+  "include": [
+    "api/**/*.js",
+    "src/lib/api.js",
+    "src/lib/subscription.js",
+    "src/lib/saleDraft.js",
+    "src/lib/supabaseClient.js"
+  ]
+}

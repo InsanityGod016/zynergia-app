@@ -1,298 +1,250 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { ArrowLeft, Check } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, Grip, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import StateView from '@/components/ui/StateView';
+import { useAuth } from '@/lib/AuthContext';
+import {
+  navigateBack,
+  prepareBackgroundImage,
+  QR_POSITIONS,
+  QR_SIZES,
+  resolveQrPlacement,
+} from '@/lib/qr-tools';
+import { useQrDraft } from '@/lib/useQrDraft';
+import { createPageUrl } from '@/utils';
 
 export default function AddImageToQR() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { qrUrl } = location.state || {};
-  
-  const [backgroundImage, setBackgroundImage] = useState('');
-  const [imageAspectRatio, setImageAspectRatio] = useState(1);
-  const [qrSize, setQrSize] = useState(120);
-  const [qrPosition, setQrPosition] = useState({ x: 20, y: 20 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ size: 0, x: 0, y: 0 });
+  const { user } = useAuth();
+  const [draft, updateDraft] = useQrDraft(user?.id);
+  const [status, setStatus] = useState(() => draft.backgroundImage ? 'ready' : 'idle');
+  const [error, setError] = useState('');
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // Auto-open file picker on mount
-  useEffect(() => {
-    if (!backgroundImage) {
-      fileInputRef.current?.click();
-    }
-  }, [backgroundImage]);
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const aspectRatio = img.width / img.height;
-          setImageAspectRatio(aspectRatio);
-          setBackgroundImage(event.target.result);
-          
-          // Position QR at bottom-left with margin after container renders
-          setTimeout(() => {
-            if (containerRef.current) {
-              const containerHeight = containerRef.current.offsetHeight;
-              setQrPosition({
-                x: 20,
-                y: containerHeight - qrSize - 20
-              });
-            }
-          }, 100);
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleQrMouseDown = (e) => {
-    if (!containerRef.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = containerRef.current.getBoundingClientRect();
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - rect.left - qrPosition.x,
-      y: e.clientY - rect.top - qrPosition.y
-    });
-  };
-
-  const handleQrTouchStart = (e) => {
-    if (!containerRef.current) return;
-    e.stopPropagation();
-    const touch = e.touches[0];
-    const rect = containerRef.current.getBoundingClientRect();
-    setIsDragging(true);
-    setDragStart({
-      x: touch.clientX - rect.left - qrPosition.x,
-      y: touch.clientY - rect.top - qrPosition.y
-    });
-  };
-
-  const handleMove = (clientX, clientY) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    
-    if (isDragging) {
-      let newX = clientX - rect.left - dragStart.x;
-      let newY = clientY - rect.top - dragStart.y;
-      
-      // Constrain within bounds
-      newX = Math.max(0, Math.min(newX, rect.width - qrSize));
-      newY = Math.max(0, Math.min(newY, rect.height - qrSize));
-      
-      setQrPosition({ x: newX, y: newY });
-    } else if (isResizing) {
-      const deltaX = clientX - resizeStart.x;
-      const deltaY = clientY - resizeStart.y;
-      const delta = Math.max(deltaX, deltaY);
-      
-      let newSize = resizeStart.size + delta;
-      newSize = Math.max(80, Math.min(newSize, rect.width * 0.6, rect.height * 0.6));
-      
-      // Adjust position if needed to stay in bounds
-      const newX = Math.min(qrPosition.x, rect.width - newSize);
-      const newY = Math.min(qrPosition.y, rect.height - newSize);
-      
-      setQrSize(newSize);
-      setQrPosition({ x: newX, y: newY });
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (isDragging || isResizing) {
-      e.preventDefault();
-      handleMove(e.clientX, e.clientY);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (isDragging || isResizing) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      handleMove(touch.clientX, touch.clientY);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-  };
-
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeStart({
-      size: qrSize,
-      x: e.type.includes('mouse') ? e.clientX : e.touches[0].clientX,
-      y: e.type.includes('mouse') ? e.clientY : e.touches[0].clientY
-    });
-  };
+  const dragRef = useRef(null);
 
   useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, qrPosition, qrSize, dragStart, resizeStart]);
+    const container = containerRef.current;
+    if (!container || !draft.backgroundImage) return undefined;
 
-  const handleDone = () => {
-    navigate(createPageUrl('PreviewQR'), {
-      state: {
-        backgroundImage,
-        qrUrl,
-        qrPosition,
-        qrSize,
-        imageAspectRatio
+    const measure = () => {
+      const rect = container.getBoundingClientRect();
+      setViewport(current => current.width === rect.width && current.height === rect.height
+        ? current
+        : { width: rect.width, height: rect.height });
+    };
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [draft.backgroundImage]);
+
+  const placement = resolveQrPlacement(draft.placement, viewport.width, viewport.height);
+
+  const saveChange = (change) => {
+    const persisted = updateDraft(change);
+    setError(persisted ? '' : 'No pudimos guardar el borrador. Libera espacio e intenta de nuevo.');
+    return persisted;
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const previousDraft = draft;
+    setStatus('loading');
+    setError('');
+    try {
+      const image = await prepareBackgroundImage(file);
+      const persisted = updateDraft(current => ({
+        ...current,
+        backgroundImage: image.dataUrl,
+        imageAspectRatio: image.aspectRatio,
+        placement: { preset: 'bottom-left', size: 0.27, x: 0, y: 0 },
+      }));
+      if (!persisted) {
+        updateDraft(() => previousDraft, { persist: false });
+        throw new Error('No pudimos guardar el borrador. Elige una imagen más ligera.');
       }
-    });
+      setStatus('ready');
+    } catch (uploadError) {
+      setError(uploadError.message || 'No pudimos preparar esta imagen.');
+      setStatus(previousDraft.backgroundImage ? 'ready' : 'error');
+    }
   };
 
-  if (!qrUrl) {
+  const handlePointerDown = (event) => {
+    if (!containerRef.current || !viewport.width) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const rect = containerRef.current.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left - placement.x,
+      offsetY: event.clientY - rect.top - placement.y,
+    };
+  };
+
+  const handlePointerMove = (event) => {
+    const drag = dragRef.current;
+    const container = containerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || !container) return;
+    event.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const x = Math.max(0, Math.min(event.clientX - rect.left - drag.offsetX, rect.width - placement.size));
+    const y = Math.max(0, Math.min(event.clientY - rect.top - drag.offsetY, rect.height - placement.size));
+    updateDraft(current => ({
+      ...current,
+      placement: { ...current.placement, preset: 'manual', x: x / rect.width, y: y / rect.height },
+    }), { persist: false });
+  };
+
+  const finishDrag = (event) => {
+    if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    saveChange(current => current);
+  };
+
+  if (!draft.qrDataUrl) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#6E6E73]">Error: No se encontró el código QR</p>
+      <div className="min-h-screen bg-background p-5 pt-[calc(1.25rem+env(safe-area-inset-top))]">
+        <StateView
+          state="error"
+          title="Primero crea tu código QR"
+          description="No encontramos un QR guardado. Tu enlace no se perdió si ya lo escribiste."
+          actionLabel="Volver al generador"
+          onAction={() => navigate(createPageUrl('QRGenerator'), { replace: true })}
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" tabIndex={-1} />
 
-      {/* Header */}
-      <div className="px-6 pt-14 pb-6 flex items-center border-b border-[#F0F0F0]">
+      <header className="sticky top-0 z-20 flex min-h-16 items-center border-b border-border bg-background/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
         <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center -ml-2"
+          type="button"
+          onClick={() => navigateBack(navigate, createPageUrl('QRGenerator'))}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Volver al código QR"
         >
-          <ArrowLeft className="w-5 h-5 text-[#27251f]" />
+          <ArrowLeft className="h-6 w-6" aria-hidden="true" />
         </button>
-        <h1 className="text-xl font-semibold text-[#27251f] ml-2">Agregar imagen</h1>
-      </div>
+        <h1 className="ml-2 text-xl font-bold">Poner QR en una imagen</h1>
+      </header>
 
-      {!backgroundImage ? (
-        /* Loading state while file picker opens */
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[#6E6E73]">Seleccionando imagen...</p>
-        </div>
-      ) : (
-        <>
-          {/* SCREEN 3: Image Editor */}
-          <div className="px-6 flex-1 flex items-center justify-center py-8">
-            <div 
-              ref={containerRef}
-              className="relative w-full max-w-md bg-[#F5F5F5] rounded-3xl overflow-hidden"
-              style={{ aspectRatio: imageAspectRatio }}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Background Image */}
-              <img
-                src={backgroundImage}
-                alt="Background"
-                className="w-full h-full object-contain select-none"
-                draggable={false}
-              />
-              
-              {/* Overlay - Very subtle */}
-              <div className="absolute inset-0 bg-[#004afe] opacity-[0.03] pointer-events-none" />
-              
-              {/* Grid Lines - Subtle */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]">
-                <line x1="33.33%" y1="0" x2="33.33%" y2="100%" stroke="#ffffff" strokeWidth="1" />
-                <line x1="66.66%" y1="0" x2="66.66%" y2="100%" stroke="#ffffff" strokeWidth="1" />
-                <line x1="0" y1="33.33%" x2="100%" y2="33.33%" stroke="#ffffff" strokeWidth="1" />
-                <line x1="0" y1="66.66%" x2="100%" y2="66.66%" stroke="#ffffff" strokeWidth="1" />
-              </svg>
-              
-              {/* Corner Zone Guides - Recommended placement */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-5 left-5 w-24 h-24 border-2 border-dashed border-[#004afe] opacity-15 rounded-xl" />
-                <div className="absolute top-5 right-5 w-24 h-24 border-2 border-dashed border-[#004afe] opacity-15 rounded-xl" />
-                <div className="absolute bottom-5 left-5 w-24 h-24 border-2 border-dashed border-[#004afe] opacity-15 rounded-xl" />
-                <div className="absolute bottom-5 right-5 w-24 h-24 border-2 border-dashed border-[#004afe] opacity-15 rounded-xl" />
-              </div>
+      <main className="mx-auto w-full max-w-xl px-5 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+        {status === 'loading' && (
+          <StateView state="loading" title="Preparando tu imagen" description="Todo ocurre dentro de este dispositivo." />
+        )}
 
-              {/* QR Code with Scanner Corners */}
-              <div
-                style={{
-                  left: `${qrPosition.x}px`,
-                  top: `${qrPosition.y}px`,
-                  width: `${qrSize}px`,
-                  height: `${qrSize}px`
-                }}
-                className="absolute cursor-move select-none"
-                onMouseDown={handleQrMouseDown}
-                onTouchStart={handleQrTouchStart}
-              >
-                <img
-                  src={qrUrl}
-                  alt="QR Code"
-                  className="w-full h-full bg-white shadow-xl pointer-events-none"
-                  draggable={false}
-                />
-                
-                {/* Scanner Corner Brackets */}
-                <div className="absolute -top-2 -left-2 w-6 h-6 border-t-[3px] border-l-[3px] border-[#004afe] rounded-tl-md pointer-events-none" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 border-t-[3px] border-r-[3px] border-[#004afe] rounded-tr-md pointer-events-none" />
-                <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-[3px] border-l-[3px] border-[#004afe] rounded-bl-md pointer-events-none" />
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-[3px] border-r-[3px] border-[#004afe] rounded-br-md pointer-events-none" />
-                
-                {/* Resize Handle - Bottom Right Corner */}
+        {status === 'error' && (
+          <StateView state="error" title="No pudimos usar esa imagen" description={error} actionLabel="Elegir otra imagen" onAction={() => fileInputRef.current?.click()} />
+        )}
+
+        {status === 'idle' && (
+          <section className="flex min-h-[55vh] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card p-7 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+              <ImagePlus className="h-9 w-9" aria-hidden="true" />
+            </span>
+            <h2 className="mt-6 text-2xl font-bold">Elige una imagen</h2>
+            <p className="mt-2 max-w-sm text-base leading-relaxed text-muted-foreground">Puede ser una foto o volante. La imagen se prepara aquí y no se sube a ningún servidor.</p>
+            <Button type="button" size="lg" className="mt-7 w-full max-w-sm" onClick={() => fileInputRef.current?.click()}>
+              <ImagePlus aria-hidden="true" /> Elegir imagen
+            </Button>
+          </section>
+        )}
+
+        {status === 'ready' && draft.backgroundImage && (
+          <>
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex justify-center overflow-hidden rounded-2xl bg-muted">
                 <div
-                  className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#004afe] rounded-full cursor-nwse-resize flex items-center justify-center shadow-lg"
-                  onMouseDown={handleResizeStart}
-                  onTouchStart={handleResizeStart}
+                  ref={containerRef}
+                  className="relative max-h-[52vh] overflow-hidden"
+                  style={{
+                    aspectRatio: draft.imageAspectRatio,
+                    width: `min(100%, calc(52vh * ${draft.imageAspectRatio}))`,
+                  }}
                 >
-                  <div className="w-3 h-3 border-2 border-white rounded-sm" />
+                  <img src={draft.backgroundImage} alt="Imagen elegida" className="h-full w-full select-none object-cover" draggable={false} />
+                  {placement.size > 0 && (
+                    <div
+                      className="absolute cursor-move touch-none rounded-lg bg-white p-1 shadow-xl ring-2 ring-primary focus-visible:outline-none focus-visible:ring-4"
+                      style={{ left: placement.x, top: placement.y, width: placement.size, height: placement.size }}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={finishDrag}
+                      onPointerCancel={finishDrag}
+                      tabIndex={0}
+                      aria-label="Código QR. Puedes arrastrarlo; también puedes usar las posiciones de abajo."
+                    >
+                      <img src={draft.qrDataUrl} alt="" className="h-full w-full pointer-events-none" draggable={false} />
+                      <span className="absolute -right-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow" aria-hidden="true">
+                        <Grip className="h-4 w-4" />
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
+              <p className="mt-3 text-center text-[15px] text-muted-foreground">Puedes arrastrar el QR o elegir una posición.</p>
+            </section>
 
-          <p className="text-center text-sm text-[#6E6E73] px-6 pb-4">
-            Arrastra para mover • Esquina para redimensionar
-          </p>
+            <fieldset className="mt-6">
+              <legend className="text-[17px] font-bold">Posición del QR</legend>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {QR_POSITIONS.map(position => (
+                  <button
+                    key={position.id}
+                    type="button"
+                    aria-pressed={draft.placement.preset === position.id}
+                    onClick={() => saveChange(current => ({ ...current, placement: { ...current.placement, preset: position.id } }))}
+                    className={`min-h-14 rounded-2xl border px-3 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${draft.placement.preset === position.id ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card'}`}
+                  >
+                    {position.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
-          {/* Bottom Button */}
-          <div className="px-6 pb-8">
-            <Button
-              onClick={handleDone}
-              className="w-full bg-[#004afe] rounded-full h-14 text-white text-[15px] font-medium flex items-center justify-between px-6"
-            >
-              <span>Listo</span>
-              <Check className="w-5 h-5" />
+            <fieldset className="mt-6">
+              <legend className="text-[17px] font-bold">Tamaño del QR</legend>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {QR_SIZES.map(size => (
+                  <button
+                    key={size.id}
+                    type="button"
+                    aria-pressed={Math.abs(draft.placement.size - size.ratio) < 0.001}
+                    onClick={() => saveChange(current => ({ ...current, placement: { ...current.placement, size: size.ratio } }))}
+                    className={`min-h-12 rounded-2xl border px-2 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${Math.abs(draft.placement.size - size.ratio) < 0.001 ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card'}`}
+                  >
+                    {size.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            {error && <p className="mt-4 text-[15px] font-medium text-destructive" role="alert">{error}</p>}
+
+            <Button type="button" variant="outline" className="mt-6 w-full" onClick={() => fileInputRef.current?.click()}>
+              <ImagePlus aria-hidden="true" /> Elegir otra imagen
             </Button>
-          </div>
-        </>
-      )}
+            <Button type="button" size="lg" className="mt-3 w-full justify-between" onClick={() => navigate(createPageUrl('PreviewQR'))}>
+              Ver resultado <Check aria-hidden="true" />
+            </Button>
+          </>
+        )}
+      </main>
     </div>
   );
 }

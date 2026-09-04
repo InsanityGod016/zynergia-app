@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { PLAY_STORE_URL } from '@/lib/app-links';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FAQ_ITEMS = [
@@ -21,12 +22,18 @@ const FAQ_ITEMS = [
   {
     question: '¿Qué pasa si cancelo mi suscripción?',
     answer:
-      'Puedes cancelar en cualquier momento desde la App Store o Google Play. Tus datos permanecen seguros. Si decides regresar, los recuperas donde los dejaste.',
+      'Puedes cancelarla desde Configuración en la app o desde Cuenta en zynergia.pro. Conservas el acceso hasta el final del periodo pagado; eliminar la cuenta es un proceso separado.',
   },
   {
     question: '¿En qué plataformas está disponible Zynergia?',
+    answer: PLAY_STORE_URL
+      ? 'El CRM se usa en las apps de iOS y Android. En zynergia.pro puedes crear tu cuenta, revisar o administrar la suscripción, pedir ayuda y consultar los documentos legales.'
+      : 'Puedes usar Zynergia en iPhone y, mientras Google Play revisa la actualización de Android, desde app.zynergia.pro en el navegador.',
+  },
+  {
+    question: '¿Zynergia pertenece a Zinzino?',
     answer:
-      'Zynergia está disponible en iOS (App Store), Android (Google Play) y como aplicación web. Puedes usarla desde tu teléfono o computadora y los datos se sincronizan automáticamente.',
+      'No. Zynergia es una herramienta independiente de CoreFlowAI LLC. No está afiliada, patrocinada ni respaldada por Zinzino.',
   },
 ];
 
@@ -34,7 +41,9 @@ function FAQItem({ item, isOpen, onToggle }) {
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm">
       <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-gray-50 transition-colors"
       >
         <span className="font-semibold text-[#0F172A] text-sm pr-4">{item.question}</span>
@@ -115,7 +124,7 @@ export default function FAQ() {
           <p className="text-[#64748B] text-sm">
             ¿Tienes otra pregunta?{' '}
             <a
-              href="mailto:hola@zynergia.app"
+              href="/soporte"
               className="text-[#004AFE] font-semibold hover:underline"
             >
               Escríbenos

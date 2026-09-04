@@ -4,11 +4,23 @@ module.exports = {
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
   	extend: {
+		fontFamily: {
+			sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'sans-serif']
+		},
+		fontSize: {
+			xs: ['0.875rem', { lineHeight: '1.25rem' }],
+			sm: ['0.9375rem', { lineHeight: '1.375rem' }],
+			base: ['1.0625rem', { lineHeight: '1.625rem' }],
+		},
   		borderRadius: {
   			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+			md: 'calc(var(--radius) - 4px)',
+			sm: 'calc(var(--radius) - 8px)'
   		},
+		boxShadow: {
+			card: '0 10px 30px -18px rgb(15 23 42 / 0.28)',
+			nav: '0 -8px 24px -18px rgb(15 23 42 / 0.3)'
+		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -40,6 +52,8 @@ module.exports = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+			success: 'hsl(var(--success))',
+			warning: 'hsl(var(--warning))',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
