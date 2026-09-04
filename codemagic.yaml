@@ -74,14 +74,14 @@ workflows:
       xcode: 26.6
       java: 21
     scripts:
-      - name: Verify ANDROID_KEYSTORE + ANDROID_KEY_PASSWORD
+      - name: Verify reset upload key
         script: |
           set -euo pipefail
-          printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > /tmp/original.jks
+          printf '%s' "$ANDROID_NEW_KEYSTORE" | base64 --decode > /tmp/reset-upload.jks
           keytool -list -v \
-            -keystore /tmp/original.jks \
-            -storepass "$ANDROID_KEY_PASSWORD" \
-            -alias zynergia > /tmp/keystore-report.txt
+            -keystore /tmp/reset-upload.jks \
+            -storepass "$ANDROID_NEW_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" > /tmp/keystore-report.txt
           grep -E "SHA1|SHA-256|Alias" /tmp/keystore-report.txt
 
   android-distribution:
