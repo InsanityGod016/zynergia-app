@@ -300,7 +300,7 @@ test('domain RPC release gate remains fail-closed when required evidence is miss
   expect(blocked).toMatch(/DEPLOYMENT_BLOCKED/);
 });
 
-test('domain gate rejects a production snapshot before release-critical migrations are exported', () => {
+test('domain gate accepts the production snapshot after release-critical migrations are exported', () => {
   const result = spawnSync(process.execPath, [
     fileURLToPath(new URL('supabase/scripts/predeploy-gate.mjs', root)),
     fileURLToPath(new URL('supabase/schema.production.json', root)),
@@ -317,9 +317,7 @@ test('domain gate rejects a production snapshot before release-critical migratio
   });
   const report = JSON.parse(result.stdout || result.stderr);
 
-  expect(report.ready).toBe(false);
-  expect(report.failures ?? []).toContain('SCHEMA_TABLE_MISSING:billing_accounts');
-  expect(report.failures ?? []).toContain('RELEASE_RPC_NOT_APPLIED:has_app_entitlement');
+  expect(report.ready, JSON.stringify(report)).toBe(true);
 });
 
 test('sales retries have a per-user idempotency key when the table exists', async () => {

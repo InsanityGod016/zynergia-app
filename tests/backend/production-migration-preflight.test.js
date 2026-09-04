@@ -35,7 +35,8 @@ const INDEX_DEFINITIONS = {
 
 function readyReport() {
   const counts = Object.fromEntries([
-    'auth_users', 'settings_users', 'domain_users_without_current_grant',
+    'auth_users', 'settings_users', 'auth_users_without_settings', 'users_without_current_grant',
+    'domain_users_without_current_grant',
     'partner_codes_needing_normalization', ...PREFLIGHT_EXPECTATIONS.blockingCounts,
   ].map((name) => [name, 0]));
   counts.auth_users = 5;
@@ -116,9 +117,11 @@ describe('production migration preflight', () => {
     expect(result.observations).toContain('TARGET_RPC_NOT_APPLIED:record_sale');
   });
 
-  test('fails closed on entitlements, RLS, graph, orphans, URLs and Connect anomalies', () => {
+  test('reports inactive or incomplete accounts but fails closed on unclassified or billed entitlements, RLS, graph, orphans, URLs and Connect anomalies', () => {
     const report = readyReport();
     report.counts.users_without_current_grant = 6;
+    report.counts.users_without_access_classification = 5;
+    report.counts.auth_users_without_settings = 1;
     report.counts.partner_cycle_users = 2;
     report.counts.invalid_legacy_product_urls = 1;
     report.counts.connect_open_anomalies = 3;
@@ -137,7 +140,7 @@ describe('production migration preflight', () => {
 
     expect(result.ready_to_apply).toBe(false);
     expect(result.failures).toEqual(expect.arrayContaining([
-      'ENTITLEMENT_RECONCILIATION_REQUIRED:6',
+      'ACCESS_CLASSIFICATION_REQUIRED:5',
       'RLS_NOT_ENABLED:contacts',
       'PARTNER_GRAPH_CYCLES:2',
       'INVALID_LEGACY_PRODUCT_URLS:1',
@@ -145,6 +148,8 @@ describe('production migration preflight', () => {
       'ORPHAN_ROWS:sales.contact_id->contacts:4',
       'UNEXPECTED_DOMAIN_POLICY:sales.allow_everything',
     ]));
+    expect(result.observations).toContain('USERS_WITHOUT_CURRENT_GRANT:6');
+    expect(result.observations).toContain('AUTH_USERS_WITHOUT_SETTINGS:1');
   });
 
   test('parses the SQL Editor wrapper and rejects stale or incomplete evidence', () => {

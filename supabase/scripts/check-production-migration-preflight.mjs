@@ -85,9 +85,8 @@ const EXPECTED_ORPHANS = [
 ];
 
 const BLOCKING_COUNTS = {
-  users_without_current_grant: 'ENTITLEMENT_RECONCILIATION_REQUIRED',
+  users_without_access_classification: 'ACCESS_CLASSIFICATION_REQUIRED',
   active_billing_users_without_current_grant: 'ACTIVE_BILLING_GRANT_MISSING',
-  auth_users_without_settings: 'AUTH_USER_SETTINGS_MISSING',
   duplicate_partner_code_groups: 'DUPLICATE_PARTNER_CODES',
   invalid_nonblank_partner_codes: 'INVALID_PARTNER_CODES',
   duplicate_linked_partner_groups: 'DUPLICATE_LINKED_PARTNERS',
@@ -274,7 +273,8 @@ export function evaluateProductionPreflight(report, options = {}) {
     throw new Error('counts must be an object');
   }
   for (const name of [
-    'auth_users', 'settings_users', 'domain_users_without_current_grant',
+    'auth_users', 'settings_users', 'auth_users_without_settings', 'users_without_current_grant',
+    'domain_users_without_current_grant',
     'partner_codes_needing_normalization', ...Object.keys(BLOCKING_COUNTS),
   ]) {
     nonnegativeCount(report.counts[name], `counts.${name}`);
@@ -289,6 +289,20 @@ export function evaluateProductionPreflight(report, options = {}) {
   );
   if (domainUsersWithoutGrant > 0) {
     observations.push(`DOMAIN_USERS_WITHOUT_CURRENT_GRANT:${domainUsersWithoutGrant}`);
+  }
+  const usersWithoutGrant = nonnegativeCount(
+    report.counts.users_without_current_grant,
+    'counts.users_without_current_grant',
+  );
+  if (usersWithoutGrant > 0) {
+    observations.push(`USERS_WITHOUT_CURRENT_GRANT:${usersWithoutGrant}`);
+  }
+  const usersWithoutSettings = nonnegativeCount(
+    report.counts.auth_users_without_settings,
+    'counts.auth_users_without_settings',
+  );
+  if (usersWithoutSettings > 0) {
+    observations.push(`AUTH_USERS_WITHOUT_SETTINGS:${usersWithoutSettings}`);
   }
   const normalizedCodes = nonnegativeCount(
     report.counts.partner_codes_needing_normalization,

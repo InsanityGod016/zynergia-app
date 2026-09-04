@@ -17,10 +17,16 @@ node supabase/scripts/check-production-migration-preflight.mjs \
 
 El proceso termina con código `0` únicamente cuando no detecta bloqueos. Los
 objetivos que todavía serán creados por esas migraciones aparecen como
-`observations`, no como errores. Un conteo positivo de usuarios sin grant es
-un bloqueo deliberado: esas cuentas deben clasificarse y conciliarse antes de
-activar las políticas con entitlement; nunca se conceden accesos en masa para
+`observations`, no como errores. Las cuentas sin grant actual se reportan como
+observación y quedan inactivas con las políticas de entitlement. Antes de
+aplicar esas políticas, toda cuenta legacy debe tener una clasificación en
+`access_grants`: activa/grace si conserva acceso, o `revoked` si queda
+inactiva. Una cuenta sin clasificación, o con facturación activa o vencida
+pero sin grant actual, sí es un bloqueo; nunca se conceden accesos en masa para
 hacer pasar el gate.
+
+Una cuenta sin configuración también se reporta como observación si no tiene
+acceso ni facturación; no se crea un perfil vacío para una alta incompleta.
 
 Después de aplicar la secuencia, vuelve a exportar el esquema y ejecuta el gate
 de release existente:

@@ -230,6 +230,10 @@ current_grant_users as (
      and grant_row.revoked_at is null
      and (grant_row.access_until is null or grant_row.access_until > now())
 ),
+classified_access_users as (
+  select distinct grant_row.user_id
+    from public.access_grants grant_row
+),
 domain_user_ids as (
   select user_id from public.contacts
   union select user_id from public.notifications
@@ -379,6 +383,10 @@ counts as (
       where not exists (
         select 1 from current_grant_users grant_user where grant_user.user_id = user_row.id
       ))::bigint as users_without_current_grant,
+    (select count(*) from auth.users user_row
+      where not exists (
+        select 1 from classified_access_users grant_user where grant_user.user_id = user_row.id
+      ))::bigint as users_without_access_classification,
     (select count(*) from domain_user_ids domain_user
       where not exists (
         select 1 from current_grant_users grant_user where grant_user.user_id = domain_user.user_id
