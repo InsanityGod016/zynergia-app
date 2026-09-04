@@ -71,9 +71,6 @@ workflows:
     environment:
       groups:
         - android_credentials
-        # One-time keytool-only verification of the password stored with iOS credentials.
-        # The distribution workflow remains Android-only.
-        - ios_credentials
       xcode: 26.6
       java: 21
     scripts:
@@ -81,7 +78,7 @@ workflows:
         script: |
           set -euo pipefail
           printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE_ANDROID" | base64 --decode > /tmp/reset-upload.p12
-          for password_slot in ANDROID_NEW_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEYSTORE_PASSWORD; do
+          for password_slot in ANDROID_NEW_PASSWORD ANDROID_KEY_PASSWORD; do
             password="${!password_slot:-}"
             if [ -n "$password" ] && keytool -list -v \
               -storetype PKCS12 \
