@@ -7,6 +7,9 @@ workflows:
       groups:
         - ios_credentials
         - app_environment
+      vars:
+        VITE_SUPPORT_EMAIL: equipo@coreflowia.com
+        VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
       node: 22.14.0
       xcode: 26.6
     scripts:
@@ -89,6 +92,9 @@ workflows:
       groups:
         - android_credentials
         - app_environment
+      vars:
+        VITE_SUPPORT_EMAIL: equipo@coreflowia.com
+        VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
       node: 22.14.0
       xcode: 26.6
       java: 21
