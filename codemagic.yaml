@@ -77,13 +77,13 @@ workflows:
       - name: Verify reset upload key
         script: |
           set -euo pipefail
-          printf '%s' "$ANDROID_RESET_KEYSTORE" | base64 --decode > /tmp/reset-upload.jks
+          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE" | base64 --decode > /tmp/reset-upload.p12
           for password_slot in ANDROID_NEW_PASSWORD ANDROID_KEY_PASSWORD; do
             password="${!password_slot:-}"
             if [ -n "$password" ] && keytool -list -v \
-              -keystore /tmp/reset-upload.jks \
-              -storepass "$password" \
-              -alias "$ANDROID_KEY_ALIAS" > /tmp/keystore-report.txt 2>&1; then
+              -storetype PKCS12 \
+              -keystore /tmp/reset-upload.p12 \
+              -storepass "$password" > /tmp/keystore-report.txt 2>&1; then
               echo "Reset upload key verified."
               grep -E "SHA1|SHA-256|Alias" /tmp/keystore-report.txt
               exit 0
