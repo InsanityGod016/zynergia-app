@@ -77,7 +77,7 @@ workflows:
       - name: Verify reset upload key
         script: |
           set -euo pipefail
-          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE" | base64 --decode > /tmp/reset-upload.p12
+          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE_ANDROID" | base64 --decode > /tmp/reset-upload.p12
           for password_slot in ANDROID_NEW_PASSWORD ANDROID_KEY_PASSWORD; do
             password="${!password_slot:-}"
             if [ -n "$password" ] && keytool -list -v \
