@@ -1,9 +1,12 @@
 import { Capacitor } from '@capacitor/core';
 import { taskDetail, taskReasonLabel } from '@/lib/taskPresentation';
+import { taskScheduleDate } from '@/lib/taskSchedule';
 
 const TASK_ID_BASE = 100_000;
 const TASK_ID_RANGE = 800_000_000;
-const SUMMARY_IDS = [900_000_001, 900_000_002];
+// IDs used by pre-1.2 summary notifications. Keep them only so upgrades can
+// remove stale schedules; OneSignal owns daily and Fast Start summaries now.
+const LEGACY_SUMMARY_IDS = [900_000_001, 900_000_002];
 const LEGACY_IDS = [9001, 9002, 9003, 9004, 9005, 9006, 9007, 9100];
 let notificationQueue = Promise.resolve();
 let identityGeneration = 0;
@@ -44,14 +47,6 @@ export function taskNotificationId(taskId, userId = '') {
   return TASK_ID_BASE + ((hash >>> 0) % TASK_ID_RANGE);
 }
 
-function localDateAt(value, time = '09:00') {
-  const [year, month, day] = String(value || '').split('-').map(Number);
-  const [hour, minute] = String(time || '09:00').split(':').map(Number);
-  if (!year || !month || !day) return null;
-  const date = new Date(year, month - 1, day, Number.isFinite(hour) ? hour : 9, Number.isFinite(minute) ? minute : 0, 0, 0);
-  return Number.isFinite(date.getTime()) ? date : null;
-}
-
 export function buildTaskNotifications(tasks, contacts, products, now = new Date(), userId = '') {
   const contactById = new Map(contacts.map(contact => [contact.id, contact]));
   const productById = new Map(products.map(product => [product.id, product]));
@@ -60,7 +55,7 @@ export function buildTaskNotifications(tasks, contacts, products, now = new Date
 
   return tasks
     .filter(task => !task.completed)
-    .map(task => ({ task, at: localDateAt(task.due_date, task.due_time) }))
+    .map(task => ({ task, at: taskScheduleDate(task.due_date, task.due_time) }))
     .filter(({ at }) => at && at > now && at <= horizon)
     .sort((a, b) => a.at.getTime() - b.at.getTime())
     .slice(0, 60)
@@ -73,7 +68,7 @@ export function buildTaskNotifications(tasks, contacts, products, now = new Date
         title: contact?.full_name || 'Tarea de Zynergia',
         body: `${taskReasonLabel(task)}${detail ? ` · ${detail}` : ''}`,
         schedule: { at, allowWhileIdle: true },
-        smallIcon: 'ic_launcher',
+        smallIcon: 'ic_stat_onesignal_default',
         extra: {
           source: 'zynergia',
           userId,
@@ -104,6 +99,14 @@ export async function notificationPermissionStatus() {
   return LocalNotifications.checkPermissions();
 }
 
+export function notificationPermissionState(permission) {
+  if (permission?.display === 'granted') return 'granted';
+  if (permission?.display === 'unavailable') return 'unavailable';
+  if (permission?.display === 'denied') return 'blocked';
+  if (permission?.display === 'prompt' || permission?.display === 'prompt-with-rationale') return 'prompt';
+  return 'unknown';
+}
+
 async function cancelOwned(LocalNotifications, predicate) {
   const pending = await LocalNotifications.getPending();
   const notifications = (pending?.notifications || [])
@@ -118,7 +121,7 @@ export async function cancelZynergiaNotifications() {
     const LocalNotifications = await getPlugin();
     if (!LocalNotifications) return;
     await cancelOwned(LocalNotifications, notification => (
-      notification.extra?.source === 'zynergia' || SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
+      notification.extra?.source === 'zynergia' || LEGACY_SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
     ));
   });
 }
@@ -133,13 +136,13 @@ export function switchNotificationIdentity(userId) {
     const LocalNotifications = await getPlugin();
     if (!LocalNotifications) return;
     await cancelOwned(LocalNotifications, notification => (
-      notification.extra?.source === 'zynergia' || SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
+      notification.extra?.source === 'zynergia' || LEGACY_SUMMARY_IDS.includes(notification.id) || LEGACY_IDS.includes(notification.id)
     ));
   });
 }
 
-/** @param {{tasks?: any[], contacts?: any[], products?: any[], enabled?: boolean, userId?: string | null}} options */
-export function reconcileTaskNotifications({ tasks = [], contacts = [], products = [], enabled = true, userId } = {}) {
+/** @param {{tasks?: any[], contacts?: any[], products?: any[], enabled?: boolean, taskRemindersEnabled?: boolean, userId?: string | null}} options */
+export function reconcileTaskNotifications({ tasks = [], contacts = [], products = [], enabled = true, taskRemindersEnabled = true, userId } = {}) {
   const normalizedUserId = userId ? String(userId) : null;
   const generation = identityGeneration;
   return serializeNotificationChange(async () => {
@@ -154,43 +157,20 @@ export function reconcileTaskNotifications({ tasks = [], contacts = [], products
     }
 
     await cancelOwned(LocalNotifications, notification => (
-      (notification.extra?.source === 'zynergia' && notification.extra?.entityType === 'task') || LEGACY_IDS.includes(notification.id)
+      (notification.extra?.source === 'zynergia' && notification.extra?.entityType === 'task')
+      || LEGACY_SUMMARY_IDS.includes(notification.id)
+      || LEGACY_IDS.includes(notification.id)
     ));
     if (normalizedUserId !== currentUserId || generation !== identityGeneration) {
       return { scheduled: 0, status: 'stale-identity' };
     }
     if (!enabled) return { scheduled: 0, status: 'disabled' };
 
-    const notifications = buildTaskNotifications(tasks, contacts, products, new Date(), normalizedUserId);
+    const notifications = taskRemindersEnabled
+      ? buildTaskNotifications(tasks, contacts, products, new Date(), normalizedUserId)
+      : [];
     if (notifications.length) await LocalNotifications.schedule({ notifications });
     return { scheduled: notifications.length, status: 'scheduled' };
-  });
-}
-
-// Compatibilidad temporal con la alerta de riesgo de Equipo. No solicita permiso
-// ni cancela notificaciones que pertenezcan a otras aplicaciones/plugins.
-/** @param {{riskCount?: number, userId?: string | null}} options */
-export function scheduleTaskReminders({ riskCount = 0, userId } = {}) {
-  const normalizedUserId = userId ? String(userId) : null;
-  const generation = identityGeneration;
-  return serializeNotificationChange(async () => {
-    if (!normalizedUserId || normalizedUserId !== currentUserId || generation !== identityGeneration) return;
-    const LocalNotifications = await getPlugin();
-    if (!LocalNotifications || !(await hasPermission(LocalNotifications))) return;
-    if (normalizedUserId !== currentUserId || generation !== identityGeneration) return;
-    await cancelOwned(LocalNotifications, notification => SUMMARY_IDS.includes(notification.id));
-    if (!riskCount || normalizedUserId !== currentUserId || generation !== identityGeneration) return;
-    const at = new Date();
-    at.setDate(at.getDate() + 1);
-    at.setHours(10, 0, 0, 0);
-    await LocalNotifications.schedule({ notifications: [{
-      id: SUMMARY_IDS[1],
-      title: `${riskCount} partner${riskCount === 1 ? '' : 's'} necesita${riskCount === 1 ? '' : 'n'} seguimiento`,
-      body: 'Abre Equipo para revisar la siguiente acción.',
-      schedule: { at, allowWhileIdle: true },
-      smallIcon: 'ic_launcher',
-      extra: { source: 'zynergia', userId: normalizedUserId, entityType: 'partner-dashboard' },
-    }] });
   });
 }
 
@@ -202,6 +182,10 @@ export async function initializeLocalNotificationNavigation(navigate) {
     if (extra.source !== 'zynergia') return;
     if (extra.entityType === 'task' && extra.entityId) {
       navigate(`/Tasks?taskId=${encodeURIComponent(extra.entityId)}`);
+      return;
+    }
+    if (extra.entityType === 'task-dashboard') {
+      navigate('/Tasks');
       return;
     }
     navigate('/Partners');

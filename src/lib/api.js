@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { Capacitor } from '@capacitor/core';
+import { createOperationId } from '@/lib/operationId';
 
 const isNative = Capacitor.isNativePlatform();
 export const API_BASE = isNative ? (import.meta.env.VITE_API_BASE_URL || 'https://zynergia.pro') : '';
@@ -70,7 +71,7 @@ export function getCheckoutIdempotencyKey() {
   const storageKey = 'zynergia_checkout_idempotency';
   let value = sessionStorage.getItem(storageKey);
   if (!value) {
-    value = crypto.randomUUID();
+    value = createOperationId();
     sessionStorage.setItem(storageKey, value);
   }
   return value;

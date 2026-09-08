@@ -184,7 +184,7 @@ test('password reset UI requires a real recovery auth event', async () => {
 test('auth changes clear user-scoped client caches', async () => {
   const auth = await source('src/lib/AuthContext.jsx');
 
-  expect(auth).toMatch(/activeUserId\.current !== nextUserId/);
+  expect(auth).toMatch(/previousUserId !== nextUserId/);
   expect(auth).toMatch(/queryClientInstance\.clear\(\)/);
   expect(auth).toMatch(/zynergia_checkout_idempotency/);
   expect(auth).toMatch(/clearLocalSupabaseSession/);
@@ -290,6 +290,7 @@ test('domain RPC release gate remains fail-closed when required evidence is miss
   const blocked = await source('supabase/pending/202608190002_domain_invariants.BLOCKED.sql');
 
   expect(gate).toMatch(/RELEASE_RPC_NOT_APPLIED/);
+  expect(gate).toMatch(/RELEASE_TRIGGER_NOT_APPLIED/);
   expect(gate).toMatch(/SCHEMA_EXPORT_REQUIRED/);
   expect(gate).toMatch(/RLS_NOT_ENABLED/);
   expect(gate).toMatch(/LEGACY_RPC_MISSING/);
@@ -297,10 +298,17 @@ test('domain RPC release gate remains fail-closed when required evidence is miss
   expect(gate).toMatch(/SUPPORT_EMAIL_NOT_CONFIGURED/);
   expect(gate).toMatch(/SUPABASE_URL_NOT_CONFIGURED/);
   expect(gate).toMatch(/SUPABASE_ANON_KEY_NOT_CONFIGURED/);
+  expect(gate).toMatch(/ONESIGNAL_CLIENT_APP_ID_NOT_CONFIGURED/);
+  expect(gate).toMatch(/ONESIGNAL_APP_ID_MISMATCH/);
+  expect(gate).toMatch(/ONESIGNAL_REST_API_KEY_NOT_CONFIGURED/);
+  expect(gate).toMatch(/CRON_SECRET_NOT_CONFIGURED/);
+  expect(gate).toMatch(/APP_STORE_URL_INVALID/);
+  expect(gate).toMatch(/PLAY_STORE_URL_INVALID/);
+  expect(gate).toMatch(/PLAY_STORE_URL_NOT_CONFIGURED/);
   expect(blocked).toMatch(/DEPLOYMENT_BLOCKED/);
 });
 
-test('domain gate accepts the production snapshot after release-critical migrations are exported', () => {
+test('domain gate accepts the exported production snapshot for the 1.2 artifact', () => {
   const result = spawnSync(process.execPath, [
     fileURLToPath(new URL('supabase/scripts/predeploy-gate.mjs', root)),
     fileURLToPath(new URL('supabase/schema.production.json', root)),
@@ -308,16 +316,42 @@ test('domain gate accepts the production snapshot after release-critical migrati
     encoding: 'utf8',
     env: {
       ...process.env,
-      DELETION_CRON_CONFIGURED: 'true',
+      RELEASE_GATE_MODE: 'artifact',
       VITE_SUPPORT_EMAIL: 'support@example.com',
-      VITE_APP_STORE_URL: 'https://apps.apple.com/app/id1',
+      VITE_APP_STORE_URL: 'https://apps.apple.com/mx/app/zynergia/id6761772857',
+      VITE_PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.zynergia.app',
       VITE_SUPABASE_URL: 'https://example.supabase.co',
       VITE_SUPABASE_ANON_KEY: 'public-anon-key',
+      VITE_ONESIGNAL_APP_ID: '10000000-0000-4000-8000-000000000001',
     },
   });
   const report = JSON.parse(result.stdout || result.stderr);
 
-  expect(report.ready, JSON.stringify(report)).toBe(true);
+  expect(result.status, JSON.stringify(report)).toBe(0);
+  expect(report).toEqual({ ready: true });
+});
+
+test('release gate rejects store URLs outside the official Zynergia listings', () => {
+  const result = spawnSync(process.execPath, [
+    fileURLToPath(new URL('supabase/scripts/predeploy-gate.mjs', root)),
+    fileURLToPath(new URL('supabase/schema.production.json', root)),
+  ], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      RELEASE_GATE_MODE: 'artifact',
+      VITE_SUPPORT_EMAIL: 'support@example.com',
+      VITE_APP_STORE_URL: 'https://apps.apple.com/app/id9999999999',
+      VITE_PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.example.impostor',
+      VITE_SUPABASE_URL: 'https://example.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'public-anon-key',
+      VITE_ONESIGNAL_APP_ID: '10000000-0000-4000-8000-000000000001',
+    },
+  });
+  const report = JSON.parse(result.stdout || result.stderr);
+
+  expect(report.failures).toContain('APP_STORE_URL_INVALID');
+  expect(report.failures).toContain('PLAY_STORE_URL_INVALID');
 });
 
 test('sales retries have a per-user idempotency key when the table exists', async () => {

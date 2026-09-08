@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { seedDefaultData } from '@/lib/seedData';
 import { supabase } from '@/lib/supabaseClient';
 import { normalizePartnerCode, partnerLinkErrorMessage } from '@/lib/partnerLinking';
+import { deviceTimezone } from '@/lib/timezone';
 
 const CURRENCIES = [
   ['MXN', 'Peso mexicano'],
@@ -42,7 +43,11 @@ export default function Onboarding({ onComplete }) {
   const lookupRequest = useRef(0);
 
   useEffect(() => {
-    localStorage.setItem(draftKey, JSON.stringify({ step, name, currency, inviteCode }));
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ step, name, currency, inviteCode }));
+    } catch {
+      // A blocked or full browser store must not prevent onboarding.
+    }
   }, [currency, draftKey, inviteCode, name, step]);
 
   useEffect(() => {
@@ -112,9 +117,11 @@ export default function Onboarding({ onComplete }) {
     setSaving(true);
     setError('');
     try {
+      const timezone = deviceTimezone();
       const profile = {
         user_name: name.trim(),
         default_currency: currency,
+        ...(timezone ? { timezone } : {}),
       };
       const currentSettings = (await db.Settings.list())?.[0];
       if (currentSettings?.id) await db.Settings.update(currentSettings.id, profile);
@@ -141,7 +148,11 @@ export default function Onboarding({ onComplete }) {
       const savedSettings = await db.Settings.list();
       if (!savedSettings?.[0]?.onboarding_completed_at) throw new Error('onboarding_not_confirmed');
 
-      localStorage.removeItem(draftKey);
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        // Completion was persisted remotely, so local cleanup is best effort.
+      }
       await queryClient.invalidateQueries({ queryKey: ['settings'] });
       Promise.allSettled([seedDefaultData()]);
       onComplete();

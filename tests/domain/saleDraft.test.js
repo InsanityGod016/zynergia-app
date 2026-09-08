@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearSaleDraft,
   hasSaleDraft,
+  isValidSaleDate,
+  normalizeSaleItems,
   readSaleDraft,
   saleDraftStep,
   saleDraftUrl,
+  saleUnitCount,
   updateSaleDraft,
 } from '@/lib/saleDraft';
 
@@ -57,6 +60,40 @@ describe('saleDraft characterization', () => {
     expect(next.operationId).not.toBe(previous.operationId);
   });
 
+  it('stores multiple products, combines duplicates, and counts quantities', () => {
+    const draft = updateSaleDraft({
+      contactId: 'contact-1',
+      items: [
+        { productId: 'kit-a', quantity: 2 },
+        { productId: 'kit-b', quantity: 1 },
+        { productId: 'kit-a', quantity: 3 },
+      ],
+    });
+
+    expect(draft.items).toEqual([
+      { productId: 'kit-a', quantity: 5 },
+      { productId: 'kit-b', quantity: 1 },
+    ]);
+    expect(saleUnitCount(draft.items)).toBe(6);
+    expect(saleDraftStep(draft)).toBe('NewSale3');
+  });
+
+  it('upgrades a released single-product draft without losing it', () => {
+    localStorage.setItem('zynergia_sale_draft_v1', JSON.stringify({
+      operationId: 'legacy-operation',
+      contactId: 'contact-1',
+      productId: 'legacy-kit',
+    }));
+
+    expect(readSaleDraft()).toMatchObject({
+      productId: 'legacy-kit',
+      items: [{ productId: 'legacy-kit', quantity: 1 }],
+    });
+    expect(normalizeSaleItems([{ product_id: 'kit-a', quantity: 2 }])).toEqual([
+      { productId: 'kit-a', quantity: 2 },
+    ]);
+  });
+
   it('clears a finished draft and safely ignores malformed storage', () => {
     updateSaleDraft({ contactId: 'contact-1' });
     clearSaleDraft();
@@ -74,5 +111,12 @@ describe('saleDraft characterization', () => {
     });
     const draft = updateSaleDraft({ contactId: 'contact-1' });
     expect(readSaleDraft()).toEqual(draft);
+  });
+
+  it('accepts real calendar dates through today and rejects malformed or future dates', () => {
+    expect(isValidSaleDate('2026-09-07', '2026-09-07')).toBe(true);
+    expect(isValidSaleDate('2026-02-29', '2026-09-07')).toBe(false);
+    expect(isValidSaleDate('2026-09-08', '2026-09-07')).toBe(false);
+    expect(isValidSaleDate('09/07/2026', '2026-09-07')).toBe(false);
   });
 });

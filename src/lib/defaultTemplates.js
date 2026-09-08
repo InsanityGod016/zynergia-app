@@ -283,17 +283,17 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Fast Start Q-Team Día 1 — General',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_1', tone: 'general',
-    content: `Hola {{contact.full_name}}, ¡bienvenido al equipo! Estoy aquí para apoyarte en cada paso. El primer objetivo es el Q-Team: necesitamos 4 clientes con AutoOrder activo. ¿Tienes a alguien en mente?`,
+    content: `Hola {{contact.full_name}}, ¡bienvenido al equipo! Estoy aquí para apoyarte en cada paso. El primer objetivo es el Q-Team: necesitamos 4 kits Premier de nueva venta. ¿Tienes a alguien en mente?`,
   },
   {
     name: 'Fast Start Q-Team Día 1 — Amigable',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_1', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🎉 ¡Qué emoción que ya empezaste! Estoy aquí contigo en cada paso. Nuestro primer objetivo es el Q-Team: 4 clientes con AutoOrder. ¿A quién tienes en mente para empezar?`,
+    content: `Hola {{contact.full_name}}! 🎉 ¡Qué emoción que ya empezaste! Estoy aquí contigo en cada paso. Nuestro primer objetivo es el Q-Team: 4 kits Premier de nueva venta. ¿A quién tienes en mente para empezar?`,
   },
   {
     name: 'Fast Start Q-Team Día 1 — Directo',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_1', tone: 'directo',
-    content: `Hola {{contact.full_name}}, empezamos el Fast Start. Meta inmediata: Q-Team (4 clientes con AutoOrder activo). ¿Ya tienes tu lista de prospectos? Empecemos hoy.`,
+    content: `Hola {{contact.full_name}}, empezamos el Fast Start. Meta inmediata: Q-Team (4 kits Premier de nueva venta). ¿Ya tienes tu lista de prospectos? Empecemos hoy.`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -303,7 +303,7 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Fast Start Q-Team Día 7 — General',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_7', tone: 'general',
-    content: `Hola {{contact.full_name}}, ¿cómo vas en tu primera semana? ¿Cuántos clientes potenciales has contactado? Recuerda que el Q-Team requiere 4 clientes con AutoOrder. ¿En qué puedo ayudarte?`,
+    content: `Hola {{contact.full_name}}, ¿cómo vas en tu primera semana? ¿Cuántos clientes potenciales has contactado? Recuerda que el Q-Team requiere 4 kits Premier de nueva venta. ¿En qué puedo ayudarte?`,
   },
   {
     name: 'Fast Start Q-Team Día 7 — Amigable',
@@ -313,7 +313,7 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Fast Start Q-Team Día 7 — Directo',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_7', tone: 'directo',
-    content: `Hola {{contact.full_name}}, ¿cuántos clientes activos llevas? Necesitamos 4 para el Q-Team. Si vas por debajo de lo esperado, hay que ajustar la estrategia hoy.`,
+    content: `Hola {{contact.full_name}}, ¿cuántos kits Premier de nueva venta llevas? Necesitamos 4 para el Q-Team. Si vas por debajo de lo esperado, hay que ajustar la estrategia hoy.`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -323,17 +323,17 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Fast Start Q-Team Día 30 — General',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_30', tone: 'general',
-    content: `Hola {{contact.full_name}}, llevamos 30 días. ¿Cómo va el avance hacia el Q-Team? ¿Ya tienes los 4 clientes activos? Es momento de revisar cómo estamos y ajustar si es necesario.`,
+    content: `Hola {{contact.full_name}}, llevamos 30 días. ¿Cómo va el avance hacia el Q-Team? ¿Ya tienes los 4 kits Premier de nueva venta? Es momento de revisar cómo estamos y ajustar si es necesario.`,
   },
   {
     name: 'Fast Start Q-Team Día 30 — Amigable',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_30', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🗓️ ¡Ya llevamos un mes! ¿Cómo vas con el Q-Team? Si ya tienes los 4 clientes, ¡felicidades! Si no, platiquemos para ver cómo aceleramos.`,
+    content: `Hola {{contact.full_name}}! 🗓️ ¡Ya llevamos un mes! ¿Cómo vas con el Q-Team? Si ya tienes los 4 kits Premier, ¡felicidades! Si no, platiquemos para ver cómo aceleramos.`,
   },
   {
     name: 'Fast Start Q-Team Día 30 — Directo',
     category: 'seguimiento', subcategory: 'partner_qteam_dia_30', tone: 'directo',
-    content: `Hola {{contact.full_name}}, 30 días de Fast Start. ¿Tienes los 4 clientes del Q-Team? Necesito un reporte de avance para saber si hay que cambiar la estrategia.`,
+    content: `Hola {{contact.full_name}}, 30 días de Fast Start. ¿Tienes los 4 kits Premier de nueva venta del Q-Team? Necesito un reporte de avance para saber si hay que cambiar la estrategia.`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -423,17 +423,17 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Fast Start X-Team Día 110 — General',
     category: 'seguimiento', subcategory: 'partner_xteam_dia_110', tone: 'general',
-    content: `Hola {{contact.full_name}}, quedan 10 días del Fast Start. El X-Team requiere 10 clientes Premier activos en total. ¿Cuántos llevamos? Hagamos el conteo final.`,
+    content: `Hola {{contact.full_name}}, quedan 10 días del Fast Start. El X-Team requiere 10 kits Premier de nueva venta en total. ¿Cuántos llevamos? Hagamos el conteo final.`,
   },
   {
     name: 'Fast Start X-Team Día 110 — Amigable',
     category: 'seguimiento', subcategory: 'partner_xteam_dia_110', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🔥 ¡Solo 10 días! ¿Cuántos clientes Premier llevas? Si estamos cerca del X-Team, hay que dar el último empuje. ¡Tú puedes!`,
+    content: `Hola {{contact.full_name}}! 🔥 ¡Solo 10 días! ¿Cuántos kits Premier de nueva venta llevas? Si estamos cerca del X-Team, hay que dar el último empuje. ¡Tú puedes!`,
   },
   {
     name: 'Fast Start X-Team Día 110 — Directo',
     category: 'seguimiento', subcategory: 'partner_xteam_dia_110', tone: 'directo',
-    content: `Hola {{contact.full_name}}, quedan 10 días. ¿Cuántos clientes Premier activos tienes? Si no llegamos a 10, hay que activar a todos los prospectos posibles esta semana.`,
+    content: `Hola {{contact.full_name}}, quedan 10 días. ¿Cuántos kits Premier de nueva venta tienes? Si no llegamos a 10, hay que activar a todos los prospectos posibles esta semana.`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -463,17 +463,17 @@ export const DEFAULT_TEMPLATES = [
   {
     name: 'Urgencia Q-Team — General',
     category: 'seguimiento', subcategory: 'partner_urgencia_qteam', tone: 'general',
-    content: `Hola {{contact.full_name}}, necesito hablar contigo con urgencia. El conteo de clientes activos ha bajado. Necesitamos recuperar los 4 clientes del Q-Team lo antes posible. ¿Cuándo puedes hablar?`,
+    content: `Hola {{contact.full_name}}, necesito hablar contigo con urgencia. El conteo válido de kits Premier bajó. Necesitamos llegar a 4 kits de nueva venta para Q-Team. ¿Cuándo puedes hablar?`,
   },
   {
     name: 'Urgencia Q-Team — Amigable',
     category: 'seguimiento', subcategory: 'partner_urgencia_qteam', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🚨 Hey, necesito hablar contigo. Algunos clientes dejaron de estar activos y necesitamos reactivarlos rápido para mantener el Q-Team. ¿Hablamos hoy?`,
+    content: `Hola {{contact.full_name}}! 🚨 Necesito hablar contigo. El conteo válido de kits Premier cambió y necesitamos revisar cómo completar los 4 de nueva venta para Q-Team. ¿Hablamos hoy?`,
   },
   {
     name: 'Urgencia Q-Team — Directo',
     category: 'seguimiento', subcategory: 'partner_urgencia_qteam', tone: 'directo',
-    content: `Hola {{contact.full_name}}, URGENTE: el Q-Team está en riesgo. Necesitas reactivar clientes o conseguir nuevos HOY. Llámame cuando puedas.`,
+    content: `Hola {{contact.full_name}}, URGENTE: el Q-Team está en riesgo. Revisemos las nuevas ventas de kits Premier que faltan. Llámame cuando puedas.`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -717,24 +717,24 @@ export const DEFAULT_TEMPLATES = [
   },
 
   // ════════════════════════════════════════════════════════════════════
-  // PARTNER SMART — Q-Team: necesita más clientes Premier
+  // PARTNER SMART — Q-Team: necesita más kits Premier
   // subcategory: 'partner_smart_qteam'
-  // Contexto: upline apoya a su partner a llegar a 4 clientes activos
+  // Contexto: upline apoya a su partner a llegar a 4 kits Premier de nueva venta
   // ════════════════════════════════════════════════════════════════════
   {
     name: 'Smart Q-Team — General',
     category: 'seguimiento', subcategory: 'partner_smart_qteam', tone: 'general',
-    content: `Hola {{contact.full_name}}, quería ver cómo vas con tu avance en el Fast Start. Para llegar al Q-Team necesitas 4 clientes con AutoOrder activo. ¿Tienes prospectos en mente? Puedo ayudarte a cerrar los que faltan.`,
+    content: `Hola {{contact.full_name}}, quería ver cómo vas con tu avance en el Fast Start. Para llegar al Q-Team necesitas 4 kits Premier de nueva venta. ¿Tienes prospectos en mente? Puedo ayudarte a cerrar los que faltan.`,
   },
   {
     name: 'Smart Q-Team — Amigable',
     category: 'seguimiento', subcategory: 'partner_smart_qteam', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🎯 Estoy aquí para apoyarte. Para el Q-Team necesitas 4 clientes activos. ¿A quién tienes en tu lista? Vamos juntos a cerrar los que faltan, ¡sé que puedes!`,
+    content: `Hola {{contact.full_name}}! 🎯 Estoy aquí para apoyarte. Para el Q-Team necesitas 4 kits Premier de nueva venta. ¿A quién tienes en tu lista? Vamos juntos a cerrar los que faltan, ¡sé que puedes!`,
   },
   {
     name: 'Smart Q-Team — Directo',
     category: 'seguimiento', subcategory: 'partner_smart_qteam', tone: 'directo',
-    content: `Hola {{contact.full_name}}, revisé tu avance y aún te faltan clientes para el Q-Team. Dame tu lista de prospectos y trabajamos en cerrarlos esta semana. ¿Cuándo hablamos?`,
+    content: `Hola {{contact.full_name}}, revisé tu avance y aún te faltan kits Premier de nueva venta para el Q-Team. Dame tu lista de prospectos y trabajamos en cerrarlos esta semana. ¿Cuándo hablamos?`,
   },
 
   // ════════════════════════════════════════════════════════════════════
@@ -759,24 +759,24 @@ export const DEFAULT_TEMPLATES = [
   },
 
   // ════════════════════════════════════════════════════════════════════
-  // PARTNER SMART — X-Team: necesita más clientes Premier (meta: 10)
+  // PARTNER SMART — X-Team: necesita más kits Premier (meta: 10)
   // subcategory: 'partner_smart_xteam'
-  // Contexto: upline apoya a su partner a llegar a 10 clientes activos
+  // Contexto: upline apoya a su partner a llegar a 10 kits Premier de nueva venta
   // ════════════════════════════════════════════════════════════════════
   {
     name: 'Smart X-Team — General',
     category: 'seguimiento', subcategory: 'partner_smart_xteam', tone: 'general',
-    content: `Hola {{contact.full_name}}, ¡vamos muy bien! El X-Team requiere 10 clientes Premier activos en total. ¿Cuántos tienes ahorita? Platiquemos para ver cómo llegamos a la meta.`,
+    content: `Hola {{contact.full_name}}, ¡vamos muy bien! El X-Team requiere 10 kits Premier de nueva venta en total. ¿Cuántos tienes ahorita? Platiquemos para ver cómo llegamos a la meta.`,
   },
   {
     name: 'Smart X-Team — Amigable',
     category: 'seguimiento', subcategory: 'partner_smart_xteam', tone: 'amigable',
-    content: `Hola {{contact.full_name}}! 🔥 ¡Ya estás en la recta final hacia el X-Team! Solo necesitas llegar a 10 clientes Premier activos. ¿Quién más de tu lista puede activarse? ¡Estamos cerca!`,
+    content: `Hola {{contact.full_name}}! 🔥 ¡Ya estás en la recta final hacia el X-Team! Solo necesitas llegar a 10 kits Premier de nueva venta. ¿Quién más de tu lista puede activarse? ¡Estamos cerca!`,
   },
   {
     name: 'Smart X-Team — Directo',
     category: 'seguimiento', subcategory: 'partner_smart_xteam', tone: 'directo',
-    content: `Hola {{contact.full_name}}, estás a unos clientes del X-Team. Dame el estatus de tus prospectos y vemos cómo activamos los que faltan esta semana. ¿Hablamos hoy?`,
+    content: `Hola {{contact.full_name}}, estás a unos kits Premier del X-Team. Dame el estatus de tus prospectos y vemos cómo cerrar los que faltan esta semana. ¿Hablamos hoy?`,
   },
 
   // ════════════════════════════════════════════════════════════════════

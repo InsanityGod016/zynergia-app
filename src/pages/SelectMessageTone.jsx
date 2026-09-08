@@ -49,7 +49,8 @@ export default function SelectMessageTone() {
   );
   const selectedTemplate = resolveTemplateForTask(templates, task, contact, selectedTone);
   const message = fillTemplate(selectedTemplate?.content, contact, product);
-  const phoneIsVerified = /^\+\d{8,15}$/.test(String(contact?.phone || ''));
+  const verifiedPhone = contact?.phone_e164 || contact?.phone || '';
+  const phoneIsVerified = /^\+\d{8,15}$/.test(String(verifiedPhone));
   const needsProductLink = selectedTemplate?.content?.includes('{{product.link_') && !product?.link_url;
   const isLoading = taskQuery.isLoading || contactQuery.isLoading || productQuery.isLoading || templateQuery.isLoading;
   const hasError = taskQuery.isError || contactQuery.isError || productQuery.isError || templateQuery.isError;
@@ -88,7 +89,7 @@ export default function SelectMessageTone() {
   };
 
   const openWhatsApp = () => {
-    const url = phoneIsVerified && !needsProductLink ? whatsappUrl(contact.phone, editedMessage) : '';
+    const url = phoneIsVerified && !needsProductLink ? whatsappUrl(verifiedPhone, editedMessage) : '';
     if (!url) return;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -164,7 +165,10 @@ export default function SelectMessageTone() {
           </p>
         )}
         {needsProductLink && product && (
-          <Button type="button" size="lg" variant="outline" className="mt-3 w-full bg-white" onClick={() => navigate(createPageUrl(`EditProduct?id=${product.id}`))}>
+          <Button type="button" size="lg" variant="outline" className="mt-3 w-full bg-white" onClick={() => {
+            const returnTo = `${createPageUrl('SelectMessageTone')}?taskId=${encodeURIComponent(taskId)}`;
+            navigate(`${createPageUrl('EditProduct')}?id=${encodeURIComponent(product.id)}&returnTo=${encodeURIComponent(returnTo)}`);
+          }}>
             Agregar enlace del producto
           </Button>
         )}

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
+import { createOperationId } from '@/lib/operationId';
 
 export default function AccountDeletion() {
   const { isAuthenticated, isLoadingAuth, logout, user } = useAuth();
@@ -20,7 +21,7 @@ export default function AccountDeletion() {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password });
       if (signInError) throw new Error('La contraseña no es correcta.');
       const operationKey = `zynergia_delete_operation_${user.id}`;
-      const operationId = sessionStorage.getItem(operationKey) || crypto.randomUUID();
+      const operationId = sessionStorage.getItem(operationKey) || createOperationId();
       sessionStorage.setItem(operationKey, operationId);
       const data = await apiFetch('/api/account/deletion-request', {
         method: 'POST',

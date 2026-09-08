@@ -8,8 +8,10 @@ workflows:
         - ios_credentials
         - app_environment
       vars:
+        ONESIGNAL_DISABLE_LOCATION: true
         VITE_SUPPORT_EMAIL: equipo@coreflowia.com
         VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
+        VITE_PLAY_STORE_URL: https://play.google.com/store/apps/details?id=com.zynergia.app
       node: 22.14.0
       xcode: 26.6
     scripts:
@@ -35,13 +37,62 @@ workflows:
       - name: Set up code signing
         script: |
           set -euo pipefail
+          trap 'rm -f /tmp/certificate.p12 /tmp/profile.mobileprovision /tmp/profile.mobileprovision.plist /tmp/nse-profile.mobileprovision /tmp/nse-profile.mobileprovision.plist' EXIT
           keychain initialize
           printf '%s' "$CM_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
-          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CM_CERTIFICATE_PASSWORD"
           printf '%s' "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+          printf '%s' "$CM_NSE_PROVISIONING_PROFILE" | base64 --decode > /tmp/nse-profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(grep -a -A1 'UUID' /tmp/profile.mobileprovision | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+
+          install_profile() {
+            profile="$1"
+            expected_identifier="$2"
+            decoded="${profile}.plist"
+            security cms -D -i "$profile" > "$decoded"
+
+            identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded")
+            if [ "$identifier" != "NR7VZQ9R89.$expected_identifier" ]; then
+              echo "Provisioning profile does not match $expected_identifier."
+              exit 1
+            fi
+
+            /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' "$decoded" \
+              | grep -Fq 'group.com.zynergia.app.onesignal' || {
+                echo "Provisioning profile for $expected_identifier is missing the OneSignal App Group."
+                exit 1
+              }
+
+            get_task_allow=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$decoded")
+            if [ "$get_task_allow" != false ]; then
+              echo "Provisioning profile for $expected_identifier is not a distribution profile."
+              exit 1
+            fi
+
+            uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$decoded")
+            cp "$profile" "$HOME/Library/MobileDevice/Provisioning Profiles/$uuid.mobileprovision"
+          }
+
+          install_profile /tmp/profile.mobileprovision com.zynergia.app
+          install_profile /tmp/nse-profile.mobileprovision com.zynergia.app.OneSignalNotificationServiceExtension
+
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/profile.mobileprovision.plist \
+            | grep -Fq 'applinks:zynergia.pro' || {
+              echo "The App provisioning profile is missing the zynergia.pro Universal Link domain."
+              exit 1
+            }
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/profile.mobileprovision.plist \
+            | grep -Fq 'webcredentials:zynergia.pro' || {
+              echo "The App provisioning profile is missing the zynergia.pro web credentials domain."
+              exit 1
+            }
+
+          app_push_environment=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.mobileprovision.plist)
+          if [ "$app_push_environment" != production ]; then
+            echo "The App provisioning profile is not enabled for production push notifications."
+            exit 1
+          fi
+
           xcode-project use-profiles
       - name: Build iOS
         script: |
@@ -53,11 +104,18 @@ workflows:
       - name: Publish to TestFlight
         script: |
           set -euo pipefail
+          trap 'rm -f /tmp/api_key.p8' EXIT
           printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/api_key.p8
+          ipa_count=$(find build/ios/ipa -type f -name '*.ipa' | wc -l | tr -d '[:space:]')
+          if [ "$ipa_count" -ne 1 ]; then
+            echo "Expected exactly one IPA, found $ipa_count."
+            exit 1
+          fi
+          ipa_path=$(find build/ios/ipa -type f -name '*.ipa' -print -quit)
           app-store-connect publish \
-            --path $(find build/ios/ipa -name "*.ipa") \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
+            --path "$ipa_path" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --private-key @file:/tmp/api_key.p8 \
             --testflight \
             --max-find-build-wait 30
@@ -65,7 +123,7 @@ workflows:
       - build/ios/ipa/*.ipa
 
   android-verify-keystore:
-    name: Verify Original Keystore Password
+    name: Verify Android Upload Keystore
     max_build_duration: 5
     instance_type: mac_mini_m2
     environment:
@@ -77,20 +135,23 @@ workflows:
       - name: Verify reset upload key
         script: |
           set -euo pipefail
-          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE_ANDROID" | base64 --decode > /tmp/reset-upload.p12
-          for password_slot in ANDROID_NEW_PASSWORD ANDROID_KEY_PASSWORD; do
-            password="${!password_slot:-}"
-            if [ -n "$password" ] && keytool -list -v \
-              -storetype PKCS12 \
-              -keystore /tmp/reset-upload.p12 \
-              -storepass "$password" > /tmp/keystore-report.txt 2>&1; then
-              echo "Reset upload key verified."
-              grep -E "SHA1|SHA-256|Alias" /tmp/keystore-report.txt
-              exit 0
-            fi
-          done
-          echo "The reset upload key did not match a configured Android password."
-          exit 1
+          trap 'rm -f /tmp/zynergia-upload.jks /tmp/zynergia-upload.pem' EXIT
+          printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
+          keytool -exportcert -rfc \
+            -keystore /tmp/zynergia-upload.jks \
+            -storepass "$ANDROID_KEY_PASSWORD" \
+            -alias zynergia > /tmp/zynergia-upload.pem
+
+          actual_sha1=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha1 | cut -d= -f2)
+          actual_sha256=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha256 | cut -d= -f2)
+          expected_sha1='16:54:71:1F:4B:E5:93:99:AD:95:A7:4A:20:88:CF:BF:1C:65:CB:B7'
+          expected_sha256='33:3A:D5:C4:5D:6B:12:7D:94:EF:B6:D8:90:5E:D0:C6:66:4C:0F:E6:1C:3E:E0:9A:C5:74:D7:EB:2B:B9:BF:6E'
+
+          if [ "$actual_sha1" != "$expected_sha1" ] || [ "$actual_sha256" != "$expected_sha256" ]; then
+            echo "Android upload key fingerprint does not match the key approved by Google Play."
+            exit 1
+          fi
+          echo "Android upload key fingerprint verified."
 
   android-distribution:
     name: Android Distribution
@@ -101,8 +162,10 @@ workflows:
         - android_credentials
         - app_environment
       vars:
+        ONESIGNAL_DISABLE_LOCATION: true
         VITE_SUPPORT_EMAIL: equipo@coreflowia.com
         VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
+        VITE_PLAY_STORE_URL: https://play.google.com/store/apps/details?id=com.zynergia.app
       node: 22.14.0
       xcode: 26.6
       java: 21
@@ -129,14 +192,27 @@ workflows:
       - name: Set up keystore
         script: |
           set -euo pipefail
+          trap 'rm -f /tmp/zynergia-upload.jks /tmp/zynergia-upload.pem' ERR
           printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.jks
-          keytool -list \
+          keytool -exportcert -rfc \
             -keystore /tmp/zynergia-upload.jks \
             -storepass "$ANDROID_KEY_PASSWORD" \
-            -alias zynergia > /dev/null
+            -alias zynergia > /tmp/zynergia-upload.pem
+
+          actual_sha1=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha1 | cut -d= -f2)
+          actual_sha256=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha256 | cut -d= -f2)
+          expected_sha1='16:54:71:1F:4B:E5:93:99:AD:95:A7:4A:20:88:CF:BF:1C:65:CB:B7'
+          expected_sha256='33:3A:D5:C4:5D:6B:12:7D:94:EF:B6:D8:90:5E:D0:C6:66:4C:0F:E6:1C:3E:E0:9A:C5:74:D7:EB:2B:B9:BF:6E'
+
+          if [ "$actual_sha1" != "$expected_sha1" ] || [ "$actual_sha256" != "$expected_sha256" ]; then
+            echo "Android upload key fingerprint does not match the key approved by Google Play."
+            exit 1
+          fi
+          echo "Android upload key fingerprint verified."
       - name: Build Android App Bundle
         script: |
           set -euo pipefail
+          trap 'rm -f /tmp/zynergia-upload.jks /tmp/zynergia-upload.pem' EXIT
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \

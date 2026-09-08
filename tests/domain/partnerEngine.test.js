@@ -1,19 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const partnerApi = { update: vi.fn(async value => value) };
-vi.mock('@/api/db', () => ({ db: { Partner: partnerApi } }));
+import { describe, expect, it } from 'vitest';
 
 const {
   calculateFastStartProgress,
   calculateFastStartTimeline,
-  countActivePremierClients,
-  recalculateAllPartners,
 } = await import('@/components/partners/partnerEngine.jsx');
 const { BONUS_TABLE, formatBonus } = await import('@/components/partners/bonusTable.jsx');
 
 describe('Fast Start', () => {
-  beforeEach(() => partnerApi.update.mockClear());
-
   it('preserves every approved amount', () => {
     expect(BONUS_TABLE.qteam).toMatchObject({ MXN: 1900, USD: 110, EUR: 100, COP: 450000, PEN: 380 });
     expect(BONUS_TABLE.fs_nivel1).toMatchObject({ MXN: 7600, USD: 430, EUR: 400, COP: 1800000, PEN: 1500 });
@@ -22,15 +15,29 @@ describe('Fast Start', () => {
     expect(formatBonus('fs_nivel2', 'MXN')).toBe('$22,800 MXN');
   });
 
-  it('counts unique active Premier clients without duplicating repeat sales', () => {
-    const products = [{ id: 'kit', category: 'Premier Kits' }, { id: 'single', category: 'Compra Única' }];
-    const sales = [
-      { contact_id: 'a', product_id: 'kit', status: 'active' },
-      { contact_id: 'a', product_id: 'kit', status: 'active' },
-      { contact_id: 'b', product_id: 'kit', status: 'cancelled' },
-      { contact_id: 'c', product_id: 'single', status: 'active' },
-    ];
-    expect(countActivePremierClients(sales, products)).toBe(1);
+  it('uses separate 30-day and 120-day kit totals', () => {
+    const progress = calculateFastStartProgress({
+      qteamKits: 4,
+      xteamKits: 9,
+      directPartners: 2,
+      directBranches: [{ qteamKits: 4 }, { qteamKits: 4 }],
+    });
+    expect(progress.stages.qteam.completed).toBe(true);
+    expect(progress.stages.fs_nivel2.completed).toBe(true);
+    expect(progress.stages.xteam).toMatchObject({ completed: false, current: 9 });
+  });
+
+  it('reads server branch metrics and keeps X-Team independent from Nivel 1', () => {
+    const progress = calculateFastStartProgress({
+      qteamKits: 3,
+      xteamKits: 10,
+      directPartners: 2,
+      directBranches: [{ qteam_kits: 4 }, { qteam_kits: 5 }],
+    });
+
+    expect(progress.qteamBranches).toBe(2);
+    expect(progress.stages.fs_nivel1.status).toBe('bloqueado');
+    expect(progress.stages.xteam).toMatchObject({ completed: true, status: 'completado', current: 10 });
   });
 
   it('completes Level 2 only from two real direct branches that completed Q-Team', () => {
@@ -90,38 +97,4 @@ describe('Fast Start', () => {
     });
   });
 
-  it('never updates unlinked or unverified partners', async () => {
-    const partners = [
-      { id: 'unlinked', partner_user_id: null },
-      { id: 'linked', partner_user_id: 'user-1' },
-    ];
-
-    await recalculateAllPartners([], partners, [], []);
-    expect(partnerApi.update).not.toHaveBeenCalled();
-  });
-
-  it('uses authoritative branch metrics when they are supplied', async () => {
-    const partner = {
-      id: 'linked',
-      partner_user_id: 'user-1',
-      qteam_completed: false,
-      fs_level1_completed: false,
-      fs_level2_completed: false,
-      xteam_completed: false,
-    };
-    const metrics = [{
-      user_id: 'user-1',
-      premier_clients: 10,
-      partners_count: 2,
-      direct_branches: [{ premier_clients: 4 }, { premier_clients: 5 }],
-    }];
-
-    await recalculateAllPartners([], [partner], [], metrics);
-    expect(partnerApi.update).toHaveBeenCalledWith('linked', {
-      qteam_completed: true,
-      fs_level1_completed: true,
-      xteam_completed: true,
-      fs_level2_completed: true,
-    });
-  });
 });

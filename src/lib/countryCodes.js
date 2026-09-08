@@ -5,7 +5,8 @@
 
 const PRIORITY = [
   { code: '+52', flag: '🇲🇽', name: 'México' },
-  { code: '+1', flag: '🇺🇸', name: 'Estados Unidos / Canadá' },
+  { code: '+1', flag: '🇺🇸', name: 'Estados Unidos' },
+  { code: '+1', flag: '🇨🇦', name: 'Canadá' },
   { code: '+34', flag: '🇪🇸', name: 'España' },
   { code: '+57', flag: '🇨🇴', name: 'Colombia' },
   { code: '+54', flag: '🇦🇷', name: 'Argentina' },
@@ -136,4 +137,13 @@ const REST = [
   { code: '+263', flag: '🇿🇼', name: 'Zimbabue' },
 ].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
-export const COUNTRY_CODES = [...PRIORITY, ...REST];
+function isoFromFlag(flag) {
+  const letters = Array.from(flag || '').map(symbol => symbol.codePointAt(0) - 127397);
+  if (letters.length !== 2 || letters.some(value => value < 65 || value > 90)) return null;
+  return String.fromCharCode(...letters);
+}
+
+export const COUNTRY_CODES = [...PRIORITY, ...REST].map(country => ({
+  ...country,
+  iso: isoFromFlag(country.flag),
+}));

@@ -11,6 +11,7 @@ import { createPageUrl } from '@/utils';
 const CATEGORIES = ['Premier Kits', 'Compra Única'];
 
 function cycleLabel(product) {
+  if (product.repurchase_enabled === false || Number(product.cycle_days) === 0) return 'Sin recordatorio de recompra';
   const days = Number(product.cycle_days) || Number(product.frequency_months) * 30;
   return days > 0 ? `Recompra cada ${days} días` : 'Sin recordatorio de recompra';
 }

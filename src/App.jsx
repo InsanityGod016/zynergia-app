@@ -1,8 +1,8 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
-import { Loader2, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
+import { ContactRound, Loader2, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { queryClientInstance } from '@/lib/query-client';
 import NavigationTracker from '@/lib/NavigationTracker';
@@ -18,7 +18,15 @@ import {
 import { db } from '@/api/db';
 import { supabaseConfigurationError } from '@/lib/supabaseClient';
 import { initializeLocalNotificationNavigation, reconcileTaskNotifications } from '@/lib/localNotifications';
-import { isAppWebHost, mobileRouteForAppUrl } from '@/lib/app-links';
+import { initializePushNavigation } from '@/lib/pushNotifications';
+import AppUpdatePrompt from '@/components/updates/AppUpdatePrompt';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  isAppWebHost,
+  mobileRouteForAppUrl,
+  readPendingTemplateShare,
+  rememberPendingTemplateShare,
+} from '@/lib/app-links';
 import { pagesConfig } from './pages.config';
 import './auth.css';
 
@@ -35,6 +43,7 @@ const Support = nativeOnlyBuild ? null : lazy(() => import('@/pages/Support'));
 const LegalDocument = nativeOnlyBuild ? null : lazy(() => import('@/pages/LegalDocument'));
 const AccountDeletion = nativeOnlyBuild ? null : lazy(() => import('@/pages/AccountDeletion'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const ImportTemplates = lazy(() => import('@/pages/ImportTemplates'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -58,7 +67,10 @@ function SignedOutOnly({ children }) {
   if (isLoadingAuth) return <LoadingScreen message="Revisando tu sesión…" />;
   if (isAuthenticated) {
     const requestedPath = new URLSearchParams(location.search).get('returnTo');
-    return <Navigate to={requestedPath === '/eliminar-cuenta' ? requestedPath : '/cuenta'} replace />;
+    const safeReturnPath = requestedPath === '/eliminar-cuenta' || /^\/app\/plantillas\/[a-f0-9]{64}$/i.test(requestedPath || '')
+      ? requestedPath
+      : '/cuenta';
+    return <Navigate to={safeReturnPath} replace />;
   }
   return children;
 }
@@ -75,6 +87,7 @@ function WebRoutes() {
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/cuenta" element={<Account />} />
         <Route path="/pago/exito" element={<PaymentSuccess />} />
+        <Route path="/app/plantillas/:token" element={<ImportTemplates />} />
         <Route path="/app" element={<DownloadApp />} />
         <Route path="/privacidad" element={<LegalDocument type="privacy" />} />
         <Route path="/terminos" element={<LegalDocument type="terms" />} />
@@ -106,8 +119,10 @@ function ReadyMobileApp() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       <TaskNotificationReconciler />
+      <ContactImportInvite />
       <NavigationTracker />
       <Routes>
+        <Route path="/app/plantillas/:token" element={<ImportTemplates />} />
         <Route
           path="/"
           element={<LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>}
@@ -125,8 +140,62 @@ function ReadyMobileApp() {
   );
 }
 
+function ContactImportInvite() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const handledKey = useRef('');
+  const storageKey = user?.id ? `zynergia-contact-import-invite-v1:${user.id}` : '';
+
+  useEffect(() => {
+    if (!isNative || !storageKey || handledKey.current === storageKey || /^\/app\/plantillas\//i.test(location.pathname)) return;
+    try {
+      if (!window.localStorage.getItem(storageKey)) setOpen(true);
+      else handledKey.current = storageKey;
+    } catch {
+      setOpen(true);
+    }
+  }, [location.pathname, storageKey]);
+
+  const finish = (action) => {
+    try {
+      window.localStorage.setItem(storageKey, action);
+    } catch {
+      // The invitation remains dismissible even when device storage is unavailable.
+    }
+    handledKey.current = storageKey;
+    setOpen(false);
+    if (action === 'import') navigate('/Contacts?import=1');
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={nextOpen => { if (!nextOpen) finish('dismissed'); }}>
+      <SheetContent side="bottom" className="mx-auto max-w-lg rounded-t-3xl px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-7">
+        <SheetHeader className="pr-12 text-left">
+          <SheetTitle className="text-xl">¿Quieres importar tus contactos?</SheetTitle>
+          <SheetDescription className="text-[15px] leading-6">
+            Es opcional. Con tu permiso, Zynergia mostrará localmente nombres y teléfonos; sólo guardará los contactos que elijas y confirmes.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-5 rounded-2xl bg-primary/5 p-5 text-center">
+          <ContactRound className="mx-auto h-10 w-10 text-primary" aria-hidden="true" />
+          <p className="mt-3 text-[15px] leading-6 text-muted-foreground">El teléfono pedirá permiso únicamente si decides continuar.</p>
+        </div>
+        <button type="button" onClick={() => finish('import')} className="mt-5 min-h-14 w-full rounded-2xl bg-primary px-5 text-[17px] font-semibold text-primary-foreground">
+          Importar contactos
+        </button>
+        <button type="button" onClick={() => finish('dismissed')} className="mt-2 min-h-12 w-full rounded-2xl text-[16px] font-semibold text-muted-foreground">
+          Ahora no
+        </button>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function TaskNotificationReconciler() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: () => db.Task.list() });
   const contacts = useQuery({ queryKey: ['contacts'], queryFn: () => db.Contact.list() });
   const products = useQuery({ queryKey: ['products'], queryFn: () => db.Product.list() });
@@ -139,6 +208,7 @@ function TaskNotificationReconciler() {
       contacts: contacts.data || [],
       products: products.data || [],
       enabled: settings.data?.[0]?.notifications_enabled === true,
+      taskRemindersEnabled: settings.data?.[0]?.task_notifications_enabled !== false,
       userId: user?.id,
     }).catch(() => {});
   }, [contacts.data, contacts.isError, contacts.isFetching, contacts.isLoading, products.data, products.isError, products.isFetching, products.isLoading, settings.data, settings.isError, settings.isFetching, settings.isLoading, tasks.data, tasks.isError, tasks.isFetching, tasks.isLoading, user?.id]);
@@ -157,6 +227,25 @@ function TaskNotificationReconciler() {
     )).then(handle => { removeListener = () => handle.remove(); }).catch(() => {});
     return () => removeListener();
   }, []);
+
+  useEffect(() => {
+    if (!isNative || settings.isLoading || settings.isError || !user?.id) return undefined;
+    let disposed = false;
+    let removeListener = () => {};
+    initializePushNavigation({
+      userId: user.id,
+      enabled: settings.data?.[0]?.notifications_enabled === true,
+      consentGiven: settings.data?.[0]?.push_consent_given === true,
+      navigate,
+    }).then(remove => {
+      if (disposed) remove();
+      else removeListener = remove;
+    }).catch(() => {});
+    return () => {
+      disposed = true;
+      removeListener();
+    };
+  }, [navigate, settings.data, settings.isError, settings.isLoading, user?.id]);
 
   return null;
 }
@@ -235,6 +324,8 @@ function MobileFatalError({ retry, logout, error }) {
 
 function MobileAppGate() {
   const { isLoadingAuth, isAuthenticated, user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const userId = user?.id;
   const [rootState, setRootState] = useState('boot');
   const [billing, setBilling] = useState(null);
@@ -334,6 +425,12 @@ function MobileAppGate() {
     return () => { cancelled = true; };
   }, [isAuthenticated, isLoadingAuth, reloadKey, userId]);
 
+  useEffect(() => {
+    if (rootState !== 'ready' || /^\/app\/plantillas\//i.test(location.pathname)) return;
+    const pendingRoute = readPendingTemplateShare();
+    if (pendingRoute) navigate(pendingRoute, { replace: true });
+  }, [location.pathname, navigate, rootState]);
+
   if (rootState === 'boot') return <LoadingScreen />;
   if (rootState === 'signedOut') {
     return <Suspense fallback={<LoadingScreen />}><Login showRegistration={!isNative} registrationUrl="https://zynergia.pro/crear-cuenta" /></Suspense>;
@@ -368,6 +465,13 @@ function NativePlatformSetup() {
       .then(remove => { removeNotificationListener = remove; })
       .catch(() => {});
     import('@capacitor/app').then(({ App: CapacitorApp }) => {
+      const openAppUrl = url => {
+        const route = mobileRouteForAppUrl(url);
+        if (!route) return;
+        if (route.startsWith('/app/plantillas/')) rememberPendingTemplateShare(route);
+        navigate(route, { replace: true });
+      };
+
       CapacitorApp.addListener('backButton', () => {
         if (editIsDirty) {
           window.dispatchEvent(new Event('zynergia:request-back'));
@@ -388,9 +492,12 @@ function NativePlatformSetup() {
       }).then(handle => { removeBackListener = () => handle.remove(); });
 
       CapacitorApp.addListener('appUrlOpen', ({ url }) => {
-        const route = mobileRouteForAppUrl(url);
-        if (route) navigate(route, { replace: true });
+        openAppUrl(url);
       }).then(handle => { removeUrlListener = () => handle.remove(); });
+
+      CapacitorApp.getLaunchUrl().then(result => {
+        if (result?.url) openAppUrl(result.url);
+      }).catch(() => {});
     }).catch(() => {});
 
     return () => {
@@ -420,6 +527,7 @@ export default function App() {
       <QueryClientProvider client={queryClientInstance}>
         <BrowserRouter>
           <NativePlatformSetup />
+          {isNative && <AppUpdatePrompt />}
           {nativeOnlyBuild || isNative || isHostedWebApp ? <MobileAppGate /> : <WebRoutes />}
           <Toaster position="top-center" duration={4000} closeButton richColors />
         </BrowserRouter>

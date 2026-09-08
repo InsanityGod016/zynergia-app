@@ -1,20 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Plus, Search } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Import, Plus, Search } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
 import { createPageUrl } from '@/utils';
 import ContactCard from '@/components/contacts/ContactCard';
 import MainHeader from '@/components/ui/MainHeader';
 import ContactTypeFilterSheet from '@/components/contacts/ContactTypeFilterSheet';
 import BulkChangeTypeSheet from '@/components/contacts/BulkChangeTypeSheet';
-import {
-  cancelFutureTasksByArea,
-  createPartnerTasks,
-  createProspectoPartnerTasks,
-  createProspectoProductoTasks,
-  createReferralTask,
-} from '@/components/tasks/taskEngine';
+import ImportContactsSheet from '@/components/contacts/ImportContactsSheet';
+import { createOperationId } from '@/lib/operationId';
 
 const filterLabels = {
   all: 'Todos los tipos',
@@ -64,6 +59,7 @@ function ListState(/** @type {{ title: string, description: string, actionLabel?
 
 export default function Contacts() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [contactTypeFilter, setContactTypeFilter] = useState('all');
@@ -71,8 +67,18 @@ export default function Contacts() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkSheet, setShowBulkSheet] = useState(false);
+  const [showImportSheet, setShowImportSheet] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState('');
+  const bulkOperationIds = useRef({ changeType: '', changeTypeValue: null, anonymize: '' });
+
+  useEffect(() => {
+    if (searchParams.get('import') !== '1') return;
+    setShowImportSheet(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('import');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const contactsQuery = useQuery({
     queryKey: ['contacts'],
@@ -125,12 +131,16 @@ export default function Contacts() {
   }, [contacts, contactTypeFilter, search, tagNamesById]);
 
   const getNextPurchaseDays = (contactId) => {
-    const contactSales = sales.filter((sale) => sale.contact_id === contactId && sale.status === 'active');
+    const contactSales = sales.filter((sale) => (
+      sale.contact_id === contactId
+      && sale.status === 'active'
+      && !sale.follow_up_stopped_at
+    ));
     if (!contactSales.length) return null;
 
     const days = contactSales.flatMap((sale) => {
       const product = products.find((item) => item.id === sale.product_id);
-      if (!product) return [];
+      if (!product || product.repurchase_enabled === false || Number(product.cycle_days) === 0) return [];
       const category = normalize(product.category).replace(/\s+/g, '_');
       const configuredCycle = Number(product.cycle_days);
       const frequencyDays = Number.isInteger(configuredCycle) && configuredCycle > 0
@@ -152,82 +162,66 @@ export default function Contacts() {
     setSelectMode((current) => !current);
     setSelectedIds([]);
     setBulkError('');
+    bulkOperationIds.current = { changeType: '', changeTypeValue: null, anonymize: '' };
   };
 
   const toggleSelect = (id) => {
+    bulkOperationIds.current = { changeType: '', changeTypeValue: null, anonymize: '' };
     setSelectedIds((current) => (
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     ));
   };
 
+  const finishBulkAction = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+      queryClient.invalidateQueries({ queryKey: ['partners'] }),
+    ]);
+    setShowBulkSheet(false);
+    setSelectMode(false);
+    setSelectedIds([]);
+    bulkOperationIds.current = { changeType: '', changeTypeValue: null, anonymize: '' };
+  };
+
   const handleBulkChangeType = async (newType) => {
     setBulkLoading(true);
     setBulkError('');
-
     try {
-      const allTasks = await db.Task.list();
-      const partners = await db.Partner.list();
-      await Promise.all(selectedIds.map(async (contactId) => {
-        const contact = contacts.find((item) => item.id === contactId);
-        const previousType = contact?.contact_type || null;
-        await db.Contact.update(contactId, { contact_type: newType || null });
-        if (newType === previousType) return;
-
-        if (previousType === 'prospecto_produto' || previousType === 'prospecto_producto') {
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_producto', existingTasks: allTasks });
-        }
-        if (previousType === 'prospecto_partner') {
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_partner', existingTasks: allTasks });
-        }
-        if (!newType) {
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_producto', existingTasks: allTasks });
-          await cancelFutureTasksByArea({ contactId, taskArea: 'prospecto_partner', existingTasks: allTasks });
-        }
-        if (newType === 'prospecto_producto') {
-          await createProspectoProductoTasks({ contactId, existingTasks: await db.Task.list() });
-        }
-        if (newType === 'prospecto_partner') {
-          await createProspectoPartnerTasks({ contactId, existingTasks: await db.Task.list() });
-        }
-        if (newType === 'partner' && !partners.some((partner) => partner.contact_id === contactId)) {
-          const startDate = new Date().toISOString().split('T')[0];
-          const deadline = new Date();
-          deadline.setDate(deadline.getDate() + 120);
-          await db.Partner.create({
-            contact_id: contactId,
-            start_date: startDate,
-            fast_start_deadline: deadline.toISOString().split('T')[0],
-            fast_start_status: 'activo',
-            fase_actual: 1,
-            qteam_completed: false,
-            fs_level1_completed: false,
-            fs_level2_completed: false,
-            xteam_completed: false,
-          });
-          await createPartnerTasks({ contactId, startDate });
-        }
-        if (newType === 'cliente_producto' || newType === 'partner') {
-          await createReferralTask({
-            contactId,
-            contactCreatedAt: contact?.created_at,
-            existingTasks: await db.Task.list(),
-          });
-        }
-      }));
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
-        queryClient.invalidateQueries({ queryKey: ['partners'] }),
-      ]);
-      setShowBulkSheet(false);
-      setSelectMode(false);
-      setSelectedIds([]);
-    } catch {
-      setBulkError('No pudimos cambiar los contactos. Intenta de nuevo.');
+      if (bulkOperationIds.current.changeTypeValue !== newType) {
+        bulkOperationIds.current.changeType = '';
+        bulkOperationIds.current.changeTypeValue = newType;
+      }
+      bulkOperationIds.current.changeType ||= createOperationId();
+      await db.Contact.bulkChangeType(bulkOperationIds.current.changeType, selectedIds, newType || null);
+      await finishBulkAction();
+    } catch (error) {
+      setBulkError(error?.message?.includes('linked_partner_type_protected')
+        ? 'Un socio vinculado no puede cambiar de tipo desde una acción masiva.'
+        : 'No pudimos cambiar los contactos. Tus datos siguen igual. Intenta de nuevo.');
     } finally {
       setBulkLoading(false);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkLoading(true);
+    setBulkError('');
+    try {
+      bulkOperationIds.current.anonymize ||= createOperationId();
+      await db.Contact.bulkAnonymize(bulkOperationIds.current.anonymize, selectedIds);
+      await finishBulkAction();
+    } catch (error) {
+      setBulkError(error?.message?.includes('linked_partner_delete_protected')
+        ? 'No se eliminó nada. Un socio vinculado debe conservarse para proteger la relación del equipo.'
+        : 'No pudimos eliminar los contactos. Tus datos siguen igual. Intenta de nuevo.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const closeImportSheet = () => {
+    setShowImportSheet(false);
   };
 
   const retry = () => Promise.all([
@@ -258,11 +252,11 @@ export default function Contacts() {
         />
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setShowTypeSheet(true)}
-          className={`flex min-h-12 items-center gap-2 rounded-2xl px-4 text-[15px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+          className={`flex min-h-12 min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl px-4 text-[15px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary ${
             contactTypeFilter === 'all' ? 'bg-muted text-foreground' : 'bg-foreground text-background'
           }`}
           aria-label="Filtrar por tipo de contacto"
@@ -270,13 +264,21 @@ export default function Contacts() {
           <span className="max-w-[13rem] truncate">{filterLabels[contactTypeFilter] || 'Filtro activo'}</span>
           <ChevronDown aria-hidden="true" className="h-5 w-5" />
         </button>
+        <button
+          type="button"
+          onClick={() => setShowImportSheet(true)}
+          className="flex min-h-12 items-center gap-2 rounded-2xl bg-muted px-4 text-[15px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <Import aria-hidden="true" className="h-5 w-5" />
+          Importar
+        </button>
         {contacts.length > 1 && (
           <button
             type="button"
             onClick={toggleSelectMode}
             className="min-h-12 rounded-2xl px-4 text-[15px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            {selectMode ? 'Terminar' : 'Cambiar varios'}
+            {selectMode ? 'Terminar' : 'Administrar'}
           </button>
         )}
       </div>
@@ -292,7 +294,7 @@ export default function Contacts() {
               onClick={() => setShowBulkSheet(true)}
               className="mt-3 min-h-12 w-full rounded-2xl bg-primary px-5 text-base font-semibold text-primary-foreground"
             >
-              Cambiar tipo
+              Administrar selección
             </button>
           )}
         </div>
@@ -373,8 +375,17 @@ export default function Contacts() {
         isOpen={showBulkSheet}
         onClose={() => setShowBulkSheet(false)}
         onConfirm={handleBulkChangeType}
+        onDelete={handleBulkDelete}
+        selectedCount={selectedIds.length}
         isLoading={bulkLoading}
         error={bulkError}
+      />
+      <ImportContactsSheet
+        isOpen={showImportSheet}
+        onClose={closeImportSheet}
+        existingContacts={contacts}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['contacts'] })}
+        onManualCreate={() => navigate(createPageUrl('NewContact'))}
       />
     </div>
   );

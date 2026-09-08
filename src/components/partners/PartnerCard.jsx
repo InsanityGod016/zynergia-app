@@ -3,7 +3,7 @@ import { calculateFastStartProgress } from './partnerEngine';
 
 function progressText(progress) {
   if (!progress.stages.qteam.completed) {
-    return `Q-Team · ${progress.stages.qteam.current} de 4 clientes`;
+    return `Q-Team · ${progress.stages.qteam.current} de 4 kits`;
   }
   if (!progress.stages.fs_nivel1.completed) {
     return `Nivel 1 · ${progress.stages.fs_nivel1.current} de 2 partners`;
@@ -14,7 +14,7 @@ function progressText(progress) {
       : `Nivel 2 · ${progress.stages.fs_nivel2.current} de 2 ramas`;
   }
   if (!progress.stages.xteam.completed) {
-    return `X-Team · ${progress.stages.xteam.current} de 10 clientes`;
+    return `X-Team · ${progress.stages.xteam.current} de 10 kits`;
   }
   return 'Fast Start completado';
 }
@@ -30,12 +30,13 @@ export default function PartnerCard({
 }) {
   const hasApp = Boolean(partner.partner_user_id);
   const isInactive = activityStatus === 'inactivo';
-  const hasMetrics = hasApp && Number.isFinite(fastStartMetrics?.premier_clients) && Number.isFinite(fastStartMetrics?.partners_count);
+  const hasMetrics = hasApp && Number.isFinite(fastStartMetrics?.qteam_kits) && Number.isFinite(fastStartMetrics?.xteam_kits) && Number.isFinite(fastStartMetrics?.partners_count);
   const progress = hasMetrics ? calculateFastStartProgress({
-    premierClients: fastStartMetrics.premier_clients,
+    qteamKits: fastStartMetrics.qteam_kits,
+    xteamKits: fastStartMetrics.xteam_kits,
     directPartners: fastStartMetrics.partners_count,
     directBranches: Array.isArray(fastStartMetrics.direct_branches)
-      ? fastStartMetrics.direct_branches.map(branch => ({ premierClients: Number.isFinite(branch?.premier_clients) ? branch.premier_clients : null }))
+      ? fastStartMetrics.direct_branches.map(branch => ({ qteamKits: Number.isFinite(branch?.qteam_kits) ? branch.qteam_kits : null }))
       : [],
     startDate: fastStartMetrics.fast_start_started_at || null,
   }) : null;

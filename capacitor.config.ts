@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
     loggingBehavior: 'none'
   },
   ios: {
+    handleApplicationNotifications: false,
     webContentsDebuggingEnabled: false
   },
   server: {

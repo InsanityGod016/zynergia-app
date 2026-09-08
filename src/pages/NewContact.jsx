@@ -23,6 +23,10 @@ import { normalizePhone } from '@/lib/phone';
  *   full_name: string,
  *   phone: string,
  *   country_code: string,
+ *   phone_country_iso: string,
+ *   phone_e164?: string,
+ *   phone_raw?: string,
+ *   import_source?: string,
  *   notes: string,
  *   tag_ids: string[],
  *   contact_type: string,
@@ -36,6 +40,7 @@ export default function NewContact() {
     full_name: '',
     phone: '',
     country_code: '+52',
+    phone_country_iso: 'MX',
     notes: '',
     tag_ids: [],
     contact_type: ''
@@ -107,7 +112,18 @@ export default function NewContact() {
       setPhoneError('Revisa el número y el código de país.');
       return;
     }
-    const payload = { ...formData, phone: normalized.e164 };
+    if (!formData.phone_country_iso) {
+      setPhoneError('Elige el país del número.');
+      return;
+    }
+    const payload = {
+      ...formData,
+      phone: normalized.e164,
+      phone_e164: normalized.e164,
+      phone_country_iso: formData.phone_country_iso,
+      phone_raw: formData.phone,
+      import_source: 'manual',
+    };
     if (!payload.contact_type) delete payload.contact_type;
     createMutation.mutate(payload);
   };
@@ -146,9 +162,14 @@ export default function NewContact() {
             <PhoneField
               id="contact-phone"
               dialCode={formData.country_code}
+              countryIso={formData.phone_country_iso}
               nationalNumber={formData.phone}
               onDialCodeChange={(countryCode) => {
                 setFormData(current => ({ ...current, country_code: countryCode }));
+                setPhoneError('');
+              }}
+              onCountryIsoChange={(countryIso) => {
+                setFormData(current => ({ ...current, phone_country_iso: countryIso }));
                 setPhoneError('');
               }}
               onNationalNumberChange={(phone) => {

@@ -63,3 +63,17 @@ test('muestra Fast Start, vincula un partner y crea un QR local', async ({ page 
   await page.getByRole('button', { name: 'Crear QR', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Código QR de demostración listo' })).toBeVisible();
 });
+
+test('los flujos principales no se desbordan en una pantalla de 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await enterDemo(page);
+
+  for (const destination of ['Hoy', 'Contactos', 'Ventas', 'Equipo']) {
+    await page.getByRole('button', { name: destination, exact: true }).click();
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth, `${destination} tiene desbordamiento horizontal`).toBe(dimensions.clientWidth);
+  }
+});

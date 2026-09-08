@@ -22,10 +22,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { CalendarDays, ChevronLeft, User, Phone, Globe, Bell, LogOut, Camera, HelpCircle, Check, Copy, Share2, Trash2, Shield } from 'lucide-react';
+import { CalendarDays, ChevronLeft, User, Phone, Globe, Bell, LogOut, Camera, HelpCircle, Check, Copy, Share2, Trash2, Shield, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cancelZynergiaNotifications, notificationPermissionStatus, requestNotificationPermission } from '@/lib/localNotifications';
+import { Capacitor } from '@capacitor/core';
+import {
+  cancelZynergiaNotifications,
+  notificationPermissionState,
+  notificationPermissionStatus,
+  requestNotificationPermission,
+} from '@/lib/localNotifications';
+import { requestPushPermission, setPushSubscriptionEnabled } from '@/lib/pushNotifications';
+import { CHECK_APP_UPDATE_EVENT } from '@/components/updates/AppUpdatePrompt';
+import { createOperationId } from '@/lib/operationId';
+import { deviceTimezone } from '@/lib/timezone';
 
 const CURRENCIES = [
   { value: 'MXN', label: 'MXN — Peso Mexicano' },
@@ -66,10 +76,46 @@ function imageToBase64(file) {
   });
 }
 
+function PreferenceSwitch({ label, detail, checked, disabled = false, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-[#F1F5F9] py-3 first:border-t-0">
+      <div>
+        <p className="text-[16px] font-semibold text-[#0F172A]">{label}</p>
+        {detail && <p className="mt-0.5 text-[15px] leading-5 text-[#64748B]">{detail}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        disabled={disabled}
+        className="relative flex h-12 w-12 shrink-0 items-center justify-center disabled:opacity-50"
+        aria-label={`${checked ? 'Desactivar' : 'Activar'} ${label.toLowerCase()}`}
+        aria-pressed={checked}
+      >
+        <span className={`relative block h-6 w-12 rounded-full transition-colors duration-200 ${checked ? 'bg-[#004AFE]' : 'bg-[#94A3B8]'}`} aria-hidden="true">
+          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function notificationPreferences(form, enabled) {
+  return {
+    notifications_enabled: enabled,
+    task_notifications_enabled: form.task_notifications_enabled,
+    daily_summary_enabled: form.daily_summary_enabled,
+    daily_summary_time: /^\d{2}:\d{2}$/.test(form.daily_summary_time) ? form.daily_summary_time : '09:00',
+    fast_start_notifications_enabled: form.fast_start_notifications_enabled,
+    push_consent_given: enabled && form.push_consent_given === true,
+    timezone: form.timezone,
+  };
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
+  const notificationBusyRef = useRef(false);
   const { logout, user } = useAuth();
 
   const { data: settingsList = [], isLoading } = useQuery({
@@ -95,6 +141,12 @@ export default function Settings() {
     user_phone: '',
     default_currency: 'MXN',
     notifications_enabled: false,
+    task_notifications_enabled: true,
+    daily_summary_enabled: true,
+    daily_summary_time: '09:00',
+    fast_start_notifications_enabled: true,
+    push_consent_given: false,
+    timezone: deviceTimezone() || 'America/Mexico_City',
     user_photo: ''
   });
 
@@ -102,6 +154,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [notificationBusy, setNotificationBusy] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -109,7 +162,13 @@ export default function Settings() {
         user_name: settings.user_name || '',
         user_phone: settings.user_phone || '',
         default_currency: settings.default_currency || 'MXN',
-        notifications_enabled: settings.notifications_enabled !== false,
+        notifications_enabled: settings.notifications_enabled === true,
+        task_notifications_enabled: settings.task_notifications_enabled ?? (settings.notifications_enabled === true),
+        daily_summary_enabled: settings.daily_summary_enabled ?? (settings.notifications_enabled === true),
+        daily_summary_time: String(settings.daily_summary_time || '09:00').slice(0, 5),
+        fast_start_notifications_enabled: settings.fast_start_notifications_enabled ?? (settings.notifications_enabled === true),
+        push_consent_given: settings.push_consent_given === true,
+        timezone: deviceTimezone() || settings.timezone || 'America/Mexico_City',
         user_photo: settings.user_photo || ''
       });
       setPhotoPreview(settings.user_photo || '');
@@ -126,17 +185,8 @@ export default function Settings() {
     return () => { active = false; };
   }, [queryClient, settings?.id, settings?.partner_code]);
 
-  useEffect(() => {
-    if (settings?.notifications_enabled !== true) return;
-    notificationPermissionStatus().then(permission => {
-      if (permission.display !== 'granted') {
-        setForm(previous => ({ ...previous, notifications_enabled: false }));
-      }
-    }).catch(() => {});
-  }, [settings?.notifications_enabled]);
-
   const saveMutation = useMutation({
-    mutationFn: async (/** @type {{user_name: string, user_phone: string, default_currency: string, notifications_enabled: boolean, user_photo: string}} */ data) => {
+    mutationFn: async (/** @type {Record<string, string | boolean>} */ data) => {
       if (settings?.id) {
         return db.Settings.update(settings.id, data);
       }
@@ -154,28 +204,148 @@ export default function Settings() {
   });
 
   const toggleNotifMutation = useMutation({
-    mutationFn: async (/** @type {boolean} */ enabled) => {
-      if (settings?.id) return db.Settings.update(settings.id, { notifications_enabled: enabled });
+    mutationFn: async (/** @type {Record<string, string | boolean>} */ preferences) => {
+      if (settings?.id) return db.Settings.update(settings.id, preferences);
+      return db.Settings.create({ ...form, ...preferences });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    onSuccess: savedSettings => {
+      if (savedSettings) queryClient.setQueryData(['settings'], [savedSettings]);
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+    },
     onError: () => toast.error('No se pudo guardar la preferencia'),
   });
 
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || settings?.notifications_enabled !== true) return undefined;
+    let active = true;
+    let removeListener = () => {};
+
+    const disableIfPermissionWasRevoked = async () => {
+      if (notificationBusyRef.current) return;
+      const permission = await notificationPermissionStatus().catch(() => ({ display: 'unavailable' }));
+      if (!active || notificationPermissionState(permission) !== 'blocked') return;
+
+      notificationBusyRef.current = true;
+      setNotificationBusy(true);
+      setForm(previous => ({ ...previous, notifications_enabled: false, push_consent_given: false }));
+      await Promise.allSettled([
+        cancelZynergiaNotifications(),
+        setPushSubscriptionEnabled(false),
+      ]);
+      try {
+        await toggleNotifMutation.mutateAsync({ notifications_enabled: false, push_consent_given: false });
+      } catch {
+        // Keep the device opted out. This check retries next time the app becomes active.
+      } finally {
+        notificationBusyRef.current = false;
+        setNotificationBusy(false);
+      }
+    };
+
+    disableIfPermissionWasRevoked();
+    import('@capacitor/app').then(({ App }) => (
+      App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) disableIfPermissionWasRevoked();
+      })
+    )).then(handle => {
+      if (!active) handle.remove();
+      else removeListener = () => handle.remove();
+    }).catch(() => {});
+
+    return () => {
+      active = false;
+      removeListener();
+    };
+  }, [settings?.notifications_enabled]);
+
   const handleNotificationToggle = async () => {
+    if (notificationBusyRef.current || saveMutation.isPending || toggleNotifMutation.isPending) return;
     const next = !form.notifications_enabled;
-    if (next) {
-      const wantsPermission = window.confirm('Zynergia puede avisarte a quién dar seguimiento y por qué. ¿Quieres permitir estos recordatorios?');
-      if (!wantsPermission) return;
-      const permission = await requestNotificationPermission();
-      if (permission.display !== 'granted') {
-        toast.error('Los avisos siguen desactivados. Puedes habilitarlos en Ajustes del teléfono.');
+    notificationBusyRef.current = true;
+    setNotificationBusy(true);
+    try {
+      if (next) {
+        const wantsPermission = window.confirm('Zynergia puede recordarte tareas a su hora, enviarte un resumen diario y avisarte de avances importantes de Fast Start. ¿Quieres permitir estos avisos?');
+        if (!wantsPermission) return;
+
+        const permission = await requestNotificationPermission().catch(() => ({ display: 'unavailable' }));
+        const permissionState = notificationPermissionState(permission);
+        if (permissionState !== 'granted') {
+          toast.error(permissionState === 'unavailable'
+            ? 'Activa las notificaciones desde la app instalada en tu teléfono.'
+            : 'Los avisos siguen desactivados. Puedes habilitarlos en Ajustes del teléfono.');
+          return;
+        }
+
+        const push = await requestPushPermission(user?.id).catch(() => ({ granted: false, status: 'unavailable' }));
+        const pushConsentGiven = push.granted;
+        const enabledForm = { ...form, push_consent_given: pushConsentGiven };
+        setForm(previous => ({ ...previous, notifications_enabled: true, push_consent_given: pushConsentGiven }));
+        try {
+          await toggleNotifMutation.mutateAsync(notificationPreferences(enabledForm, true));
+        } catch {
+          setForm(previous => ({ ...previous, notifications_enabled: false, push_consent_given: false }));
+          await Promise.allSettled([
+            cancelZynergiaNotifications(),
+            setPushSubscriptionEnabled(false),
+          ]);
+          return;
+        }
+        if (!push.granted) {
+          toast.info('Los recordatorios de tareas están activos. Los resúmenes y Fast Start requieren permitir también los avisos push.');
+        }
         return;
       }
-    } else {
-      await cancelZynergiaNotifications();
+
+      setForm(previous => ({ ...previous, notifications_enabled: false, push_consent_given: false }));
+      try {
+        await toggleNotifMutation.mutateAsync(notificationPreferences(form, false));
+      } catch {
+        setForm(previous => ({
+          ...previous,
+          notifications_enabled: true,
+          push_consent_given: form.push_consent_given,
+        }));
+        return;
+      }
+      const cleanup = await Promise.allSettled([
+        cancelZynergiaNotifications(),
+        setPushSubscriptionEnabled(false),
+      ]);
+      if (cleanup.some(result => result.status === 'rejected')) {
+        toast.info('La preferencia quedó guardada. Terminaremos de retirar los avisos al volver a abrir la app.');
+      }
+    } finally {
+      notificationBusyRef.current = false;
+      setNotificationBusy(false);
     }
-    setForm(previous => ({ ...previous, notifications_enabled: next }));
-    toggleNotifMutation.mutate(next);
+  };
+
+  const handlePushEnable = async () => {
+    if (notificationBusyRef.current || toggleNotifMutation.isPending) return;
+    const wantsPush = window.confirm('Además de los recordatorios de tareas, Zynergia puede enviarte un resumen diario y avisarte de avances importantes de Fast Start. ¿Quieres activar esos avisos?');
+    if (!wantsPush) return;
+    notificationBusyRef.current = true;
+    setNotificationBusy(true);
+    try {
+      const push = await requestPushPermission(user?.id).catch(() => ({ granted: false, status: 'unavailable' }));
+      if (!push.granted) {
+        await setPushSubscriptionEnabled(false).catch(() => {});
+        toast.error('No se activaron los avisos push. Puedes permitirlos desde Ajustes del teléfono.');
+        return;
+      }
+      const enabledForm = { ...form, push_consent_given: true };
+      await toggleNotifMutation.mutateAsync(notificationPreferences(enabledForm, true));
+      setForm(previous => ({ ...previous, push_consent_given: true }));
+      toast.success('Resúmenes y avisos de Fast Start activados');
+    } catch {
+      setForm(previous => ({ ...previous, push_consent_given: false }));
+      await setPushSubscriptionEnabled(false).catch(() => {});
+      // The mutation already presents the retryable save error.
+    } finally {
+      notificationBusyRef.current = false;
+      setNotificationBusy(false);
+    }
   };
 
   const cancelBillingMutation = useMutation({
@@ -222,7 +392,29 @@ export default function Settings() {
   };
 
   const handleSave = () => {
-    saveMutation.mutate(form);
+    const normalizedForm = {
+      ...form,
+      daily_summary_time: /^\d{2}:\d{2}$/.test(form.daily_summary_time) ? form.daily_summary_time : '09:00',
+    };
+    setForm(normalizedForm);
+    saveMutation.mutate(normalizedForm);
+  };
+
+  const handleCheckUpdates = () => {
+    if (!Capacitor.isNativePlatform()) {
+      toast.info('Las actualizaciones móviles se revisan en la app instalada.');
+      return;
+    }
+    const onResult = event => {
+      window.removeEventListener('zynergia:app-update-result', onResult);
+      const status = event.detail?.status;
+      if (status === 'current') toast.success('Ya tienes la versión más reciente');
+      else if (status === 'unavailable') toast.error('No pudimos revisar. Intenta de nuevo con conexión.');
+      else if (status === 'web') toast.info('Las actualizaciones móviles se revisan en la app instalada.');
+      else if (!['available', 'required'].includes(status)) toast.info('No hay una actualización disponible.');
+    };
+    window.addEventListener('zynergia:app-update-result', onResult, { once: true });
+    window.dispatchEvent(new Event(CHECK_APP_UPDATE_EVENT));
   };
 
   const handleLogout = () => {
@@ -242,7 +434,7 @@ export default function Settings() {
       if (reauthError) throw new Error('La contraseña no es correcta.');
 
       const operationKey = `zynergia_delete_operation_${user?.id}`;
-      const operationId = sessionStorage.getItem(operationKey) || crypto.randomUUID();
+      const operationId = sessionStorage.getItem(operationKey) || createOperationId();
       sessionStorage.setItem(operationKey, operationId);
       const data = await apiFetch('/api/account/deletion-request', {
         method: 'POST',
@@ -386,20 +578,21 @@ export default function Settings() {
           </div>
 
           {/* Notificaciones */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#F1F5F9]">
+          <div className="mt-4 flex items-center justify-between border-t border-[#F1F5F9] pt-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] flex items-center justify-center">
                 <Bell className="w-5 h-5 text-[#004AFE]" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-[15px] font-semibold text-[#0F172A]">Notificaciones</p>
-                <p className="text-[15px] text-[#64748B]">Recordatorios de tareas</p>
+                <p className="text-[16px] font-semibold text-[#0F172A]">Notificaciones</p>
+                <p className="text-[15px] text-[#64748B]">Avisos útiles de Zynergia</p>
               </div>
             </div>
             <button
               onClick={handleNotificationToggle}
-              className="relative w-12 h-12 flex items-center justify-center shrink-0"
-              aria-label="Activar recordatorios de tareas"
+              disabled={notificationBusy || saveMutation.isPending || toggleNotifMutation.isPending}
+              className="relative w-12 h-12 flex items-center justify-center shrink-0 disabled:opacity-50"
+              aria-label={`${form.notifications_enabled ? 'Desactivar' : 'Activar'} notificaciones`}
               aria-pressed={form.notifications_enabled}
             >
               <span
@@ -416,6 +609,55 @@ export default function Settings() {
               </span>
             </button>
           </div>
+
+          <div className={`mt-3 rounded-2xl bg-[#F8FAFC] px-4 ${form.notifications_enabled ? '' : 'opacity-60'}`}>
+            <PreferenceSwitch
+              label="Recordatorios de tareas"
+              detail="En la fecha y hora de cada tarea."
+              checked={form.task_notifications_enabled}
+              disabled={!form.notifications_enabled || notificationBusy || saveMutation.isPending}
+              onChange={checked => setForm(previous => ({ ...previous, task_notifications_enabled: checked }))}
+            />
+            <PreferenceSwitch
+              label="Resumen diario"
+              detail="Una sola notificación con tus pendientes."
+              checked={form.daily_summary_enabled}
+              disabled={!form.notifications_enabled || !form.push_consent_given || notificationBusy || saveMutation.isPending}
+              onChange={checked => setForm(previous => ({ ...previous, daily_summary_enabled: checked }))}
+            />
+            {form.daily_summary_enabled && (
+              <label className="block border-t border-[#F1F5F9] py-3 text-[15px] font-medium text-[#475569]">
+                Hora del resumen
+                <input
+                  type="time"
+                  value={form.daily_summary_time}
+                  disabled={!form.notifications_enabled || !form.push_consent_given || notificationBusy || saveMutation.isPending}
+                  onChange={event => setForm(previous => ({ ...previous, daily_summary_time: event.target.value }))}
+                  className="mt-2 min-h-14 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 text-[17px] text-[#0F172A] outline-none focus:border-[#004AFE] disabled:bg-slate-100"
+                />
+              </label>
+            )}
+            <PreferenceSwitch
+              label="Fast Start y equipo"
+              detail="Metas, bonos y siguientes acciones relevantes."
+              checked={form.fast_start_notifications_enabled}
+              disabled={!form.notifications_enabled || !form.push_consent_given || notificationBusy || saveMutation.isPending}
+              onChange={checked => setForm(previous => ({ ...previous, fast_start_notifications_enabled: checked }))}
+            />
+          </div>
+          {form.notifications_enabled && (
+            <p className="mt-2 text-[15px] leading-5 text-[#64748B]">Toca Guardar cambios para aplicar estas opciones.</p>
+          )}
+          {form.notifications_enabled && !form.push_consent_given && Capacitor.isNativePlatform() && (
+            <button
+              type="button"
+              onClick={handlePushEnable}
+              disabled={notificationBusy || toggleNotifMutation.isPending}
+              className="mt-3 min-h-12 w-full rounded-xl border border-[#004AFE] px-4 text-[16px] font-semibold text-[#004AFE] disabled:opacity-50"
+            >
+              Activar resúmenes y Fast Start
+            </button>
+          )}
         </div>
 
         {/* Código de partner */}
@@ -448,7 +690,7 @@ export default function Settings() {
         {/* Guardar */}
         <motion.button
           onClick={handleSave}
-          disabled={saveMutation.isPending || saved}
+          disabled={saveMutation.isPending || toggleNotifMutation.isPending || notificationBusy || saved}
           animate={saved ? { scale: [1, 1.04, 1], backgroundColor: '#16a34a' } : { scale: 1, backgroundColor: '#004AFE' }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className="w-full py-4 text-white font-bold text-[16px] rounded-2xl flex items-center justify-center gap-2 disabled:opacity-80"
@@ -564,6 +806,20 @@ export default function Settings() {
 
         {/* Ayuda */}
         <button
+          type="button"
+          onClick={handleCheckUpdates}
+          className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-[#F1F5F9] shadow-sm active:scale-[0.99] transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] flex items-center justify-center">
+              <RefreshCw className="w-5 h-5 text-[#004AFE]" aria-hidden="true" />
+            </div>
+            <span className="font-semibold text-[#0F172A] text-[16px]">Buscar actualizaciones</span>
+          </div>
+          <ChevronLeft className="w-4 h-4 text-[#CBD5E1] rotate-180" aria-hidden="true" />
+        </button>
+
+        <button
           onClick={() => navigate(createPageUrl('Help'))}
           className="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-[#F1F5F9] shadow-sm active:scale-[0.99] transition-transform"
         >
@@ -665,7 +921,7 @@ export default function Settings() {
         </div>
 
         {/* Version */}
-        <p className="text-center text-[15px] text-[#64748B] pb-2">Zynergia v1.1.0</p>
+        <p className="text-center text-[15px] text-[#64748B] pb-2">Zynergia v1.2.0</p>
       </div>
     </div>
   );

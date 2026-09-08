@@ -2,7 +2,7 @@ export const BONUS_TABLE = {
   qteam: {
     label: 'Q-Team',
     subtitle: 'Meta día 30',
-    goal: '4 clientes Premier activos',
+    goal: '4 kits Premier vendidos',
     MXN: 1900,
     USD: 110,
     EUR: 100,
@@ -32,7 +32,7 @@ export const BONUS_TABLE = {
   xteam: {
     label: 'X-Team',
     subtitle: 'Meta día 120',
-    goal: '10 clientes Premier activos',
+    goal: '10 kits Premier vendidos',
     MXN: 2850,
     USD: 160,
     EUR: 150,

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "ios": {
+    "version": "1.1.1",
+    "latestBuild": 14,
+    "minimumBuild": 14,
+    "published": true,
+    "title": "Actualización disponible",
+    "body": "Hay una versión nueva de Zynergia lista para instalar."
+  },
+  "android": {
+    "version": "1.1.1",
+    "latestBuild": 8,
+    "minimumBuild": 8,
+    "published": false,
+    "title": "Actualización disponible",
+    "body": "Hay una versión nueva de Zynergia lista para instalar."
+  }
+}

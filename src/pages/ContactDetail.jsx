@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { db } from '@/api/db';
+import { supabase } from '@/lib/supabaseClient';
 import { whatsappUrl } from '@/lib/phone';
 import { createPageUrl } from '@/utils';
 import {
@@ -41,11 +42,6 @@ function formatLocalDate(value, pattern) {
   return Number.isFinite(date.getTime())
     ? format(date, pattern, { locale: es })
     : 'Fecha no disponible';
-}
-
-function todayString() {
-  const now = new Date();
-  return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
 }
 
 function DetailState(/** @type {{ title: string, description: string, actionLabel?: string, onAction?: () => unknown, onBack: () => void }} */ {
@@ -126,21 +122,11 @@ export default function ContactDetail() {
   const tags = tagsQuery.data ?? [];
   const products = productsQuery.data ?? [];
   const sales = salesQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
 
   const cancelMutation = useMutation({
     mutationFn: async (saleId) => {
-      const sale = sales.find(item => item.id === saleId);
-      if (!sale) throw new Error('Venta no encontrada');
-      await db.Sale.update(saleId, { status: 'cancelled' });
-      const futureRepurchaseTasks = tasks.filter(task => (
-        task.contact_id === contactId
-        && task.product_id === sale.product_id
-        && !task.completed
-        && task.due_date >= todayString()
-        && ['recompra', 'reactivacion'].includes(task.category)
-      ));
-      await Promise.all(futureRepurchaseTasks.map(task => db.Task.delete(task.id)));
+      const { error } = await supabase.rpc('stop_sale_follow_up', { p_sale_id: saleId });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales', contactId] });
@@ -173,14 +159,14 @@ export default function ContactDetail() {
     [sales],
   );
   const activeProducts = useMemo(() => {
-    const activeSales = sales.filter((sale) => sale.status === 'active');
+    const activeSales = sales.filter((sale) => sale.status === 'active' && !sale.follow_up_stopped_at);
     return [...new Set(activeSales.map((sale) => sale.product_id))].flatMap((productId) => {
       const product = products.find((item) => item.id === productId);
       if (!product) return [];
       const productSales = activeSales
         .filter((sale) => sale.product_id === productId)
         .sort((a, b) => localDateTimestamp(b.purchase_date) - localDateTimestamp(a.purchase_date));
-      return [{ product, sales: productSales, latestSale: productSales[0] }];
+      return [{ product, sales: productSales, latestSale: productSales[0], units: productSales.reduce((total, sale) => total + (Number(sale.quantity) || 1), 0) }];
     });
   }, [products, sales]);
 
@@ -197,9 +183,10 @@ export default function ContactDetail() {
     return <DetailState title="Contacto no disponible" description="Puede que haya sido eliminado o que este enlace ya no funcione." actionLabel="Volver a contactos" onAction={() => navigate(createPageUrl('Contacts'), { replace: true })} onBack={goBack} />;
   }
 
-  const phoneDigits = String(contact.phone ?? '').replace(/\D/g, '');
-  const phoneForCall = String(contact.phone ?? '').trim().startsWith('+') ? `+${phoneDigits}` : phoneDigits;
-  const whatsappLink = whatsappUrl(contact.phone);
+  const verifiedPhone = contact.phone_e164 || contact.phone || '';
+  const phoneDigits = String(verifiedPhone).replace(/\D/g, '');
+  const phoneForCall = String(verifiedPhone).trim().startsWith('+') ? `+${phoneDigits}` : phoneDigits;
+  const whatsappLink = whatsappUrl(verifiedPhone);
   const hasPhone = Boolean(whatsappLink);
   const relatedDataError = tagsQuery.isError || productsQuery.isError || salesQuery.isError || tasksQuery.isError;
 
@@ -293,11 +280,11 @@ export default function ContactDetail() {
           <section aria-labelledby="products-title">
             <h2 id="products-title" className="text-xl font-semibold text-foreground">Productos activos</h2>
             <div className="mt-3 space-y-3">
-              {activeProducts.map(({ product, sales: productSales, latestSale }) => (
+              {activeProducts.map(({ product, sales: productSales, latestSale, units }) => (
                 <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                   <h3 className="text-[17px] font-semibold text-foreground">{product.name}</h3>
                   <p className="mt-1 text-[15px] text-muted-foreground">
-                    {productSales.length} compra{productSales.length === 1 ? '' : 's'} registrada{productSales.length === 1 ? '' : 's'}
+                    {units} unidad{units === 1 ? '' : 'es'} en {productSales.length} compra{productSales.length === 1 ? '' : 's'}
                   </p>
                   <p className="mt-1 text-[15px] text-muted-foreground">
                     Última: {formatLocalDate(latestSale.purchase_date, "d 'de' MMMM 'de' yyyy")}
@@ -326,10 +313,10 @@ export default function ContactDetail() {
                 return (
                   <div key={sale.id} className="flex min-h-16 items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0">
                     <div className="min-w-0">
-                      <p className="truncate text-[17px] font-medium text-foreground">{product?.name || 'Producto'}</p>
+                      <p className="truncate text-[17px] font-medium text-foreground">{Number(sale.quantity) || 1} × {product?.name || 'Producto'}</p>
                       <p className="text-[15px] text-muted-foreground">{formatLocalDate(sale.purchase_date, 'd MMM yyyy')}</p>
                     </div>
-                    {sale.status === 'cancelled' && <span className="text-[15px] font-medium text-destructive">Cancelado</span>}
+                    {sale.status === 'cancelled' && !sale.follow_up_stopped_at && <span className="text-[15px] font-medium text-destructive">Cancelado</span>}
                   </div>
                 );
               })}

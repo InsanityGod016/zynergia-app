@@ -26,6 +26,12 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.zynergia.app.onesignal</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -41,12 +47,14 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!-- Permission strings required by Apple -->
+	<key>NSContactsUsageDescription</key>
+	<string>Con tu permiso, Zynergia lee localmente nombres y teléfonos para mostrarte la lista. Sólo guarda los contactos que eliges y confirmas.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Zynergia necesita acceso a tu galería de fotos para que puedas agregar imágenes a tus códigos QR personalizados.</string>
+	<string>Zynergia usa la foto que elijas para tu perfil o para identificar un producto dentro de tu catálogo.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Zynergia guarda los códigos QR generados en tu galería de fotos.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Zynergia necesita acceso a la cámara para tomar fotos de perfil y agregarlas a tus materiales de marketing.</string>
+	<string>Zynergia usa la cámara cuando eliges tomar una foto para un producto de tu catálogo.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Zynergia te envía recordatorios de seguimiento de contactos y tareas pendientes para que no pierdas ninguna oportunidad de negocio.</string>
 </dict>

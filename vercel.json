@@ -3,7 +3,8 @@
   "outputDirectory": "dist",
   "functions": {
     "api/stripe/webhook.js": { "maxDuration": 60 },
-    "api/account/process-deletions.js": { "maxDuration": 60 }
+    "api/account/process-deletions.js": { "maxDuration": 60 },
+    "api/notifications/process.js": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/account/process-deletions", "schedule": "0 6 * * *" }
@@ -23,6 +24,14 @@
       "source": "/.well-known/apple-app-site-association",
       "headers": [
         { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/.well-known/mobile-releases.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+        { "key": "Cache-Control", "value": "no-store, max-age=0" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     },
     {

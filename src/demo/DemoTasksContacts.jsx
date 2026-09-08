@@ -143,7 +143,7 @@ export function DemoContacts({ contacts: controlledContacts, onContactsChange } 
         <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por nombre o teléfono" className="h-14 w-full rounded-2xl border bg-white pl-12 pr-4 text-[17px] shadow-sm" />
       </label>
 
-      <div className="grid grid-cols-[1fr_auto] gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
         <button type="button" onClick={() => setFiltersOpen(true)} className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border bg-white px-4 text-left text-[17px] font-bold shadow-sm">
           <span className="flex items-center gap-3"><Filter className="text-primary" aria-hidden="true" /> Mostrar</span>
           <span className="text-[15px] text-primary">{filter === 'all' ? 'Todos' : contactType[filter].label}</span>

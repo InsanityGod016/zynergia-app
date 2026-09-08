@@ -1,0 +1,33 @@
+{
+  "originHash" : "18220131b54a69debbd48107bc1073f81f9525985e8bd939571a3ee5b5c2efa3",
+  "pins" : [
+    {
+      "identity" : "capacitor-swift-pm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ionic-team/capacitor-swift-pm.git",
+      "state" : {
+        "revision" : "f1a8fadf1437c23b825c818fb6509c9dbbae2f61",
+        "version" : "8.3.1"
+      }
+    },
+    {
+      "identity" : "ion-ios-camera",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ionic-team/ion-ios-camera.git",
+      "state" : {
+        "revision" : "00c3dfdd6267f80db299d9c5a0bad522156b6cbc",
+        "version" : "2.0.0"
+      }
+    },
+    {
+      "identity" : "onesignal-xcframework",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OneSignal/OneSignal-XCFramework",
+      "state" : {
+        "revision" : "befe5b59232a6d8752ad3ae49bd2f86474dff932",
+        "version" : "5.5.6"
+      }
+    }
+  ],
+  "version" : 3
+}

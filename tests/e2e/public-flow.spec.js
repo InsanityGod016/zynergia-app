@@ -150,12 +150,14 @@ test('el QR de descarga nunca contiene sesión ni credenciales', async ({ page }
   await page.goto('/app');
   await expect(page.getByRole('heading', { name: 'Entra a Zynergia desde tu teléfono' })).toBeVisible();
   await expect(page.getByText(/correo y contraseña que acabas de crear/i)).toBeVisible();
-  await expect(page.getByRole('link', { name: /Tengo iPhone/i })).toHaveAttribute('href', /apps\.apple\.com\/mx\/app\/zynergia\/id6761772857/);
-  await expect(page.getByRole('link', { name: /Usar Zynergia en Android.*navegador/i })).toHaveAttribute('href', 'https://app.zynergia.pro');
-  await expect(page.getByRole('link', { name: /Descargar en Google Play/i })).toHaveCount(0);
-  const qrSource = await page.locator('img.download-qr').getAttribute('src');
-  expect(qrSource).toBe('/zynergia-app-qr.png');
-  expect(qrSource).not.toMatch(/token|session|jwt|password/i);
+  await expect(page.getByRole('link', { name: 'Descargar en App Store' }).first()).toHaveAttribute('href', /apps\.apple\.com\/mx\/app\/zynergia\/id6761772857/);
+  await expect(page.getByRole('link', { name: 'Descargar en Google Play' }).first()).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=com.zynergia.app');
+  const qrSources = await page.locator('img.download-qr').evaluateAll(images => images.map(image => image.getAttribute('src')));
+  expect(qrSources).toHaveLength(2);
+  for (const qrSource of qrSources) {
+    expect(qrSource).toMatch(/^data:image\/png;base64,/);
+    expect(qrSource).not.toMatch(/token|session|jwt|password/i);
+  }
 });
 
 test('el login del subdominio permite crear la cuenta en el sitio oficial', async ({ page }) => {

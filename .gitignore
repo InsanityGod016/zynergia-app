@@ -19,10 +19,16 @@ dist-ssr
 *.local
 test-results/
 playwright-report/
+build/
 *.aab
 *.apk
 *.jks
 *.keystore
+*.p8
+*.p12
+*.pem
+*.mobileprovision
+*service-account*.json
 
 # Editor directories and files
 .vscode/*

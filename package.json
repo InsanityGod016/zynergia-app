@@ -1,7 +1,7 @@
 {
   "name": "zynergia",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
   "packageManager": "npm@10.9.2",
   "engines": {
@@ -28,10 +28,13 @@
   "dependencies": {
     "@capacitor/android": "^8.1.0",
     "@capacitor/app": "^8.0.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/contacts": "^1.0.1",
     "@capacitor/core": "^8.1.0",
     "@capacitor/ios": "^8.1.0",
     "@capacitor/local-notifications": "^8.0.1",
     "@capacitor/status-bar": "^8.0.1",
+    "@onesignal/capacitor-plugin": "^1.1.9",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-label": "^2.1.2",

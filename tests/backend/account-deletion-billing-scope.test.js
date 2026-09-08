@@ -22,6 +22,7 @@ vi.mock('../../api/_lib/clients.js', () => ({
 }));
 
 import {
+  deleteUserProductImages,
   executeAccountDeletion,
   scheduleBillingDeletion,
 } from '../../api/_lib/account-deletion.js';
@@ -59,8 +60,13 @@ test('scheduled deletion touches only the recorded Zynergia subscription', async
 });
 
 test('immediate deletion preserves the shared Stripe Customer and other products', async () => {
+  const storage = {
+    list: vi.fn(async () => ({ data: [], error: null })),
+    remove: vi.fn(async () => ({ data: [], error: null })),
+  };
   const admin = {
     rpc: vi.fn(async () => ({ data: null, error: null })),
+    storage: { from: vi.fn(() => storage) },
     auth: { admin: { deleteUser: vi.fn(async () => ({ error: null })) } },
   };
 
@@ -79,7 +85,33 @@ test('immediate deletion preserves the shared Stripe Customer and other products
   );
   expect(stripe.list).not.toHaveBeenCalled();
   expect(stripe.deleteCustomer).not.toHaveBeenCalled();
+  expect(admin.storage.from).toHaveBeenCalledWith('product-images');
+  expect(storage.list).toHaveBeenCalledWith('user', expect.objectContaining({ limit: 1000, offset: 0 }));
   expect(admin.auth.admin.deleteUser).toHaveBeenCalledWith('user');
+});
+
+test('product image cleanup removes root and nested objects and is retry-safe', async () => {
+  const storage = {
+    list: vi.fn(async prefix => {
+      if (prefix === 'user') return {
+        data: [{ id: 'file-1', name: 'cover.webp' }, { id: null, name: 'nested' }],
+        error: null,
+      };
+      if (prefix === 'user/nested') return {
+        data: [{ id: 'file-2', name: 'photo.jpg' }],
+        error: null,
+      };
+      return { data: [], error: null };
+    }),
+    remove: vi.fn(async () => ({ data: [], error: null })),
+  };
+  const admin = { storage: { from: vi.fn(() => storage) } };
+
+  await deleteUserProductImages(admin, 'user');
+  await deleteUserProductImages(admin, 'user');
+
+  expect(storage.remove).toHaveBeenCalledWith(['user/cover.webp']);
+  expect(storage.remove).toHaveBeenCalledWith(['user/nested/photo.jpg']);
 });
 
 test('refuses to cancel a subscription from another product or Customer', async () => {

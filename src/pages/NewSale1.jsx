@@ -35,7 +35,7 @@ export default function NewSale1() {
     const contactId = selectedContactId;
     const draft = updateSaleDraft(stored.contactId === contactId
       ? { contactId }
-      : { contactId, productId: null, purchaseDate: null, saleType: null });
+      : { contactId, items: [], productId: null, purchaseDate: null, saleType: null });
     navigate(saleDraftUrl('NewSale2', draft));
   };
 

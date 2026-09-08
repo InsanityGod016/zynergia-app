@@ -1,4 +1,5 @@
--- Read-only inventory for migrations 202609010000, 001, 002, 003, 004 and 006.
+-- Read-only inventory for the installed 1.1 contracts and additive 1.2
+-- migrations 202609070001 through 202609070005.
 -- Run this single SELECT in the production Supabase SQL Editor, then save the
 -- `production_migration_preflight` cell as JSON. It returns counts and schema
 -- object names only: never emails, UUIDs, names, phone numbers or row contents.
@@ -24,8 +25,13 @@ expected_tables(table_name, phase, required_before) as (
     ('stripe_connect_transfers', 'prerequisite', true),
     ('stripe_connect_adjustments', 'prerequisite', true),
     ('stripe_connect_anomalies', '202609010004', false),
-    ('user_products', '202609010003', false),
-    ('message_templates', '202609010003', false)
+    ('user_products', 'prerequisite', true),
+    ('message_templates', 'prerequisite', true),
+    ('contact_batch_operations', '202609070001', false),
+    ('sale_orders', '202609070002', false),
+    ('template_categories', '202609070003', false),
+    ('template_share_bundles', '202609070003', false),
+    ('template_share_imports', '202609070003', false)
 ),
 table_state as (
   select expected.table_name,
@@ -45,6 +51,13 @@ expected_columns(table_name, column_name, phase, required_before) as (
   values
     ('contacts', 'id', 'prerequisite', true),
     ('contacts', 'user_id', 'prerequisite', true),
+    ('contacts', 'full_name', 'prerequisite', true),
+    ('contacts', 'phone', 'prerequisite', true),
+    ('contacts', 'country_code', 'prerequisite', true),
+    ('contacts', 'contact_type', 'prerequisite', true),
+    ('contacts', 'notes', 'prerequisite', true),
+    ('contacts', 'tag_ids', 'prerequisite', true),
+    ('contacts', 'created_at', 'prerequisite', true),
     ('partners', 'id', 'prerequisite', true),
     ('partners', 'user_id', 'prerequisite', true),
     ('partners', 'contact_id', 'prerequisite', true),
@@ -60,15 +73,24 @@ expected_columns(table_name, column_name, phase, required_before) as (
     ('sales', 'sale_type', 'prerequisite', true),
     ('sales', 'status', 'prerequisite', true),
     ('sales', 'operation_id', 'prerequisite', true),
+    ('sales', 'created_at', 'prerequisite', true),
     ('settings', 'user_id', 'prerequisite', true),
     ('settings', 'partner_code', 'prerequisite', true),
     ('settings', 'parent_id', 'prerequisite', true),
     ('settings', 'onboarding_completed_at', 'prerequisite', true),
-    ('settings', 'fast_start_started_at', '202609010006', false),
+    ('settings', 'fast_start_started_at', 'prerequisite', true),
+    ('settings', 'notifications_enabled', 'prerequisite', true),
+    ('tasks', 'id', 'prerequisite', true),
     ('tasks', 'user_id', 'prerequisite', true),
     ('tasks', 'contact_id', 'prerequisite', true),
     ('tasks', 'completed', 'prerequisite', true),
     ('tasks', 'task_name', 'prerequisite', true),
+    ('tasks', 'product_id', 'prerequisite', true),
+    ('tasks', 'category', 'prerequisite', true),
+    ('tasks', 'subcategory', 'prerequisite', true),
+    ('tasks', 'template_subcategory', 'prerequisite', true),
+    ('tasks', 'task_area', 'prerequisite', true),
+    ('tasks', 'due_date', 'prerequisite', true),
     ('user_templates', 'user_id', 'prerequisite', true),
     ('user_templates', 'template_id', 'prerequisite', true),
     ('user_templates', 'content', 'prerequisite', true),
@@ -82,8 +104,90 @@ expected_columns(table_name, column_name, phase, required_before) as (
     ('access_grants', 'revoked_at', 'prerequisite', true),
     ('stripe_connect_charges', 'reconciliation_status', 'prerequisite', true),
     ('stripe_connect_anomalies', 'status', '202609010004', false),
-    ('user_products', 'product_id', '202609010003', false),
-    ('message_templates', 'template_id', '202609010003', false)
+    ('user_products', 'id', 'prerequisite', true),
+    ('user_products', 'user_id', 'prerequisite', true),
+    ('user_products', 'product_id', 'prerequisite', true),
+    ('user_products', 'name', 'prerequisite', true),
+    ('user_products', 'category', 'prerequisite', true),
+    ('user_products', 'subcategory', 'prerequisite', true),
+    ('user_products', 'image_url', 'prerequisite', true),
+    ('user_products', 'link_url', 'prerequisite', true),
+    ('user_products', 'cycle_days', 'prerequisite', true),
+    ('user_products', 'frequency_months', 'prerequisite', true),
+    ('user_products', 'repurchase_enabled', 'prerequisite', true),
+    ('user_products', 'origin', 'prerequisite', true),
+    ('user_products', 'archived_at', 'prerequisite', true),
+    ('user_products', 'created_at', 'prerequisite', true),
+    ('message_templates', 'id', 'prerequisite', true),
+    ('message_templates', 'user_id', 'prerequisite', true),
+    ('message_templates', 'template_id', 'prerequisite', true),
+    ('message_templates', 'name', 'prerequisite', true),
+    ('message_templates', 'content', 'prerequisite', true),
+    ('message_templates', 'situation', 'prerequisite', true),
+    ('message_templates', 'category', 'prerequisite', true),
+    ('message_templates', 'subcategory', 'prerequisite', true),
+    ('message_templates', 'tone', 'prerequisite', true),
+    ('message_templates', 'contact_id', 'prerequisite', true),
+    ('message_templates', 'origin', 'prerequisite', true),
+    ('message_templates', 'is_default', 'prerequisite', true),
+    ('message_templates', 'archived_at', 'prerequisite', true),
+    ('message_templates', 'created_at', 'prerequisite', true),
+    ('contacts', 'phone_e164', '202609070001', false),
+    ('contacts', 'phone_country_iso', '202609070001', false),
+    ('contacts', 'phone_raw', '202609070001', false),
+    ('contacts', 'import_source', '202609070001', false),
+    ('tasks', 'origin', '202609070001', false),
+    ('tasks', 'source_sale_id', '202609070001', false),
+    ('user_products', 'image_path', '202609070001', false),
+    ('contact_batch_operations', 'user_id', '202609070001', false),
+    ('contact_batch_operations', 'operation_id', '202609070001', false),
+    ('contact_batch_operations', 'request_hash', '202609070001', false),
+    ('contact_batch_operations', 'result', '202609070001', false),
+    ('sales', 'order_id', '202609070002', false),
+    ('sales', 'quantity', '202609070002', false),
+    ('sales', 'follow_up_stopped_at', '202609070002', false),
+    ('sale_orders', 'user_id', '202609070002', false),
+    ('sale_orders', 'operation_id', '202609070002', false),
+    ('sale_orders', 'contact_id', '202609070002', false),
+    ('sale_orders', 'purchase_date', '202609070002', false),
+    ('sale_orders', 'sale_type', '202609070002', false),
+    ('sale_orders', 'status', '202609070002', false),
+    ('sale_orders', 'content_hash', '202609070002', false),
+    ('message_templates', 'category_id', '202609070003', false),
+    ('template_categories', 'user_id', '202609070003', false),
+    ('template_categories', 'name', '202609070003', false),
+    ('template_categories', 'situation', '202609070003', false),
+    ('template_categories', 'archived_at', '202609070003', false),
+    ('template_share_bundles', 'owner_id', '202609070003', false),
+    ('template_share_bundles', 'operation_id', '202609070003', false),
+    ('template_share_bundles', 'token_hash', '202609070003', false),
+    ('template_share_bundles', 'snapshot', '202609070003', false),
+    ('template_share_bundles', 'expires_at', '202609070003', false),
+    ('template_share_bundles', 'revoked_at', '202609070003', false),
+    ('template_share_imports', 'bundle_id', '202609070003', false),
+    ('template_share_imports', 'user_id', '202609070003', false),
+    ('template_share_imports', 'operation_id', '202609070003', false),
+    ('template_share_imports', 'imported_template_ids', '202609070003', false),
+    ('settings', 'task_notifications_enabled', '202609070004', false),
+    ('settings', 'daily_summary_enabled', '202609070004', false),
+    ('settings', 'daily_summary_time', '202609070004', false),
+    ('settings', 'fast_start_notifications_enabled', '202609070004', false),
+    ('settings', 'push_consent_given', '202609070004', false),
+    ('settings', 'timezone', '202609070004', false),
+    ('notifications', 'channel', '202609070004', false),
+    ('notifications', 'related_entity_id', '202609070004', false),
+    ('notifications', 'route', '202609070004', false),
+    ('notifications', 'dedupe_key', '202609070004', false),
+    ('notifications', 'scheduled_for', '202609070004', false),
+    ('notifications', 'delivery_status', '202609070004', false),
+    ('notifications', 'provider_message_id', '202609070004', false),
+    ('notifications', 'delivery_attempted_at', '202609070004', false),
+    ('notifications', 'delivery_attempt_count', '202609070004', false),
+    ('notifications', 'delivery_next_attempt_at', '202609070004', false),
+    ('notifications', 'delivery_lease_until', '202609070004', false),
+    ('notifications', 'delivered_at', '202609070004', false),
+    ('notifications', 'delivery_error_code', '202609070004', false),
+    ('tasks', 'due_time', '202609070005', false)
 ),
 column_state as (
   select expected.table_name,
@@ -100,7 +204,7 @@ column_state as (
 expected_functions(function_name, phase, required_before) as (
   values
     ('zynergia_set_updated_at', 'prerequisite', true),
-    ('has_app_entitlement', '202609010000', false),
+    ('has_app_entitlement', 'prerequisite', true),
     ('complete_onboarding', '202609010000', false),
     ('ensure_partner_code', '202609010001', false),
     ('lookup_partner_code', '202609010001', false),
@@ -116,12 +220,41 @@ expected_functions(function_name, phase, required_before) as (
     ('set_parent_id', '202609010001', false),
     ('import_partner_clients', '202609010001', false),
     ('record_sale', '202609010002', false),
-    ('anonymize_contact', '202609010002', false),
+    ('anonymize_contact', 'prerequisite', true),
     ('zynergia_clear_previous_template_default', '202609010003', false),
     ('record_stripe_connect_anomaly', '202609010004', false),
     ('resolve_stripe_connect_anomaly', '202609010004', false),
     ('assert_stripe_connect_checkout_ready', '202609010004', false),
-    ('set_fast_start_date', '202609010006', false)
+    ('set_fast_start_date', '202609010006', false),
+    ('delete_user_data', 'prerequisite', true),
+    ('classify_legacy_task_origin', '202609070001', false),
+    ('import_contacts', '202609070001', false),
+    ('bulk_update_contact_type', '202609070001', false),
+    ('bulk_anonymize_contacts', '202609070001', false),
+    ('enforce_sale_client_update', '202609070002', false),
+    ('record_sale_order', '202609070002', false),
+    ('stop_sale_follow_up', '202609070002', false),
+    ('stop_product_follow_up', '202609070002', false),
+    ('get_fast_start_snapshots_v2', '202609070002', false),
+    ('get_my_fast_start_snapshot_v2', '202609070002', false),
+    ('get_team_snapshot_v2', '202609070002', false),
+    ('update_message_template', '202609070003', false),
+    ('archive_message_template', '202609070003', false),
+    ('set_template_default', '202609070003', false),
+    ('update_template_category', '202609070003', false),
+    ('archive_template_category', '202609070003', false),
+    ('validate_message_template_write', '202609070003', false),
+    ('create_template_share', '202609070003', false),
+    ('preview_template_share', '202609070003', false),
+    ('import_template_share', '202609070003', false),
+    ('revoke_template_share', '202609070003', false),
+    ('validate_settings_timezone_write', '202609070004', false),
+    ('queue_fast_start_refresh', '202609070004', false),
+    ('refresh_fast_start_after_settings_change', '202609070004', false),
+    ('refresh_fast_start_after_partner_change', '202609070004', false),
+    ('enqueue_due_daily_summaries', '202609070004', false),
+    ('claim_push_notifications', '202609070004', false),
+    ('finish_push_notification', '202609070004', false)
 ),
 function_state as (
   select expected.function_name,
@@ -167,7 +300,16 @@ expected_indexes(index_name, table_name, phase, required_before, must_be_unique)
     ('message_templates_active_idx', 'message_templates', '202609010003', false, false),
     ('message_templates_default_general_idx', 'message_templates', '202609010003', false, true),
     ('message_templates_default_contact_idx', 'message_templates', '202609010003', false, true),
-    ('stripe_connect_anomalies_open_idx', 'stripe_connect_anomalies', '202609010004', false, false)
+    ('stripe_connect_anomalies_open_idx', 'stripe_connect_anomalies', '202609010004', false, false),
+    ('contacts_user_phone_e164_idx', 'contacts', '202609070001', false, false),
+    ('sales_order_product_idx', 'sales', '202609070002', false, true),
+    ('sales_fast_start_v2_idx', 'sales', '202609070002', false, false),
+    ('template_categories_active_name_idx', 'template_categories', '202609070003', false, true),
+    ('message_templates_category_idx', 'message_templates', '202609070003', false, false),
+    ('template_share_bundles_owner_idx', 'template_share_bundles', '202609070003', false, false),
+    ('notifications_user_dedupe_idx', 'notifications', '202609070004', false, true),
+    ('notifications_pending_delivery_idx', 'notifications', '202609070004', false, false),
+    ('notifications_push_retry_idx', 'notifications', '202609070004', false, false)
 ),
 index_state as (
   select expected.index_name,
@@ -204,7 +346,13 @@ allowed_domain_policies(table_name, policy_name) as (
     ('partners', 'users_own_partners'),
     ('partners', 'partners_select_own'),
     ('partners', 'partners_insert_own'),
-    ('partners', 'partners_update_own')
+    ('partners', 'partners_update_own'),
+    ('user_products', 'user_products_entitled_own'),
+    ('message_templates', 'message_templates_entitled_own'),
+    ('sale_orders', 'sale_orders_select_own'),
+    ('template_categories', 'template_categories_entitled_own'),
+    ('template_share_bundles', 'template_share_bundles_owner_select'),
+    ('template_share_imports', 'template_share_imports_own_select')
 ),
 domain_policy_state as (
   select policy.tablename as table_name,
@@ -220,7 +368,9 @@ domain_policy_state as (
    where policy.schemaname = 'public'
      and policy.tablename in (
        'contacts', 'notifications', 'partners', 'product_links', 'sales',
-       'settings', 'tags', 'tasks', 'user_templates'
+       'settings', 'tags', 'tasks', 'user_templates', 'user_products',
+       'message_templates', 'sale_orders', 'template_categories',
+       'template_share_bundles', 'template_share_imports'
      )
 ),
 current_grant_users as (
@@ -375,6 +525,44 @@ connect_gate_state as (
        limit 1
     ) function_row on true
 ),
+extension_state as (
+  select extension_row.oid is not null as pgcrypto_installed,
+         namespace.nspname as pgcrypto_schema
+    from (values (1)) seed(value)
+    left join pg_catalog.pg_extension extension_row
+      on extension_row.extname = 'pgcrypto'
+    left join pg_catalog.pg_namespace namespace
+      on namespace.oid = extension_row.extnamespace
+),
+storage_state as (
+  select pg_catalog.to_regnamespace('storage') is not null as schema_present,
+         pg_catalog.to_regclass('storage.buckets') is not null as buckets_table_present,
+         pg_catalog.to_regclass('storage.objects') is not null as objects_table_present,
+         coalesce((
+           select relation.relrowsecurity
+             from pg_catalog.pg_class relation
+            where relation.oid = pg_catalog.to_regclass('storage.objects')
+         ), false) as objects_rls_enabled,
+         bucket.id is not null as product_images_bucket_present,
+         bucket.public as product_images_bucket_public,
+         bucket.file_size_limit as product_images_file_size_limit,
+         coalesce(
+           bucket.allowed_mime_types @> array['image/jpeg', 'image/png', 'image/webp']::text[],
+           false
+         ) as product_images_mime_types_complete,
+         coalesce((
+           select pg_catalog.array_agg(policy.policyname order by policy.policyname)
+             from pg_catalog.pg_policies policy
+            where policy.schemaname = 'storage'
+              and policy.tablename = 'objects'
+              and policy.policyname in (
+                'product_images_select_own', 'product_images_insert_own',
+                'product_images_delete_own'
+              )
+         ), array[]::text[]) as product_images_policies
+    from (values (1)) seed(value)
+    left join storage.buckets bucket on bucket.id = 'product-images'
+),
 counts as (
   select
     (select count(*) from auth.users)::bigint as auth_users,
@@ -454,6 +642,17 @@ counts as (
       where nullif(link.link_url, '') is not null
         and link.link_url !~ '^https?://'
     )::bigint as invalid_legacy_product_urls,
+    (select count(*) from public.sales sale
+      where sale.sale_type is not null
+        and sale.sale_type not in ('nueva', 'recompra')
+    )::bigint as invalid_legacy_sale_types,
+    (select count(*) from public.sales sale
+      where sale.status is not null
+        and sale.status not in ('active', 'cancelled')
+    )::bigint as invalid_legacy_sale_statuses,
+    (select count(*) from public.sales sale
+      where sale.created_at is null
+    )::bigint as legacy_sales_missing_created_at,
     (select count(*) from public.stripe_connect_charges charge
       where charge.reconciliation_status <> 'balanced'
     )::bigint as connect_unbalanced_charges,
@@ -489,7 +688,11 @@ select jsonb_build_object(
     select jsonb_agg(to_jsonb(orphan) order by orphan.relation_name)
       from row_orphans orphan
   ), '[]'::jsonb),
-  'connect_gate', to_jsonb(connect_gate_state)
+  'connect_gate', to_jsonb(connect_gate_state),
+  'extensions', to_jsonb(extension_state),
+  'storage', to_jsonb(storage_state)
 ) as production_migration_preflight
 from counts
-cross join connect_gate_state;
+cross join connect_gate_state
+cross join extension_state
+cross join storage_state;

@@ -10,6 +10,10 @@ if (!artifactOnly && process.env.DELETION_CRON_CONFIGURED !== 'true') {
   failures.push('DELETION_CRON_NOT_ATTESTED');
 }
 
+if (!artifactOnly && process.env.PUSH_CRON_CONFIGURED !== 'true') {
+  failures.push('PUSH_CRON_NOT_ATTESTED');
+}
+
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(process.env.VITE_SUPPORT_EMAIL || '')) {
   failures.push('SUPPORT_EMAIL_NOT_CONFIGURED');
 }
@@ -25,13 +29,43 @@ if (!(process.env.VITE_SUPABASE_ANON_KEY || '').trim()) {
   failures.push('SUPABASE_ANON_KEY_NOT_CONFIGURED');
 }
 
+const oneSignalClientId = (process.env.VITE_ONESIGNAL_APP_ID || '').trim();
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(oneSignalClientId)) {
+  failures.push('ONESIGNAL_CLIENT_APP_ID_NOT_CONFIGURED');
+}
+
+if (!artifactOnly) {
+  const oneSignalServerId = (process.env.ONESIGNAL_APP_ID || '').trim();
+  if (oneSignalServerId !== oneSignalClientId) failures.push('ONESIGNAL_APP_ID_MISMATCH');
+  if (!(process.env.ONESIGNAL_REST_API_KEY || '').trim()) failures.push('ONESIGNAL_REST_API_KEY_NOT_CONFIGURED');
+  if ((process.env.CRON_SECRET || '').trim().length < 24) failures.push('CRON_SECRET_NOT_CONFIGURED');
+}
+
 try {
   const appStoreUrl = new URL(process.env.VITE_APP_STORE_URL || '');
-  if (appStoreUrl.protocol !== 'https:' || appStoreUrl.hostname !== 'apps.apple.com') {
+  if (
+    appStoreUrl.protocol !== 'https:'
+    || appStoreUrl.hostname !== 'apps.apple.com'
+    || !/\/id6761772857\/?$/.test(appStoreUrl.pathname)
+  ) {
     failures.push('APP_STORE_URL_INVALID');
   }
 } catch {
   failures.push('APP_STORE_URL_NOT_CONFIGURED');
+}
+
+try {
+  const playStoreUrl = new URL(process.env.VITE_PLAY_STORE_URL || '');
+  if (
+    playStoreUrl.protocol !== 'https:'
+    || playStoreUrl.hostname !== 'play.google.com'
+    || playStoreUrl.pathname !== '/store/apps/details'
+    || playStoreUrl.searchParams.get('id') !== 'com.zynergia.app'
+  ) {
+    failures.push('PLAY_STORE_URL_INVALID');
+  }
+} catch {
+  failures.push('PLAY_STORE_URL_NOT_CONFIGURED');
 }
 
 let schema = '';
@@ -87,11 +121,14 @@ if (!schemaPath) {
 const requiredColumns = {
   contacts: [
     'id', 'user_id', 'full_name', 'phone', 'country_code', 'contact_type', 'notes', 'tag_ids',
-    'created_at',
+    'created_at', 'phone_e164', 'phone_country_iso', 'phone_raw', 'import_source',
   ],
   notifications: [
     'id', 'user_id', 'title', 'body', 'type', 'related_entity_type', 'is_read', 'created_date',
-    'created_at',
+    'created_at', 'channel', 'related_entity_id', 'route', 'dedupe_key', 'scheduled_for',
+    'delivery_status', 'provider_message_id', 'delivery_attempted_at', 'delivered_at',
+    'delivery_error_code', 'delivery_attempt_count', 'delivery_next_attempt_at',
+    'delivery_lease_until',
   ],
   partners: [
     'id', 'user_id', 'contact_id', 'start_date', 'fast_start_deadline', 'fast_start_status',
@@ -101,18 +138,20 @@ const requiredColumns = {
   product_links: ['id', 'user_id', 'product_id', 'link_url', 'created_at'],
   sales: [
     'id', 'user_id', 'contact_id', 'product_id', 'purchase_date', 'sale_type', 'status',
-    'created_at', 'operation_id',
+    'created_at', 'operation_id', 'order_id', 'quantity', 'follow_up_stopped_at',
   ],
   settings: [
     'id', 'user_id', 'user_name', 'user_phone', 'default_currency', 'notifications_enabled',
     'user_photo', 'created_at', 'partner_code', 'parent_id', 'last_active',
     'subscription_status', 'stripe_paid', 'stripe_session_id', 'onboarding_completed_at',
-    'fast_start_started_at',
+    'fast_start_started_at', 'task_notifications_enabled', 'daily_summary_enabled',
+    'daily_summary_time', 'fast_start_notifications_enabled', 'push_consent_given', 'timezone',
   ],
   tags: ['id', 'user_id', 'name', 'category', 'created_at'],
   tasks: [
     'id', 'user_id', 'contact_id', 'product_id', 'category', 'subcategory',
     'template_subcategory', 'task_name', 'task_area', 'due_date', 'completed', 'created_at',
+    'origin', 'source_sale_id', 'due_time',
   ],
   user_templates: ['id', 'user_id', 'template_id', 'content', 'created_at'],
   billing_accounts: [
@@ -159,12 +198,32 @@ const requiredColumns = {
     'last_error', 'resolved_at',
   ],
   user_products: [
-    'id', 'user_id', 'product_id', 'name', 'category', 'link_url', 'cycle_days',
-    'repurchase_enabled', 'origin', 'archived_at',
+    'id', 'user_id', 'product_id', 'name', 'category', 'subcategory', 'image_url',
+    'link_url', 'cycle_days', 'frequency_months', 'repurchase_enabled', 'origin',
+    'archived_at', 'created_at', 'image_path',
   ],
   message_templates: [
-    'id', 'user_id', 'template_id', 'name', 'content', 'situation', 'contact_id', 'origin',
-    'is_default', 'archived_at',
+    'id', 'user_id', 'template_id', 'name', 'content', 'situation', 'category',
+    'subcategory', 'tone', 'contact_id', 'origin', 'is_default', 'archived_at',
+    'created_at', 'category_id',
+  ],
+  contact_batch_operations: [
+    'user_id', 'operation_id', 'operation_kind', 'request_hash', 'result', 'created_at',
+  ],
+  sale_orders: [
+    'id', 'user_id', 'operation_id', 'contact_id', 'purchase_date', 'sale_type', 'status',
+    'content_hash', 'created_at',
+  ],
+  template_categories: [
+    'id', 'user_id', 'name', 'situation', 'archived_at', 'created_at', 'updated_at',
+  ],
+  template_share_bundles: [
+    'id', 'owner_id', 'operation_id', 'request_hash', 'token_hash', 'snapshot', 'expires_at',
+    'revoked_at', 'created_at',
+  ],
+  template_share_imports: [
+    'bundle_id', 'user_id', 'operation_id', 'request_hash', 'imported_template_ids',
+    'imported_count', 'imported_at',
   ],
 };
 
@@ -174,6 +233,9 @@ const snapshotColumns = new Set(
 );
 const snapshotFunctions = new Map(
   (snapshot?.functions || []).map((fn) => [fn.name, fn.definition])
+);
+const snapshotTriggers = new Map(
+  (snapshot?.triggers || []).map((trigger) => [`${trigger.table}.${trigger.name}`, trigger.definition])
 );
 
 function sqlTableBlock(table) {
@@ -193,6 +255,14 @@ function hasFunction(name) {
   }
   return new RegExp(
     `create\\s+(?:or\\s+replace\\s+)?function\\s+(?:public\\.)?"?${name}"?\\s*\\(`,
+    'i'
+  ).test(schema);
+}
+
+function hasTrigger(table, name) {
+  if (snapshot) return snapshotTriggers.has(`${table}.${name}`);
+  return new RegExp(
+    `create\\s+(?:or\\s+replace\\s+)?trigger\\s+"?${name}"?[\\s\\S]+?on\\s+(?:public\\.)?"?${table}"?`,
     'i'
   ).test(schema);
 }
@@ -273,6 +343,28 @@ const requiredReleaseRpcs = [
   'record_stripe_connect_anomaly',
   'resolve_stripe_connect_anomaly',
   'assert_stripe_connect_checkout_ready',
+  'import_contacts',
+  'bulk_update_contact_type',
+  'bulk_anonymize_contacts',
+  'record_sale_order',
+  'stop_sale_follow_up',
+  'get_my_fast_start_snapshot_v2',
+  'get_team_snapshot_v2',
+  'update_message_template',
+  'archive_message_template',
+  'set_template_default',
+  'update_template_category',
+  'archive_template_category',
+  'create_template_share',
+  'preview_template_share',
+  'import_template_share',
+  'revoke_template_share',
+  'validate_message_template_write',
+  'queue_fast_start_refresh',
+  'enqueue_due_daily_summaries',
+  'claim_push_notifications',
+  'finish_push_notification',
+  'validate_settings_timezone_write',
 ];
 
 for (const rpc of requiredReleaseRpcs) {
@@ -281,9 +373,16 @@ for (const rpc of requiredReleaseRpcs) {
   }
 }
 
+if (!hasTrigger('message_templates', 'message_templates_validate_write')) {
+  failures.push('RELEASE_TRIGGER_NOT_APPLIED:message_templates_validate_write');
+}
+if (!hasTrigger('settings', 'settings_validate_timezone_write')) {
+  failures.push('RELEASE_TRIGGER_NOT_APPLIED:settings_validate_timezone_write');
+}
+
 try {
   const saleClient = await readFile(new URL('../../src/pages/NewSale4.jsx', import.meta.url), 'utf8');
-  if (!/\.rpc\(\s*['"]record_sale['"]/.test(saleClient)) {
+  if (!/\.rpc\(\s*['"]record_sale_order['"]/.test(saleClient)) {
     failures.push('SALE_CLIENT_NOT_ATOMIC');
   }
 } catch {

@@ -36,3 +36,14 @@ test('partial legacy rows keep bundled product and template metadata', () => {
     content: 'Mensaje personalizado',
   });
 });
+
+test('an explicitly disabled repurchase cycle is not replaced by the catalog default', () => {
+  const [product] = mergeUserProducts([
+    { id: 'prod_one', name: 'Producto original', category: 'Premier Kits', cycle_days: 30 },
+  ], [
+    { id: 'row-product', product_id: 'prod_one', cycle_days: 0, repurchase_enabled: false },
+  ]);
+
+  expect(product.cycle_days).toBe(0);
+  expect(product.repurchase_enabled).toBe(false);
+});

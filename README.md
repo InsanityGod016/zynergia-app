@@ -62,7 +62,7 @@ falla si se intenta generar en CI. `npm run build` nunca incluye esta galería.
 
 ## Release
 
-La versión móvil actual es `1.1.0`: Android `versionCode 7` e iOS build `13`. Consulta [SUBMISSION-GUIDE.md](./SUBMISSION-GUIDE.md) antes de generar o enviar artefactos.
+La versión móvil candidata es `1.2.0`: Android `versionCode 9` e iOS build `15`. Consulta [SUBMISSION-GUIDE.md](./SUBMISSION-GUIDE.md) antes de generar o enviar artefactos.
 
 Documentos públicos:
 

@@ -36,6 +36,29 @@ function readableDate(value) {
   return Number.isNaN(date.getTime()) ? 'Fecha no disponible' : format(date, "d 'de' MMM", { locale: es });
 }
 
+export function groupSaleRows(rows = []) {
+  const orders = new Map();
+  rows.forEach(sale => {
+    const key = sale.order_id || `legacy:${sale.id}`;
+    const existing = orders.get(key) || {
+      id: key,
+      contact_id: sale.contact_id,
+      purchase_date: sale.purchase_date,
+      sale_type: sale.sale_type,
+      items: [],
+    };
+    existing.items.push(sale);
+    orders.set(key, existing);
+  });
+  return [...orders.values()].map(order => ({
+    ...order,
+    quantity: order.items.reduce((total, item) => total + (Number(item.quantity) || 1), 0),
+    cancelled: order.items.every(item => (
+      item.status === 'cancelled' && !item.follow_up_stopped_at
+    )),
+  }));
+}
+
 export default function Sales() {
   const navigate = useNavigate();
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -57,6 +80,8 @@ export default function Sales() {
       return date >= start && date <= end && (!selectedProducts.length || selectedProducts.includes(sale.product_id));
     });
   }, [dateRange, sales, selectedProducts]);
+  const filteredOrders = useMemo(() => groupSaleRows(filteredSales), [filteredSales]);
+  const activeOrders = useMemo(() => groupSaleRows(sales).filter(order => !order.cancelled), [sales]);
 
   const names = useMemo(() => ({
     contacts: new Map(contacts.map(contact => [contact.id, contact.full_name || 'Contacto'])),
@@ -96,8 +121,8 @@ export default function Sales() {
       )}
 
       <section className="mb-5 grid grid-cols-2 gap-3" aria-label="Resumen de ventas">
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">En el periodo</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : filteredSales.filter(sale => sale.status !== 'cancelled').length}</p></div>
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">Total histórico</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : sales.filter(sale => sale.status !== 'cancelled').length}</p></div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">Pedidos en periodo</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : filteredOrders.filter(order => !order.cancelled).length}</p></div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm"><p className="text-[15px] text-[#64748B]">Unidades históricas</p><p className="mt-1 text-3xl font-bold text-[#0F172A]">{salesQuery.isPending ? '—' : activeOrders.reduce((total, order) => total + order.quantity, 0)}</p></div>
       </section>
 
       <div className="mb-6 grid grid-cols-2 gap-3">
@@ -117,12 +142,12 @@ export default function Sales() {
         {salesQuery.isPending && <StateView state="loading" title="Cargando ventas" />}
         {salesQuery.isError && <StateView state="error" title="No pudimos cargar tus ventas" description="Tus registros siguen guardados. Revisa tu conexión e intenta de nuevo." actionLabel="Intentar de nuevo" onAction={() => salesQuery.refetch()} />}
         {!salesQuery.isPending && !salesQuery.isError && (contactsQuery.isError || productsQuery.isError) && <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-4" role="status"><p className="text-[15px] text-amber-900">No pudimos mostrar algunos nombres. Las ventas siguen guardadas.</p><button type="button" onClick={() => Promise.all([contactsQuery.refetch(), productsQuery.refetch()])} className="mt-2 min-h-12 rounded-xl px-3 text-[15px] font-bold text-[#004AFE]">Intentar de nuevo</button></div>}
-        {!salesQuery.isPending && !salesQuery.isError && filteredSales.length === 0 && <StateView state="empty" title="No hay ventas en este periodo" description="Cambia los filtros o registra una venta nueva." />}
+        {!salesQuery.isPending && !salesQuery.isError && filteredOrders.length === 0 && <StateView state="empty" title="No hay ventas en este periodo" description="Cambia los filtros o registra una venta nueva." />}
         <div className="space-y-3">
-          {!salesQuery.isPending && !salesQuery.isError && filteredSales.slice(0, 30).map(sale => (
-            <article key={sale.id} className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm">
-              <div className="min-w-0 flex-1"><h3 className="truncate text-[17px] font-bold text-[#0F172A]">{names.contacts.get(sale.contact_id) || 'Contacto'}</h3><p className="mt-0.5 truncate text-[15px] text-[#64748B]">{names.products.get(sale.product_id) || 'Producto'}</p></div>
-              <div className="shrink-0 text-right"><p className="text-[15px] font-semibold text-[#475569]">{readableDate(sale.purchase_date)}</p>{sale.status === 'cancelled' ? <span className="text-[15px] font-semibold text-red-700">Cancelada</span> : <span className="text-[15px] font-semibold text-[#15805D]">{sale.sale_type === 'recompra' ? 'Recompra' : 'Nueva'}</span>}</div>
+          {!salesQuery.isPending && !salesQuery.isError && filteredOrders.slice(0, 30).map(order => (
+            <article key={order.id} className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm">
+              <div className="min-w-0 flex-1"><h3 className="truncate text-[17px] font-bold text-[#0F172A]">{names.contacts.get(order.contact_id) || 'Contacto'}</h3><p className="mt-0.5 text-[15px] text-[#64748B]">{order.items.map(item => `${Number(item.quantity) || 1} × ${names.products.get(item.product_id) || 'Producto'}`).join(' · ')}</p></div>
+              <div className="shrink-0 text-right"><p className="text-[15px] font-semibold text-[#475569]">{readableDate(order.purchase_date)}</p>{order.cancelled ? <span className="text-[15px] font-semibold text-red-700">Cancelada</span> : <span className="text-[15px] font-semibold text-[#15805D]">{order.sale_type === 'recompra' ? 'Recompra' : 'Nueva'}</span>}</div>
             </article>
           ))}
         </div>

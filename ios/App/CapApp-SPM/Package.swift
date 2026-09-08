@@ -13,8 +13,11 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1"),
         .package(name: "CapacitorApp", path: "../../../node_modules/@capacitor/app"),
+        .package(name: "CapacitorCamera", path: "../../../node_modules/@capacitor/camera"),
+        .package(name: "CapacitorContacts", path: "../../../node_modules/@capacitor/contacts"),
         .package(name: "CapacitorLocalNotifications", path: "../../../node_modules/@capacitor/local-notifications"),
-        .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar")
+        .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
+        .package(name: "OnesignalCapacitorPlugin", path: "../../../node_modules/@onesignal/capacitor-plugin")
     ],
     targets: [
         .target(
@@ -23,8 +26,11 @@ let package = Package(
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
                 .product(name: "CapacitorApp", package: "CapacitorApp"),
+                .product(name: "CapacitorCamera", package: "CapacitorCamera"),
+                .product(name: "CapacitorContacts", package: "CapacitorContacts"),
                 .product(name: "CapacitorLocalNotifications", package: "CapacitorLocalNotifications"),
-                .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar")
+                .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
+                .product(name: "OnesignalCapacitorPlugin", package: "OnesignalCapacitorPlugin")
             ]
         )
     ]

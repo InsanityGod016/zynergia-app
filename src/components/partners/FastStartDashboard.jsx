@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { AlertTriangle, CalendarDays, CheckCircle2, CircleHelp, Lock, TrendingUp } from 'lucide-react';
 import { FAST_START_STAGES, formatBonus } from './bonusTable';
-import { calculateFastStartProgress, countActivePremierClients } from './partnerEngine';
+import { calculateFastStartProgress } from './partnerEngine';
 
 function StatusBadge({ status }) {
   const config = {
@@ -69,24 +69,30 @@ function startDateLabel(value) {
 
 export default function FastStartDashboard({
   partners = [],
-  sales = [],
-  products = [],
+  snapshot = null,
   currency = 'MXN',
   startDate = null,
   directBranchMetrics = [],
   metricsLoading = false,
   metricsError = false,
   onEditStartDate,
+  onRetryMetrics,
 }) {
+  const metricsUnavailable = metricsError || (!metricsLoading && !snapshot);
   const progress = useMemo(() => calculateFastStartProgress({
-    premierClients: countActivePremierClients(sales, products),
-    directPartners: partners.length,
-    directBranches: directBranchMetrics,
-    startDate,
-  }), [directBranchMetrics, partners.length, products, sales, startDate]);
+    qteamKits: snapshot?.qteam_kits || 0,
+    xteamKits: snapshot?.xteam_kits || 0,
+    directPartners: Number.isFinite(snapshot?.partners_count) ? snapshot.partners_count : partners.length,
+    directBranches: Array.isArray(snapshot?.direct_branches) ? snapshot.direct_branches : directBranchMetrics,
+    startDate: snapshot?.fast_start_started_at || startDate,
+  }), [directBranchMetrics, partners.length, snapshot, startDate]);
 
   const { stages, timeline } = progress;
-  const globalStatus = !timeline
+  const globalStatus = metricsLoading
+    ? 'Verificando'
+    : metricsUnavailable
+      ? 'Sin datos'
+      : !timeline
     ? 'Fecha pendiente'
     : progress.completed
       ? 'Completado'
@@ -119,8 +125,8 @@ export default function FastStartDashboard({
           {[
             [timeline ? `Día ${Math.min(timeline.daysElapsed, 120)}` : '—', 'de 120'],
             [timeline ? timeline.daysRemaining : '—', 'días restantes'],
-            [progress.premierClients, 'clientes Premier'],
-            [progress.directPartners, progress.directPartners === 1 ? 'partner directo' : 'partners directos'],
+            [metricsLoading || metricsUnavailable ? '—' : progress.qteamKits, 'kits para Q-Team'],
+            [metricsLoading || metricsUnavailable ? '—' : progress.directPartners, progress.directPartners === 1 ? 'partner directo' : 'partners directos'],
           ].map(([value, label]) => (
             <div key={label} className="rounded-2xl bg-white/15 px-3 py-2.5">
               <p className="text-[22px] font-bold leading-tight">{value}</p>
@@ -148,12 +154,27 @@ export default function FastStartDashboard({
         </button>
       </section>
 
+      {metricsLoading ? (
+        <div className="rounded-2xl border border-border bg-card p-5 text-[16px] text-muted-foreground" role="status">
+          Verificando tu avance real…
+        </div>
+      ) : metricsUnavailable ? (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5" role="alert">
+          <p className="text-[17px] font-bold text-amber-950">No pudimos cargar tu progreso</p>
+          <p className="mt-1 text-[15px] leading-relaxed text-amber-900">No mostraremos cifras sin verificar. Revisa tu conexión e intenta de nuevo.</p>
+          {onRetryMetrics && (
+            <button type="button" onClick={onRetryMetrics} className="mt-3 min-h-12 rounded-xl bg-white px-4 text-[15px] font-bold text-primary shadow-sm">
+              Intentar de nuevo
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="space-y-3">
         <StageCard
           stageKey="qteam"
           stage={stages.qteam}
           currency={currency}
-          detail={stages.qteam.completed ? 'Meta registrada con tus clientes activos.' : `Te ${4 - stages.qteam.current === 1 ? 'falta 1 cliente Premier' : `faltan ${Math.max(0, 4 - stages.qteam.current)} clientes Premier`}.`}
+          detail={stages.qteam.completed ? 'Meta registrada con tus kits vendidos.' : `Te ${4 - stages.qteam.current === 1 ? 'falta 1 kit' : `faltan ${Math.max(0, 4 - stages.qteam.current)} kits`}.`}
         />
         <StageCard
           stageKey="fs_nivel1"
@@ -166,9 +187,10 @@ export default function FastStartDashboard({
           stageKey="xteam"
           stage={stages.xteam}
           currency={currency}
-          detail={!stages.fs_nivel1.completed ? 'Primero completa el Nivel 1.' : stages.xteam.completed ? 'Meta registrada con tus clientes activos.' : `Te faltan ${Math.max(0, 10 - stages.xteam.current)} clientes Premier.`}
+          detail={stages.xteam.completed ? 'Meta registrada con tus kits vendidos.' : `Te faltan ${Math.max(0, 10 - stages.xteam.current)} kits.`}
         />
       </div>
+      )}
     </div>
   );
 }

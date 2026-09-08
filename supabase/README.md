@@ -37,6 +37,8 @@ Required server-only environment variables:
 - `APP_URL`
 - `CORS_ALLOWED_ORIGINS` for any additional web origin
 - `CRON_SECRET`
+- `PUSH_CRON_CONFIGURED=true` only after the Supabase Cron worker described below has made
+  a successful authenticated call; Vercel Hobby cannot run the required sub-daily schedule
 - `DELETE_REAUTH_MAX_AGE_SECONDS` when the default ten-minute password reauthentication
   window should be changed; custom JWT hooks must preserve timestamped `amr` entries
 - `NEW_SIGNUPS_ENABLED=true` only after the Stripe inventory/backfill is reconciled; omit it
@@ -194,3 +196,28 @@ Before production, backfill Stripe customers/subscriptions into `billing_account
 duplicate emails and multiple live subscriptions manually, then verify claim, renewal,
 past-due grace, cancellation, partial/full refunds, dispute open/won, out-of-order webhook
 replay, scheduled deletion, and Auth deletion in Stripe test mode against the staging database.
+
+## Programación del worker push
+
+El proyecto de Vercel está en Hobby y ese plan rechaza cualquier cron que corra más de una vez
+al día. El worker `/api/notifications/process` se invoca cada diez minutos desde Supabase Cron,
+no desde `vercel.json`. Antes de desplegar:
+
+1. Guarda en Supabase Vault dos secretos: `zynergia_notification_worker_url` con
+   `https://zynergia.pro/api/notifications/process`, y `zynergia_notification_worker_secret`
+   con el mismo valor de `CRON_SECRET` configurado únicamente en Vercel.
+2. Ejecuta `supabase/scripts/configure-notification-cron.sql` como propietario de la base.
+3. Comprueba en `cron.job_run_details` una ejecución exitosa y en los logs de Vercel una
+   respuesta autenticada del worker.
+4. Sólo entonces configura `PUSH_CRON_CONFIGURED=true` en el entorno de release.
+
+El script no contiene secretos y los obtiene de Vault en cada ejecución. Así un cambio de
+secreto no obliga a recrear el job. Diez minutos es la precisión máxima esperada del resumen
+diario configurado por la persona.
+
+## Estado de entrega push
+
+`finish_push_notification` registra `sent` cuando OneSignal acepta la solicitud de envío. Esa
+respuesta no demuestra que un dispositivo la recibió. `delivered` y `delivered_at` quedan
+reservados para una futura integración con un webhook autenticado de entrega; ningún worker ni
+RPC actual debe marcarlos de forma simulada.

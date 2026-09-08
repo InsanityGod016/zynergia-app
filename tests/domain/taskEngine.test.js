@@ -35,8 +35,9 @@ describe('taskEngine characterization', () => {
       saleType: 'nueva',
       product: { category: 'Compra Única' },
       existingTasks: [
-        { id: 'replace-me', contact_id: 'contact-1', product_id: 'product-1', due_date: '2026-08-20', completed: false },
-        { id: 'keep-me', contact_id: 'contact-2', product_id: 'product-1', due_date: '2026-08-20', completed: false },
+        { id: 'replace-me', contact_id: 'contact-1', product_id: 'product-1', origin: 'sale_automation', due_date: '2026-08-20', completed: false },
+        { id: 'keep-manual', contact_id: 'contact-1', product_id: 'product-1', origin: 'manual', due_date: '2026-08-20', completed: false },
+        { id: 'keep-other-contact', contact_id: 'contact-2', product_id: 'product-1', origin: 'sale_automation', due_date: '2026-08-20', completed: false },
       ],
     });
 
@@ -57,6 +58,7 @@ describe('taskEngine characterization', () => {
       existingTasks: [{
         contact_id: 'contact-1',
         task_area: 'prospecto_producto',
+        origin: 'contact_automation',
         due_date: '2026-08-20',
         completed: false,
       }],
@@ -101,8 +103,8 @@ describe('taskEngine characterization', () => {
       partnersCount: 2,
       directBranches: [{ premier_clients: 4 }, { premier_clients: 1 }],
       existingTasks: [
-        { id: 'overdue-qteam', contact_id: 'contact-1', task_area: 'partner', template_subcategory: 'partner_smart_qteam', due_date: '2026-08-01', completed: false },
-        { id: 'future-checkin', contact_id: 'contact-1', task_area: 'partner', template_subcategory: 'partner_smart_checkin', due_date: '2026-08-25', completed: false },
+        { id: 'overdue-qteam', contact_id: 'contact-1', task_area: 'partner', origin: 'partner_automation', template_subcategory: 'partner_smart_qteam', due_date: '2026-08-01', completed: false },
+        { id: 'future-checkin', contact_id: 'contact-1', task_area: 'partner', origin: 'partner_automation', template_subcategory: 'partner_smart_checkin', due_date: '2026-08-25', completed: false },
       ],
     });
 
@@ -123,13 +125,14 @@ describe('taskEngine characterization', () => {
       partnersCount: 0,
       existingTasks: [{
         id: 'current', contact_id: 'contact-1', task_area: 'partner',
+        origin: 'partner_automation',
         template_subcategory: 'partner_smart_qteam', task_name: 'mensaje anterior',
         due_date: '2026-08-19', completed: false,
       }],
     });
 
     expect(taskApi.create).not.toHaveBeenCalled();
-    expect(taskApi.update).toHaveBeenCalledWith('current', { task_name: expect.stringContaining('2 clientes') });
+    expect(taskApi.update).toHaveBeenCalledWith('current', { task_name: expect.stringContaining('2 kits') });
   });
 
   it('never schedules an overdue referral before today', async () => {

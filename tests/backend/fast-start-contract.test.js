@@ -23,6 +23,9 @@ test('Fast Start date is server-owned, entitled, and editable from Team', async 
   expect(team).toContain('Sí, cambiar fecha');
   expect(dashboard).toContain('Configurar fecha de inicio');
   expect(dashboard).toContain('Cambiar');
+  expect(dashboard).toContain('No mostraremos cifras sin verificar');
+  expect(dashboard).toMatch(/metricsLoading \|\| metricsUnavailable \? '—'/);
+  expect(team).toContain('onRetryMetrics={refetchFastStartSnapshots}');
 });
 
 test('Fast Start metrics expose only aggregate linked-branch counts', async () => {

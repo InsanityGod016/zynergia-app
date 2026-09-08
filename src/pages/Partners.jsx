@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/api/db';
 import { supabase } from '@/lib/supabaseClient';
 import { CalendarDays, Loader2, Network, Plus, Users, Zap } from 'lucide-react';
@@ -10,10 +11,9 @@ import AddPartnerSheet from '@/components/partners/AddPartnerSheet';
 import PartnerDetailSheet from '@/components/partners/PartnerDetailSheet';
 import { createPartnerTasks, refreshSmartPartnerTasks } from '@/components/tasks/taskEngine';
 import FastStartDashboard from '@/components/partners/FastStartDashboard';
-import { DEFAULT_PRODUCTS } from '@/lib/defaultProducts';
-import { runNotificationEngine } from '@/components/notifications/notificationEngine';
-import { scheduleTaskReminders } from '@/lib/localNotifications';
 import { useAuth } from '@/lib/AuthContext';
+import { partnerForPushRoute } from '@/lib/pushNotifications';
+import { createPageUrl } from '@/utils';
 import {
   Sheet,
   SheetClose,
@@ -33,14 +33,6 @@ function today() {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
-
-function productId(name) {
-  return 'prod_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-}
-
-const PREMIER_PRODUCT_IDS = DEFAULT_PRODUCTS
-  .filter(p => p.category === 'Premier Kits')
-  .map(p => p.id || productId(p.name));
 
 function FastStartDateSheet({ open, currentDate, isPending, error, onClose, onSave }) {
   const [value, setValue] = useState(currentDate?.slice(0, 10) || today());
@@ -101,6 +93,9 @@ function FastStartDateSheet({ open, currentDate, isPending, error, onClose, onSa
 
 export default function Partners() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedPartnerId = searchParams.get('partnerId');
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showFastStartDateSheet, setShowFastStartDateSheet] = useState(false);
   const [fastStartDatePrompted, setFastStartDatePrompted] = useState(false);
@@ -109,7 +104,7 @@ export default function Partners() {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: partners = [] } = useQuery({
+  const { data: partners = [], isFetched: partnersFetched } = useQuery({
     queryKey: ['partners'],
     queryFn: () => db.Partner.list()
   });
@@ -117,16 +112,6 @@ export default function Partners() {
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
     queryFn: () => db.Contact.list()
-  });
-
-  const { data: sales = [] } = useQuery({
-    queryKey: ['sales'],
-    queryFn: () => db.Sale.list()
-  });
-
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => db.Product.list()
   });
 
   const { data: settingsList = [], isFetched: settingsFetched } = useQuery({
@@ -137,6 +122,18 @@ export default function Partners() {
   const settings = settingsList[0] || {};
   const currency = settings.default_currency || 'MXN';
   const fastStartStartedAt = settings.fast_start_started_at || null;
+
+  useEffect(() => {
+    if (!requestedPartnerId || !partnersFetched) return;
+    const partner = partnerForPushRoute(partners, requestedPartnerId);
+    if (!partner) {
+      navigate(createPageUrl('Tasks'), { replace: true });
+      return;
+    }
+    setActiveTab('partners');
+    setSelectedPartner(partner);
+    navigate(createPageUrl('Partners'), { replace: true });
+  }, [navigate, partners, partnersFetched, requestedPartnerId]);
 
   useEffect(() => {
     if (!settingsFetched || !settings.id || fastStartStartedAt || fastStartDatePrompted) return;
@@ -168,28 +165,6 @@ export default function Partners() {
     queryKey: ['tasks'],
     queryFn: () => db.Task.list()
   });
-
-  // Run notification engine on load / when data changes
-  useEffect(() => {
-    if (products.length === 0) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const uid = session?.user?.id;
-      if (!uid) return;
-      runNotificationEngine({ userId: uid, tasks, sales, products, partners });
-    }).catch(() => {});
-  }, [tasks.length, sales.length, partners.length, products.length]);
-
-  // Recordatorio local si hay partners en riesgo (deadline cerca sin completar fase)
-  useEffect(() => {
-    if (partners.length === 0) return;
-    const now = Date.now();
-    const riskCount = partners.filter(p => {
-      if (p.fast_start_status !== 'activo' || !p.fast_start_deadline) return false;
-      const daysLeft = (new Date(p.fast_start_deadline).getTime() - now) / 86400000;
-      return daysLeft >= 0 && daysLeft <= 15;
-    }).length;
-    scheduleTaskReminders({ riskCount, userId: user?.id });
-  }, [partners, user?.id]);
 
   const createPartnerMutation = useMutation({
     mutationFn: async (/** @type {{contactId: string, startDate?: string | null}} */ { contactId, startDate }) => {
@@ -241,55 +216,54 @@ export default function Partners() {
     enabled: partnerUserIds.length > 0,
   });
 
-  // Fetch real Fast Start metrics for partners with app
+  // One authoritative, privacy-safe snapshot for the owner and linked partners.
   const {
-    data: partnerFsMetrics = [],
+    data: fastStartSnapshots = [],
     isLoading: partnerMetricsLoading,
     isError: partnerMetricsError,
+    refetch: refetchFastStartSnapshots,
   } = useQuery({
-    queryKey: ['partners_fs_metrics', partnerUserIds],
+    queryKey: ['fast_start_snapshots_v2', user?.id, partnerUserIds],
     queryFn: async () => {
-      if (partnerUserIds.length === 0) return [];
-      const { data, error } = await supabase.rpc('get_partners_fs_metrics', {
-        user_ids: partnerUserIds,
-        premier_product_ids: PREMIER_PRODUCT_IDS,
-      });
+      const { data, error } = await supabase.rpc('get_team_snapshot_v2');
       if (error) throw error;
       return data || [];
     },
-    enabled: partnerUserIds.length > 0,
+    enabled: Boolean(user?.id),
   });
 
   const metricsForPartner = (partner) => partner?.partner_user_id
-    ? partnerFsMetrics.find(metric => metric.user_id === partner.partner_user_id) || null
+    ? fastStartSnapshots.find(metric => metric.user_id === partner.partner_user_id) || null
     : null;
+  const ownFastStartSnapshot = fastStartSnapshots.find(metric => metric.user_id === user?.id) || null;
   const directBranchMetrics = partners.map(partner => {
     const metric = metricsForPartner(partner);
     return {
       partnerId: partner.id,
-      premierClients: Number.isFinite(metric?.premier_clients) ? metric.premier_clients : null,
+      qteamKits: Number.isFinite(metric?.qteam_kits) ? metric.qteam_kits : null,
     };
   });
 
-  const partnerFsMetricsKey = partnerFsMetrics
-    .map(metric => `${metric.user_id}:${metric.premier_clients || 0}:${metric.partners_count || 0}:${metric.fast_start_started_at || ''}:${(metric.direct_branches || []).map(branch => branch?.premier_clients ?? '?').join(',')}`)
+  const partnerFsMetricsKey = fastStartSnapshots
+    .map(metric => `${metric.user_id}:${metric.qteam_kits || 0}:${metric.xteam_kits || 0}:${metric.partners_count || 0}:${metric.fast_start_started_at || ''}:${(metric.direct_branches || []).map(branch => branch?.qteam_kits ?? '?').join(',')}`)
     .sort()
     .join('|');
 
   // Refresh smart tasks for partners with app whenever metrics change
   useEffect(() => {
-    if (!tasksFetched || partnerFsMetrics.length === 0) return;
+    if (!tasksFetched || fastStartSnapshots.length === 0) return;
     const partnersWithApp = partners.filter(p => p.partner_user_id);
     if (partnersWithApp.length === 0) return;
 
     partnersWithApp.forEach(partner => {
-      const metrics = partnerFsMetrics.find(m => m.user_id === partner.partner_user_id);
+      const metrics = fastStartSnapshots.find(m => m.user_id === partner.partner_user_id);
       if (!metrics) return;
       const contact = contacts.find(c => c.id === partner.contact_id);
       refreshSmartPartnerTasks({
         contactId: partner.contact_id,
         contactName: contact?.full_name || 'Partner',
-        activePremierClients: metrics.premier_clients || 0,
+        activePremierKits: metrics.qteam_kits || 0,
+        xteamKits: metrics.xteam_kits || 0,
         partnersCount: metrics.partners_count || 0,
         directBranches: Array.isArray(metrics.direct_branches) ? metrics.direct_branches : [],
         existingTasks: tasks,
@@ -343,14 +317,14 @@ export default function Partners() {
       {activeTab === 'faststart' ? (
         <FastStartDashboard
           partners={partners}
-          sales={sales}
-          products={products}
+          snapshot={ownFastStartSnapshot}
           currency={currency}
           startDate={fastStartStartedAt}
           directBranchMetrics={directBranchMetrics}
           metricsLoading={partnerMetricsLoading}
           metricsError={partnerMetricsError}
           onEditStartDate={openFastStartDateSheet}
+          onRetryMetrics={refetchFastStartSnapshots}
         />
       ) : (
         <>

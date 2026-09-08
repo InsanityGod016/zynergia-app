@@ -25,12 +25,17 @@ import {
 } from '@/components/tasks/taskEngine';
 import PhoneField from '@/components/contacts/PhoneField';
 import { normalizePhone, splitPhone } from '@/lib/phone';
+import { COUNTRY_CODES } from '@/lib/countryCodes';
 
 /**
  * @typedef {{
  *   full_name: string,
  *   phone: string,
  *   country_code: string,
+ *   phone_country_iso: string,
+ *   phone_e164?: string,
+ *   phone_raw?: string,
+ *   import_source?: string,
  *   notes: string,
  *   tag_ids: string[],
  *   contact_type: string,
@@ -42,17 +47,21 @@ const emptyForm = {
   full_name: '',
   phone: '',
   country_code: '+52',
+  phone_country_iso: 'MX',
   notes: '',
   tag_ids: [],
   contact_type: '',
 };
 
 function formFromContact(contact) {
-  const parsedPhone = splitPhone(contact.phone, contact.country_code || '+52');
+  const parsedPhone = splitPhone(contact.phone_e164 || contact.phone, contact.country_code || '+52');
+  const matchingCountries = COUNTRY_CODES.filter(country => country.code === parsedPhone.dialCode);
+  const inferredCountryIso = matchingCountries.length === 1 ? matchingCountries[0].iso : '';
   return {
     full_name: contact.full_name || '',
     phone: parsedPhone.nationalNumber,
     country_code: parsedPhone.dialCode,
+    phone_country_iso: contact.phone_country_iso || inferredCountryIso,
     notes: contact.notes || '',
     tag_ids: contact.tag_ids || [],
     contact_type: contact.contact_type || '',
@@ -246,6 +255,7 @@ export default function EditContact() {
     if (!formData.full_name.trim()) errors.full_name = 'Escribe el nombre del contacto.';
     const normalizedPhone = normalizePhone(formData.country_code, formData.phone);
     if (!normalizedPhone.valid) errors.phone = 'Revisa el número y el código de país.';
+    if (!formData.phone_country_iso) errors.phone = 'Elige el país del número.';
     setFieldErrors(errors);
     if (Object.keys(errors).length) return;
 
@@ -253,6 +263,10 @@ export default function EditContact() {
       ...formData,
       full_name: formData.full_name.trim(),
       phone: normalizedPhone.e164,
+      phone_e164: normalizedPhone.e164,
+      phone_country_iso: formData.phone_country_iso,
+      phone_raw: formData.phone,
+      import_source: 'manual',
       notes: formData.notes.trim(),
     });
   };
@@ -309,8 +323,10 @@ export default function EditContact() {
             <PhoneField
               id="contact-phone"
               dialCode={formData.country_code}
+              countryIso={formData.phone_country_iso}
               nationalNumber={formData.phone}
               onDialCodeChange={value => setField('country_code', value)}
+              onCountryIsoChange={value => setField('phone_country_iso', value)}
               onNationalNumberChange={value => setField('phone', value)}
               invalid={Boolean(fieldErrors.phone)}
               describedBy={fieldErrors.phone ? 'contact-phone-error' : 'contact-phone-help'}

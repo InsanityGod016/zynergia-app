@@ -29,6 +29,7 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
   const toDelete = existingTasks.filter(
     t => t.contact_id === contactId &&
       t.product_id === productId &&
+      t.origin === 'sale_automation' &&
       t.due_date >= today &&
       !t.completed
   );
@@ -62,7 +63,8 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
       task_name: 'Bienvenida Día 3',
       task_area: 'producto',
       due_date: addDaysToStr(baseDateStr, 3),
-      completed: false
+      completed: false,
+      origin: 'sale_automation'
     });
   }
 
@@ -79,7 +81,8 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
       task_name: 'Recompra 7 días antes',
       task_area: 'producto',
       due_date: addDaysToStr(nextRepurchaseDate, -7),
-      completed: false
+      completed: false,
+      origin: 'sale_automation'
     });
 
     tasks.push({
@@ -91,7 +94,8 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
       task_name: 'Recompra 3 días antes',
       task_area: 'producto',
       due_date: addDaysToStr(nextRepurchaseDate, -3),
-      completed: false
+      completed: false,
+      origin: 'sale_automation'
     });
 
     tasks.push({
@@ -103,7 +107,8 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
       task_name: 'Recompra 5 días después',
       task_area: 'producto',
       due_date: addDaysToStr(nextRepurchaseDate, 5),
-      completed: false
+      completed: false,
+      origin: 'sale_automation'
     });
 
     // Reactivación: 30 días después del "5 días después"
@@ -116,7 +121,8 @@ export async function createSaleTasks({ contactId, productId, purchaseDate, sale
       task_name: 'Reactivación',
       task_area: 'producto',
       due_date: addDaysToStr(nextRepurchaseDate, 35),
-      completed: false
+      completed: false,
+      origin: 'sale_automation'
     });
   }
 
@@ -132,6 +138,7 @@ export async function createProspectoProductoTasks({ contactId, existingTasks })
   const hasFuture = existingTasks.some(
     t => t.contact_id === contactId &&
       t.task_area === 'prospecto_producto' &&
+      t.origin === 'contact_automation' &&
       t.due_date >= today &&
       !t.completed
   );
@@ -154,7 +161,8 @@ export async function createProspectoProductoTasks({ contactId, existingTasks })
     task_name: s.task_name,
     task_area: 'prospecto_producto',
     due_date: addDaysToStr(today, s.days),
-    completed: false
+    completed: false,
+    origin: 'contact_automation'
   })));
 }
 
@@ -166,6 +174,7 @@ export async function createProspectoPartnerTasks({ contactId, existingTasks }) 
   const hasFuture = existingTasks.some(
     t => t.contact_id === contactId &&
       t.task_area === 'prospecto_partner' &&
+      t.origin === 'contact_automation' &&
       t.due_date >= today &&
       !t.completed
   );
@@ -188,7 +197,8 @@ export async function createProspectoPartnerTasks({ contactId, existingTasks }) 
     task_name: s.task_name,
     task_area: 'prospecto_partner',
     due_date: addDaysToStr(today, s.days),
-    completed: false
+    completed: false,
+    origin: 'contact_automation'
   })));
 }
 
@@ -205,6 +215,7 @@ export async function createReferralTask({ contactId, contactCreatedAt, existing
   const hasFuture = existingTasks.some(
     t => t.contact_id === contactId &&
       t.task_area === 'referidos' &&
+      t.origin === 'contact_automation' &&
       t.due_date >= today &&
       !t.completed
   );
@@ -228,7 +239,8 @@ export async function createReferralTask({ contactId, contactCreatedAt, existing
     task_name: 'Pedir referido',
     task_area: 'referidos',
     due_date: dueDate,
-    completed: false
+    completed: false,
+    origin: 'contact_automation'
   });
 }
 
@@ -246,7 +258,8 @@ export async function createPartnerTasks({ contactId, startDate }) {
     task_name: 'Invitar a Zynergia para ver su avance real',
     task_area: 'partner',
     due_date: startDate,
-    completed: false
+    completed: false,
+    origin: 'partner_automation'
   });
 }
 
@@ -255,25 +268,28 @@ export async function createPartnerTasks({ contactId, startDate }) {
  * Replaces calendar-based sequence with real-progress-based tasks.
  * Called when real FS metrics are available.
  */
-export async function refreshSmartPartnerTasks({ contactId, contactName, activePremierClients, partnersCount, directBranches = [], existingTasks }) {
+/** @param {{contactId: string, contactName: string, activePremierKits?: number, xteamKits?: number, activePremierClients?: number, partnersCount: number, directBranches?: Array<{qteam_kits?: number|null, premier_clients?: number|null}>, existingTasks: any[]}} metrics */
+export async function refreshSmartPartnerTasks({ contactId, contactName, activePremierKits, xteamKits, activePremierClients, partnersCount, directBranches = [], existingTasks }) {
   const today = todayStr();
+  const qteamKitCount = Number(activePremierKits ?? activePremierClients) || 0;
+  const xteamKitCount = Number(xteamKits ?? activePremierKits ?? activePremierClients) || 0;
 
-  const qteamDone = activePremierClients >= 4;
+  const qteamDone = qteamKitCount >= 4;
   const fs1Done   = qteamDone && partnersCount >= 2;
-  const knownBranches = directBranches.filter(branch => Number.isFinite(branch?.premier_clients));
-  const qteamBranches = knownBranches.filter(branch => branch.premier_clients >= 4).length;
+  const knownBranches = directBranches.filter(branch => Number.isFinite(branch?.qteam_kits ?? branch?.premier_clients));
+  const qteamBranches = knownBranches.filter(branch => Number(branch.qteam_kits ?? branch.premier_clients) >= 4).length;
   const unknownBranches = Math.max(0, partnersCount - knownBranches.length);
   const fs2Done = fs1Done && qteamBranches >= 2;
-  const xteamDone = fs1Done && activePremierClients >= 10;
+  const xteamDone = xteamKitCount >= 10;
 
   let nextTask;
 
   if (!qteamDone) {
-    const left = 4 - activePremierClients;
+    const left = 4 - qteamKitCount;
     nextTask = {
       task_name: left === 1
-        ? `¡${contactName} está a 1 cliente del Q-Team!`
-        : `Apoya a ${contactName}: necesita ${left} clientes Premier para Q-Team`,
+        ? `¡${contactName} está a 1 kit del Q-Team!`
+        : `Apoya a ${contactName}: necesita ${left} kits para Q-Team`,
       template_subcategory: 'partner_smart_qteam',
       due_date: today,
     };
@@ -296,9 +312,9 @@ export async function refreshSmartPartnerTasks({ contactId, contactName, activeP
       due_date: today,
     };
   } else if (!xteamDone) {
-    const left = 10 - activePremierClients;
+    const left = 10 - xteamKitCount;
     nextTask = {
-      task_name: `X-Team: ${contactName} necesita ${left} clientes más`,
+      task_name: `X-Team: ${contactName} necesita ${left} kits más`,
       template_subcategory: 'partner_smart_xteam',
       due_date: today,
     };
@@ -311,7 +327,10 @@ export async function refreshSmartPartnerTasks({ contactId, contactName, activeP
   }
 
   const pending = existingTasks.filter(task => (
-    task.contact_id === contactId && task.task_area === 'partner' && !task.completed
+    task.contact_id === contactId
+    && task.task_area === 'partner'
+    && task.origin === 'partner_automation'
+    && !task.completed
   ));
   const keep = pending.find(task => task.template_subcategory === nextTask.template_subcategory);
   const obsolete = pending.filter(task => task.id !== keep?.id);
@@ -336,11 +355,12 @@ export async function refreshSmartPartnerTasks({ contactId, contactName, activeP
     task_area: 'partner',
     due_date: nextTask.due_date,
     completed: false,
+    origin: 'partner_automation',
   });
 }
 
 /**
- * Create urgency Q-Team task if partner drops below 4 active AutoOrder clients.
+ * Create urgency Q-Team task if verified kit progress drops below 4.
  * Ensures no duplicate active urgency task exists.
  */
 export async function createQTeamUrgencyTask({ contactId, existingTasks }) {
@@ -348,6 +368,7 @@ export async function createQTeamUrgencyTask({ contactId, existingTasks }) {
   const hasUrgency = existingTasks.some(
     t => t.contact_id === contactId &&
       t.template_subcategory === 'partner_urgencia_qteam' &&
+      t.origin === 'partner_automation' &&
       t.due_date >= today &&
       !t.completed
   );
@@ -358,10 +379,11 @@ export async function createQTeamUrgencyTask({ contactId, existingTasks }) {
     category: 'seguimiento',
     subcategory: 'partner_urgencia_qteam',
     template_subcategory: 'partner_urgencia_qteam',
-    task_name: 'Urgencia: recuperar 4 clientes activos',
+    task_name: 'Urgencia: completar 4 kits Premier',
     task_area: 'partner',
     due_date: today,
-    completed: false
+    completed: false,
+    origin: 'partner_automation'
   });
 }
 
@@ -372,6 +394,7 @@ export async function cancelFutureTasksByArea({ contactId, taskArea, existingTas
   const toDelete = existingTasks.filter(
     t => t.contact_id === contactId &&
       t.task_area === taskArea &&
+      t.origin === 'contact_automation' &&
       t.due_date >= today &&
       !t.completed
   );

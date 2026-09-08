@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowLeft, Check, Search, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -28,7 +28,7 @@ const SITUATIONS = [
 ];
 
 const EMPTY_TEMPLATE = {
-  name: '', content: '', situation: 'repurchase', category: 'recompra', subcategory: 'producto_recompra', tone: 'general', contact_id: '', is_default: false,
+  name: '', content: '', situation: 'repurchase', category: 'recompra', subcategory: 'producto_recompra', tone: 'general', contact_id: '', category_id: '', is_default: false,
 };
 
 function normalizedTemplate(template) {
@@ -37,6 +37,7 @@ function normalizedTemplate(template) {
     content: normalizeTemplateContent(template.content || ''),
     situation: templateSituation(template),
     contact_id: template.contact_id || '',
+    category_id: template.category_id || '',
     tone: template.tone || 'general',
     is_default: Boolean(template.is_default),
   };
@@ -109,7 +110,7 @@ function ContactSearch({ contacts, value, onChange }) {
   );
 }
 
-function TemplateForm({ template, isNew, contacts }) {
+function TemplateForm({ template, isNew, contacts, categories }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(template);
@@ -122,7 +123,31 @@ function TemplateForm({ template, isNew, contacts }) {
 
   const changeSituation = value => {
     const situation = SITUATIONS.find(item => item.value === value);
-    setForm(current => ({ ...current, situation: value, category: situation.category, subcategory: situation.subcategory }));
+    setForm(current => ({
+      ...current,
+      situation: value,
+      category: situation.category,
+      subcategory: situation.subcategory,
+      category_id: categories.some(category => String(category.id) === String(current.category_id) && category.situation === value)
+        ? current.category_id
+        : '',
+    }));
+  };
+
+  const changeCustomCategory = categoryId => {
+    const customCategory = categories.find(category => String(category.id) === String(categoryId));
+    if (!customCategory) {
+      update('category_id', '');
+      return;
+    }
+    const situation = SITUATIONS.find(item => item.value === customCategory.situation);
+    setForm(current => ({
+      ...current,
+      category_id: customCategory.id,
+      situation: customCategory.situation,
+      category: situation.category,
+      subcategory: situation.subcategory,
+    }));
   };
 
   const saveMutation = useMutation({
@@ -135,7 +160,7 @@ function TemplateForm({ template, isNew, contacts }) {
       if (unknownTemplateVariables(content).length) throw new Error('El mensaje contiene una variable que Zynergia no reconoce. Elimínala y usa los botones de variables.');
       const payload = {
         name, content, situation: form.situation, category: form.category, subcategory: form.subcategory,
-        tone: form.tone, contact_id: form.contact_id || null, is_default: Boolean(form.is_default),
+        tone: form.tone, contact_id: form.contact_id || null, category_id: form.category_id || null, is_default: Boolean(form.is_default),
       };
       if (isNew) return db.Template.create(payload);
       const changed = Object.fromEntries(Object.entries(payload).filter(([key, value]) => {
@@ -162,9 +187,32 @@ function TemplateForm({ template, isNew, contacts }) {
     onError: mutationError => { setShowArchive(false); setError(mutationError.message || 'No pudimos archivar la plantilla.'); },
   });
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     if (!dirty || window.confirm('¿Salir sin guardar tu mensaje?')) navigate(createPageUrl('Templates'));
-  };
+  }, [dirty, navigate]);
+
+  useEffect(() => {
+    const warnBeforeUnload = event => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('zynergia:dirty-state', { detail: { dirty } }));
+  }, [dirty]);
+
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('zynergia:dirty-state', { detail: { dirty: false } }));
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('zynergia:request-back', goBack);
+    return () => window.removeEventListener('zynergia:request-back', goBack);
+  }, [goBack]);
 
   return (
     <main className="min-h-dvh bg-[#F7F9FC] pb-32">
@@ -184,6 +232,13 @@ function TemplateForm({ template, isNew, contacts }) {
             <select value={form.situation} onChange={event => changeSituation(event.target.value)} className="mt-2 h-14 w-full rounded-2xl border border-input bg-white px-4 text-[17px] shadow-sm">
               {SITUATIONS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
+          </label>
+          <label className="block text-[16px] font-semibold text-[#0F172A]">Categoría personalizada <span className="font-normal text-[#64748B]">(opcional)</span>
+            <select value={form.category_id} onChange={event => changeCustomCategory(event.target.value)} className="mt-2 h-14 w-full rounded-2xl border border-input bg-white px-4 text-[17px] shadow-sm">
+              <option value="">Sin categoría personalizada</option>
+              {categories.map(category => <option key={category.id} value={category.id}>{category.name} · {SITUATIONS.find(item => item.value === category.situation)?.label || 'Seguimiento'}</option>)}
+            </select>
+            <span className="mt-1 block text-[15px] font-normal leading-6 text-[#64748B]">Puedes crear, renombrar o archivar categorías desde la lista de plantillas.</span>
           </label>
           <label className="block text-[16px] font-semibold text-[#0F172A]">Tono
             <select value={form.tone} onChange={event => update('tone', event.target.value)} className="mt-2 h-14 w-full rounded-2xl border border-input bg-white px-4 text-[17px] shadow-sm">
@@ -234,11 +289,12 @@ export default function EditTemplate() {
   const templateId = searchParams.get('id');
   const templatesQuery = useQuery({ queryKey: ['templates'], queryFn: () => db.Template.list(), enabled: !isNew });
   const contactsQuery = useQuery({ queryKey: ['contacts'], queryFn: () => db.Contact.list() });
+  const categoriesQuery = useQuery({ queryKey: ['template-categories'], queryFn: () => db.TemplateCategory.list(), retry: false });
   const foundTemplate = templatesQuery.data?.find(template => template.id === templateId);
   const template = isNew ? EMPTY_TEMPLATE : foundTemplate ? normalizedTemplate(foundTemplate) : null;
 
   if (!isNew && templatesQuery.isPending) return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="loading" title="Cargando plantilla" /></main>;
   if (!isNew && templatesQuery.isError) return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="error" title="No pudimos abrir la plantilla" actionLabel="Intentar de nuevo" onAction={() => templatesQuery.refetch()} /></main>;
   if (!template) return <main className="min-h-dvh bg-white px-5 pt-[calc(3rem+env(safe-area-inset-top))]"><StateView state="empty" title="Plantilla no disponible" actionLabel="Volver a plantillas" onAction={() => navigate(createPageUrl('Templates'), { replace: true })} /></main>;
-  return <TemplateForm key={template.id || 'new'} template={template} isNew={isNew} contacts={contactsQuery.data || []} />;
+  return <TemplateForm key={template.id || 'new'} template={template} isNew={isNew} contacts={contactsQuery.data || []} categories={categoriesQuery.data || []} />;
 }

@@ -3,6 +3,7 @@ import { clearLocalSupabaseSession, supabase } from '@/lib/supabaseClient';
 import { clearRememberedPasswordRecovery } from '@/lib/passwordRecovery';
 import { queryClientInstance } from '@/lib/query-client';
 import { cancelZynergiaNotifications, switchNotificationIdentity } from '@/lib/localNotifications';
+import { disconnectPushIdentity } from '@/lib/pushNotifications';
 
 const AuthContext = createContext(null);
 
@@ -28,17 +29,25 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const activeUserId = useRef(null);
+  const pushIdentityQueue = useRef(Promise.resolve());
 
   useEffect(() => {
     let sawAuthEvent = false;
     const applySession = nextSession => {
       const nextUserId = nextSession?.user?.id || null;
-      if (activeUserId.current !== nextUserId) {
+      const previousUserId = activeUserId.current;
+      if (previousUserId !== nextUserId) {
         switchNotificationIdentity(nextUserId).catch(() => {});
+        pushIdentityQueue.current = pushIdentityQueue.current
+          .catch(() => {})
+          .then(async () => {
+            if (previousUserId) await disconnectPushIdentity();
+          })
+          .catch(() => {});
       }
-      if (activeUserId.current && activeUserId.current !== nextUserId) {
+      if (previousUserId && previousUserId !== nextUserId) {
         queryClientInstance.clear();
-        clearScopedClientState(activeUserId.current);
+        clearScopedClientState(previousUserId);
       }
       activeUserId.current = nextUserId;
       setSession(nextSession ?? null);
@@ -79,6 +88,11 @@ export const AuthProvider = ({ children }) => {
     queryClientInstance.clear();
     await switchNotificationIdentity(null).catch(() => {});
     await cancelZynergiaNotifications().catch(() => {});
+    pushIdentityQueue.current = pushIdentityQueue.current
+      .catch(() => {})
+      .then(() => disconnectPushIdentity())
+      .catch(() => {});
+    await pushIdentityQueue.current;
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {

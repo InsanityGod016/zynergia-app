@@ -22,6 +22,12 @@
         },
         {
           "kind": "r",
+          "name": "contact_batch_operations",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
           "name": "contacts",
           "rls_forced": false,
           "rls_enabled": true
@@ -47,6 +53,12 @@
         {
           "kind": "r",
           "name": "product_links",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "sale_orders",
           "rls_forced": false,
           "rls_enabled": true
         },
@@ -113,6 +125,24 @@
         {
           "kind": "r",
           "name": "tasks",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "template_categories",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "template_share_bundles",
+          "rls_forced": false,
+          "rls_enabled": true
+        },
+        {
+          "kind": "r",
+          "name": "template_share_imports",
           "rls_forced": false,
           "rls_enabled": true
         },
@@ -555,6 +585,60 @@
         },
         {
           "udt": "uuid",
+          "name": "user_id",
+          "type": "uuid",
+          "table": "contact_batch_operations",
+          "default": null,
+          "nullable": "NO",
+          "position": 1
+        },
+        {
+          "udt": "uuid",
+          "name": "operation_id",
+          "type": "uuid",
+          "table": "contact_batch_operations",
+          "default": null,
+          "nullable": "NO",
+          "position": 2
+        },
+        {
+          "udt": "text",
+          "name": "operation_kind",
+          "type": "text",
+          "table": "contact_batch_operations",
+          "default": null,
+          "nullable": "NO",
+          "position": 3
+        },
+        {
+          "udt": "text",
+          "name": "request_hash",
+          "type": "text",
+          "table": "contact_batch_operations",
+          "default": null,
+          "nullable": "NO",
+          "position": 4
+        },
+        {
+          "udt": "jsonb",
+          "name": "result",
+          "type": "jsonb",
+          "table": "contact_batch_operations",
+          "default": null,
+          "nullable": "NO",
+          "position": 5
+        },
+        {
+          "udt": "timestamptz",
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "contact_batch_operations",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 6
+        },
+        {
+          "udt": "uuid",
           "name": "id",
           "type": "uuid",
           "table": "contacts",
@@ -633,6 +717,42 @@
           "default": "now()",
           "nullable": "YES",
           "position": 9
+        },
+        {
+          "udt": "text",
+          "name": "phone_e164",
+          "type": "text",
+          "table": "contacts",
+          "default": null,
+          "nullable": "YES",
+          "position": 10
+        },
+        {
+          "udt": "text",
+          "name": "phone_country_iso",
+          "type": "text",
+          "table": "contacts",
+          "default": null,
+          "nullable": "YES",
+          "position": 11
+        },
+        {
+          "udt": "text",
+          "name": "phone_raw",
+          "type": "text",
+          "table": "contacts",
+          "default": null,
+          "nullable": "YES",
+          "position": 12
+        },
+        {
+          "udt": "text",
+          "name": "import_source",
+          "type": "text",
+          "table": "contacts",
+          "default": "'manual'::text",
+          "nullable": "NO",
+          "position": 13
         },
         {
           "udt": "uuid",
@@ -771,6 +891,15 @@
         },
         {
           "udt": "uuid",
+          "name": "category_id",
+          "type": "uuid",
+          "table": "message_templates",
+          "default": null,
+          "nullable": "YES",
+          "position": 16
+        },
+        {
+          "udt": "uuid",
           "name": "id",
           "type": "uuid",
           "table": "notifications",
@@ -849,6 +978,123 @@
           "default": "now()",
           "nullable": "YES",
           "position": 9
+        },
+        {
+          "udt": "text",
+          "name": "channel",
+          "type": "text",
+          "table": "notifications",
+          "default": "'in_app'::text",
+          "nullable": "NO",
+          "position": 10
+        },
+        {
+          "udt": "text",
+          "name": "related_entity_id",
+          "type": "text",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 11
+        },
+        {
+          "udt": "text",
+          "name": "route",
+          "type": "text",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 12
+        },
+        {
+          "udt": "text",
+          "name": "dedupe_key",
+          "type": "text",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 13
+        },
+        {
+          "udt": "timestamptz",
+          "name": "scheduled_for",
+          "type": "timestamp with time zone",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 14
+        },
+        {
+          "udt": "text",
+          "name": "delivery_status",
+          "type": "text",
+          "table": "notifications",
+          "default": "'not_applicable'::text",
+          "nullable": "NO",
+          "position": 15
+        },
+        {
+          "udt": "text",
+          "name": "provider_message_id",
+          "type": "text",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 16
+        },
+        {
+          "udt": "timestamptz",
+          "name": "delivery_attempted_at",
+          "type": "timestamp with time zone",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 17
+        },
+        {
+          "udt": "int4",
+          "name": "delivery_attempt_count",
+          "type": "integer",
+          "table": "notifications",
+          "default": "0",
+          "nullable": "NO",
+          "position": 18
+        },
+        {
+          "udt": "timestamptz",
+          "name": "delivery_next_attempt_at",
+          "type": "timestamp with time zone",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 19
+        },
+        {
+          "udt": "timestamptz",
+          "name": "delivery_lease_until",
+          "type": "timestamp with time zone",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 20
+        },
+        {
+          "udt": "timestamptz",
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 21
+        },
+        {
+          "udt": "text",
+          "name": "delivery_error_code",
+          "type": "text",
+          "table": "notifications",
+          "default": null,
+          "nullable": "YES",
+          "position": 22
         },
         {
           "udt": "uuid",
@@ -1016,6 +1262,87 @@
           "udt": "uuid",
           "name": "id",
           "type": "uuid",
+          "table": "sale_orders",
+          "default": "gen_random_uuid()",
+          "nullable": "NO",
+          "position": 1
+        },
+        {
+          "udt": "uuid",
+          "name": "user_id",
+          "type": "uuid",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "NO",
+          "position": 2
+        },
+        {
+          "udt": "uuid",
+          "name": "operation_id",
+          "type": "uuid",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "NO",
+          "position": 3
+        },
+        {
+          "udt": "uuid",
+          "name": "contact_id",
+          "type": "uuid",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "YES",
+          "position": 4
+        },
+        {
+          "udt": "date",
+          "name": "purchase_date",
+          "type": "date",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "YES",
+          "position": 5
+        },
+        {
+          "udt": "text",
+          "name": "sale_type",
+          "type": "text",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "YES",
+          "position": 6
+        },
+        {
+          "udt": "text",
+          "name": "status",
+          "type": "text",
+          "table": "sale_orders",
+          "default": "'active'::text",
+          "nullable": "NO",
+          "position": 7
+        },
+        {
+          "udt": "text",
+          "name": "content_hash",
+          "type": "text",
+          "table": "sale_orders",
+          "default": null,
+          "nullable": "NO",
+          "position": 8
+        },
+        {
+          "udt": "timestamptz",
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "sale_orders",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 9
+        },
+        {
+          "udt": "uuid",
+          "name": "id",
+          "type": "uuid",
           "table": "sales",
           "default": "gen_random_uuid()",
           "nullable": "NO",
@@ -1092,6 +1419,33 @@
           "default": null,
           "nullable": "YES",
           "position": 9
+        },
+        {
+          "udt": "uuid",
+          "name": "order_id",
+          "type": "uuid",
+          "table": "sales",
+          "default": null,
+          "nullable": "YES",
+          "position": 10
+        },
+        {
+          "udt": "int4",
+          "name": "quantity",
+          "type": "integer",
+          "table": "sales",
+          "default": "1",
+          "nullable": "NO",
+          "position": 11
+        },
+        {
+          "udt": "timestamptz",
+          "name": "follow_up_stopped_at",
+          "type": "timestamp with time zone",
+          "table": "sales",
+          "default": null,
+          "nullable": "YES",
+          "position": 12
         },
         {
           "udt": "uuid",
@@ -1236,6 +1590,60 @@
           "default": null,
           "nullable": "YES",
           "position": 16
+        },
+        {
+          "udt": "bool",
+          "name": "task_notifications_enabled",
+          "type": "boolean",
+          "table": "settings",
+          "default": "true",
+          "nullable": "NO",
+          "position": 17
+        },
+        {
+          "udt": "bool",
+          "name": "daily_summary_enabled",
+          "type": "boolean",
+          "table": "settings",
+          "default": "true",
+          "nullable": "NO",
+          "position": 18
+        },
+        {
+          "udt": "time",
+          "name": "daily_summary_time",
+          "type": "time without time zone",
+          "table": "settings",
+          "default": "'09:00:00'::time without time zone",
+          "nullable": "NO",
+          "position": 19
+        },
+        {
+          "udt": "bool",
+          "name": "fast_start_notifications_enabled",
+          "type": "boolean",
+          "table": "settings",
+          "default": "true",
+          "nullable": "NO",
+          "position": 20
+        },
+        {
+          "udt": "bool",
+          "name": "push_consent_given",
+          "type": "boolean",
+          "table": "settings",
+          "default": "false",
+          "nullable": "NO",
+          "position": 21
+        },
+        {
+          "udt": "text",
+          "name": "timezone",
+          "type": "text",
+          "table": "settings",
+          "default": "'America/Mexico_City'::text",
+          "nullable": "NO",
+          "position": 22
         },
         {
           "udt": "uuid",
@@ -2138,6 +2546,240 @@
           "position": 12
         },
         {
+          "udt": "text",
+          "name": "origin",
+          "type": "text",
+          "table": "tasks",
+          "default": "'legacy'::text",
+          "nullable": "NO",
+          "position": 13
+        },
+        {
+          "udt": "uuid",
+          "name": "source_sale_id",
+          "type": "uuid",
+          "table": "tasks",
+          "default": null,
+          "nullable": "YES",
+          "position": 14
+        },
+        {
+          "udt": "time",
+          "name": "due_time",
+          "type": "time without time zone",
+          "table": "tasks",
+          "default": "'09:00:00'::time without time zone",
+          "nullable": "NO",
+          "position": 15
+        },
+        {
+          "udt": "uuid",
+          "name": "id",
+          "type": "uuid",
+          "table": "template_categories",
+          "default": "gen_random_uuid()",
+          "nullable": "NO",
+          "position": 1
+        },
+        {
+          "udt": "uuid",
+          "name": "user_id",
+          "type": "uuid",
+          "table": "template_categories",
+          "default": null,
+          "nullable": "NO",
+          "position": 2
+        },
+        {
+          "udt": "text",
+          "name": "name",
+          "type": "text",
+          "table": "template_categories",
+          "default": null,
+          "nullable": "NO",
+          "position": 3
+        },
+        {
+          "udt": "text",
+          "name": "situation",
+          "type": "text",
+          "table": "template_categories",
+          "default": null,
+          "nullable": "NO",
+          "position": 4
+        },
+        {
+          "udt": "timestamptz",
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "table": "template_categories",
+          "default": null,
+          "nullable": "YES",
+          "position": 5
+        },
+        {
+          "udt": "timestamptz",
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "template_categories",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 6
+        },
+        {
+          "udt": "timestamptz",
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "table": "template_categories",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 7
+        },
+        {
+          "udt": "uuid",
+          "name": "id",
+          "type": "uuid",
+          "table": "template_share_bundles",
+          "default": "gen_random_uuid()",
+          "nullable": "NO",
+          "position": 1
+        },
+        {
+          "udt": "uuid",
+          "name": "owner_id",
+          "type": "uuid",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "NO",
+          "position": 2
+        },
+        {
+          "udt": "uuid",
+          "name": "operation_id",
+          "type": "uuid",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "NO",
+          "position": 3
+        },
+        {
+          "udt": "text",
+          "name": "request_hash",
+          "type": "text",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "NO",
+          "position": 4
+        },
+        {
+          "udt": "text",
+          "name": "token_hash",
+          "type": "text",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "NO",
+          "position": 5
+        },
+        {
+          "udt": "jsonb",
+          "name": "snapshot",
+          "type": "jsonb",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "NO",
+          "position": 6
+        },
+        {
+          "udt": "timestamptz",
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "table": "template_share_bundles",
+          "default": "(now() + '30 days'::interval)",
+          "nullable": "NO",
+          "position": 7
+        },
+        {
+          "udt": "timestamptz",
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "table": "template_share_bundles",
+          "default": null,
+          "nullable": "YES",
+          "position": 8
+        },
+        {
+          "udt": "timestamptz",
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "template_share_bundles",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 9
+        },
+        {
+          "udt": "uuid",
+          "name": "bundle_id",
+          "type": "uuid",
+          "table": "template_share_imports",
+          "default": null,
+          "nullable": "NO",
+          "position": 1
+        },
+        {
+          "udt": "uuid",
+          "name": "user_id",
+          "type": "uuid",
+          "table": "template_share_imports",
+          "default": null,
+          "nullable": "NO",
+          "position": 2
+        },
+        {
+          "udt": "uuid",
+          "name": "operation_id",
+          "type": "uuid",
+          "table": "template_share_imports",
+          "default": null,
+          "nullable": "NO",
+          "position": 3
+        },
+        {
+          "udt": "text",
+          "name": "request_hash",
+          "type": "text",
+          "table": "template_share_imports",
+          "default": null,
+          "nullable": "NO",
+          "position": 4
+        },
+        {
+          "udt": "_text",
+          "name": "imported_template_ids",
+          "type": "ARRAY",
+          "table": "template_share_imports",
+          "default": "'{}'::text[]",
+          "nullable": "NO",
+          "position": 5
+        },
+        {
+          "udt": "int4",
+          "name": "imported_count",
+          "type": "integer",
+          "table": "template_share_imports",
+          "default": "0",
+          "nullable": "NO",
+          "position": 6
+        },
+        {
+          "udt": "timestamptz",
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "table": "template_share_imports",
+          "default": "now()",
+          "nullable": "NO",
+          "position": 7
+        },
+        {
           "udt": "uuid",
           "name": "id",
           "type": "uuid",
@@ -2273,6 +2915,15 @@
           "position": 15
         },
         {
+          "udt": "text",
+          "name": "image_path",
+          "type": "text",
+          "table": "user_products",
+          "default": null,
+          "nullable": "YES",
+          "position": 16
+        },
+        {
           "udt": "uuid",
           "name": "id",
           "type": "uuid",
@@ -2385,14 +3036,29 @@
           "definition": "CREATE UNIQUE INDEX billing_accounts_user_id_key ON public.billing_accounts USING btree (user_id)"
         },
         {
+          "name": "contact_batch_operations_pkey",
+          "table": "contact_batch_operations",
+          "definition": "CREATE UNIQUE INDEX contact_batch_operations_pkey ON public.contact_batch_operations USING btree (user_id, operation_id)"
+        },
+        {
           "name": "contacts_pkey",
           "table": "contacts",
           "definition": "CREATE UNIQUE INDEX contacts_pkey ON public.contacts USING btree (id)"
         },
         {
+          "name": "contacts_user_phone_e164_idx",
+          "table": "contacts",
+          "definition": "CREATE INDEX contacts_user_phone_e164_idx ON public.contacts USING btree (user_id, phone_e164) WHERE (phone_e164 IS NOT NULL)"
+        },
+        {
           "name": "message_templates_active_idx",
           "table": "message_templates",
           "definition": "CREATE INDEX message_templates_active_idx ON public.message_templates USING btree (user_id, situation, created_at DESC) WHERE (archived_at IS NULL)"
+        },
+        {
+          "name": "message_templates_category_idx",
+          "table": "message_templates",
+          "definition": "CREATE INDEX message_templates_category_idx ON public.message_templates USING btree (user_id, category_id, created_at DESC) WHERE (archived_at IS NULL)"
         },
         {
           "name": "message_templates_default_contact_idx",
@@ -2415,9 +3081,24 @@
           "definition": "CREATE UNIQUE INDEX message_templates_user_id_template_id_key ON public.message_templates USING btree (user_id, template_id)"
         },
         {
+          "name": "notifications_pending_delivery_idx",
+          "table": "notifications",
+          "definition": "CREATE INDEX notifications_pending_delivery_idx ON public.notifications USING btree (scheduled_for, created_at) WHERE ((channel = 'push'::text) AND (delivery_status = 'pending'::text))"
+        },
+        {
           "name": "notifications_pkey",
           "table": "notifications",
           "definition": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+        },
+        {
+          "name": "notifications_push_retry_idx",
+          "table": "notifications",
+          "definition": "CREATE INDEX notifications_push_retry_idx ON public.notifications USING btree (delivery_next_attempt_at, delivery_lease_until, created_at) WHERE ((channel = 'push'::text) AND (delivery_status = ANY (ARRAY['pending'::text, 'sending'::text])))"
+        },
+        {
+          "name": "notifications_user_dedupe_idx",
+          "table": "notifications",
+          "definition": "CREATE UNIQUE INDEX notifications_user_dedupe_idx ON public.notifications USING btree (user_id, dedupe_key) WHERE (dedupe_key IS NOT NULL)"
         },
         {
           "name": "partners_linked_user_unique_idx",
@@ -2438,6 +3119,26 @@
           "name": "product_links_user_id_product_id_key",
           "table": "product_links",
           "definition": "CREATE UNIQUE INDEX product_links_user_id_product_id_key ON public.product_links USING btree (user_id, product_id)"
+        },
+        {
+          "name": "sale_orders_pkey",
+          "table": "sale_orders",
+          "definition": "CREATE UNIQUE INDEX sale_orders_pkey ON public.sale_orders USING btree (id)"
+        },
+        {
+          "name": "sale_orders_user_id_operation_id_key",
+          "table": "sale_orders",
+          "definition": "CREATE UNIQUE INDEX sale_orders_user_id_operation_id_key ON public.sale_orders USING btree (user_id, operation_id)"
+        },
+        {
+          "name": "sales_fast_start_v2_idx",
+          "table": "sales",
+          "definition": "CREATE INDEX sales_fast_start_v2_idx ON public.sales USING btree (user_id, purchase_date, product_id) WHERE ((sale_type = 'nueva'::text) AND ((COALESCE(status, 'active'::text) <> 'cancelled'::text) OR (follow_up_stopped_at IS NOT NULL)))"
+        },
+        {
+          "name": "sales_order_product_idx",
+          "table": "sales",
+          "definition": "CREATE UNIQUE INDEX sales_order_product_idx ON public.sales USING btree (user_id, order_id, product_id) WHERE (order_id IS NOT NULL)"
         },
         {
           "name": "sales_pkey",
@@ -2565,6 +3266,46 @@
           "definition": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)"
         },
         {
+          "name": "template_categories_active_name_idx",
+          "table": "template_categories",
+          "definition": "CREATE UNIQUE INDEX template_categories_active_name_idx ON public.template_categories USING btree (user_id, lower(btrim(name)), situation) WHERE (archived_at IS NULL)"
+        },
+        {
+          "name": "template_categories_pkey",
+          "table": "template_categories",
+          "definition": "CREATE UNIQUE INDEX template_categories_pkey ON public.template_categories USING btree (id)"
+        },
+        {
+          "name": "template_share_bundles_owner_id_operation_id_key",
+          "table": "template_share_bundles",
+          "definition": "CREATE UNIQUE INDEX template_share_bundles_owner_id_operation_id_key ON public.template_share_bundles USING btree (owner_id, operation_id)"
+        },
+        {
+          "name": "template_share_bundles_owner_idx",
+          "table": "template_share_bundles",
+          "definition": "CREATE INDEX template_share_bundles_owner_idx ON public.template_share_bundles USING btree (owner_id, created_at DESC)"
+        },
+        {
+          "name": "template_share_bundles_pkey",
+          "table": "template_share_bundles",
+          "definition": "CREATE UNIQUE INDEX template_share_bundles_pkey ON public.template_share_bundles USING btree (id)"
+        },
+        {
+          "name": "template_share_bundles_token_hash_key",
+          "table": "template_share_bundles",
+          "definition": "CREATE UNIQUE INDEX template_share_bundles_token_hash_key ON public.template_share_bundles USING btree (token_hash)"
+        },
+        {
+          "name": "template_share_imports_pkey",
+          "table": "template_share_imports",
+          "definition": "CREATE UNIQUE INDEX template_share_imports_pkey ON public.template_share_imports USING btree (bundle_id, user_id)"
+        },
+        {
+          "name": "template_share_imports_user_id_operation_id_key",
+          "table": "template_share_imports",
+          "definition": "CREATE UNIQUE INDEX template_share_imports_user_id_operation_id_key ON public.template_share_imports USING btree (user_id, operation_id)"
+        },
+        {
           "name": "user_products_active_idx",
           "table": "user_products",
           "definition": "CREATE INDEX user_products_active_idx ON public.user_products USING btree (user_id, created_at DESC) WHERE (archived_at IS NULL)"
@@ -2637,7 +3378,7 @@
         },
         {
           "name": "message_templates_entitled_own",
-          "check": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()) AND ((contact_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM contacts c\n  WHERE ((c.id = message_templates.contact_id) AND (c.user_id = auth.uid()))))))",
+          "check": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()) AND ((contact_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM contacts c\n  WHERE ((c.id = message_templates.contact_id) AND (c.user_id = auth.uid()))))) AND ((category_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM template_categories tc\n  WHERE ((tc.id = message_templates.category_id) AND (tc.user_id = auth.uid()) AND (tc.situation = message_templates.situation) AND (tc.archived_at IS NULL))))))",
           "roles": [
             "authenticated"
           ],
@@ -2702,14 +3443,36 @@
           "permissive": "PERMISSIVE"
         },
         {
-          "name": "users_own_sales",
+          "name": "sale_orders_select_own",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "sale_orders",
+          "using": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
+          "command": "SELECT",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "name": "sales_select_own",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "sales",
+          "using": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
+          "command": "SELECT",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "name": "sales_update_own",
           "check": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
           "roles": [
             "authenticated"
           ],
           "table": "sales",
           "using": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
-          "command": "ALL",
+          "command": "UPDATE",
           "permissive": "PERMISSIVE"
         },
         {
@@ -2768,6 +3531,39 @@
           "permissive": "PERMISSIVE"
         },
         {
+          "name": "template_categories_entitled_own",
+          "check": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "template_categories",
+          "using": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
+          "command": "ALL",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "name": "template_share_bundles_owner_select",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "template_share_bundles",
+          "using": "((auth.uid() = owner_id) AND has_app_entitlement(auth.uid()))",
+          "command": "SELECT",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "name": "template_share_imports_own_select",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "template_share_imports",
+          "using": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
+          "command": "SELECT",
+          "permissive": "PERMISSIVE"
+        },
+        {
           "name": "user_products_entitled_own",
           "check": "((auth.uid() = user_id) AND has_app_entitlement(auth.uid()))",
           "roles": [
@@ -2817,6 +3613,31 @@
           "definition": "CREATE TRIGGER message_templates_set_updated_at BEFORE UPDATE ON public.message_templates FOR EACH ROW EXECUTE FUNCTION zynergia_set_updated_at()"
         },
         {
+          "name": "message_templates_validate_write",
+          "table": "message_templates",
+          "definition": "CREATE TRIGGER message_templates_validate_write BEFORE INSERT OR UPDATE OF template_id, name, content, situation, category, subcategory, tone, contact_id, origin, category_id ON public.message_templates FOR EACH ROW EXECUTE FUNCTION validate_message_template_write()"
+        },
+        {
+          "name": "partners_refresh_fast_start",
+          "table": "partners",
+          "definition": "CREATE TRIGGER partners_refresh_fast_start AFTER INSERT OR DELETE OR UPDATE OF start_date, partner_user_id ON public.partners FOR EACH ROW EXECUTE FUNCTION refresh_fast_start_after_partner_change()"
+        },
+        {
+          "name": "sales_enforce_client_update",
+          "table": "sales",
+          "definition": "CREATE TRIGGER sales_enforce_client_update BEFORE UPDATE OF status, follow_up_stopped_at ON public.sales FOR EACH ROW EXECUTE FUNCTION enforce_sale_client_update()"
+        },
+        {
+          "name": "settings_refresh_fast_start",
+          "table": "settings",
+          "definition": "CREATE TRIGGER settings_refresh_fast_start AFTER UPDATE OF fast_start_started_at, parent_id ON public.settings FOR EACH ROW WHEN (((new.fast_start_started_at IS DISTINCT FROM old.fast_start_started_at) OR (new.parent_id IS DISTINCT FROM old.parent_id))) EXECUTE FUNCTION refresh_fast_start_after_settings_change()"
+        },
+        {
+          "name": "settings_validate_timezone_write",
+          "table": "settings",
+          "definition": "CREATE TRIGGER settings_validate_timezone_write BEFORE INSERT OR UPDATE OF timezone ON public.settings FOR EACH ROW EXECUTE FUNCTION validate_settings_timezone_write()"
+        },
+        {
           "name": "stripe_access_incidents_set_updated_at",
           "table": "stripe_access_incidents",
           "definition": "CREATE TRIGGER stripe_access_incidents_set_updated_at BEFORE UPDATE ON public.stripe_access_incidents FOR EACH ROW EXECUTE FUNCTION zynergia_set_updated_at()"
@@ -2847,6 +3668,16 @@
           "definition": "CREATE TRIGGER stripe_webhook_events_set_updated_at BEFORE UPDATE ON public.stripe_webhook_events FOR EACH ROW EXECUTE FUNCTION zynergia_set_updated_at()"
         },
         {
+          "name": "tasks_classify_legacy_origin",
+          "table": "tasks",
+          "definition": "CREATE TRIGGER tasks_classify_legacy_origin BEFORE INSERT ON public.tasks FOR EACH ROW EXECUTE FUNCTION classify_legacy_task_origin()"
+        },
+        {
+          "name": "template_categories_set_updated_at",
+          "table": "template_categories",
+          "definition": "CREATE TRIGGER template_categories_set_updated_at BEFORE UPDATE ON public.template_categories FOR EACH ROW EXECUTE FUNCTION zynergia_set_updated_at()"
+        },
+        {
           "name": "user_products_set_updated_at",
           "table": "user_products",
           "definition": "CREATE TRIGGER user_products_set_updated_at BEFORE UPDATE ON public.user_products FOR EACH ROW EXECUTE FUNCTION zynergia_set_updated_at()"
@@ -2859,6 +3690,20 @@
           "definition": "CREATE OR REPLACE FUNCTION public.anonymize_contact(p_contact_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_owner_id uuid;\n  v_sales_preserved integer := 0;\n  v_tasks_deleted integer := 0;\n  v_tasks_scrubbed integer := 0;\n  v_partners_unlinked integer := 0;\n  v_templates_archived integer := 0;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_contact_id is null then\n    raise exception using errcode = '22023', message = 'contact_id_required';\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('zynergia_partner_graph', 0)\n  );\n\n  select user_id\n    into v_owner_id\n    from public.contacts\n   where id = p_contact_id\n   for update;\n\n  -- Repeating a completed deletion is a harmless no-op. An existing contact\n  -- owned by someone else is rejected explicitly below.\n  if not found then\n    return jsonb_build_object(\n      'status', 'already_removed',\n      'contact_id', p_contact_id\n    );\n  end if;\n  if v_owner_id <> v_user_id then\n    raise exception using errcode = '42501', message = 'contact_not_owned';\n  end if;\n\n  -- Keep aggregate sales history but remove the personal link.\n  update public.sales\n     set contact_id = null\n   where user_id = v_user_id\n     and contact_id = p_contact_id;\n  get diagnostics v_sales_preserved = row_count;\n\n  -- Every unfinished task is future work, even when its due date has passed.\n  delete from public.tasks\n   where user_id = v_user_id\n     and contact_id = p_contact_id\n     and not coalesce(completed, false);\n  get diagnostics v_tasks_deleted = row_count;\n\n  -- Preserve completed task counts without retaining the contact identifier or\n  -- a free-text task name that may contain the person's name.\n  update public.tasks\n     set contact_id = null,\n         task_name = case\n           when task_name is null then null\n           else 'Seguimiento de contacto eliminado'\n         end\n   where user_id = v_user_id\n     and contact_id = p_contact_id;\n  get diagnostics v_tasks_scrubbed = row_count;\n\n  -- This migration runs before message_templates is created. Dynamic SQL keeps\n  -- the function installable now and archives contact-specific templates once\n  -- that table exists, without retaining the deleted relationship.\n  if pg_catalog.to_regclass('public.message_templates') is not null then\n    execute\n      'update public.message_templates '\n      || 'set contact_id = null, archived_at = coalesce(archived_at, pg_catalog.now()) '\n      || 'where user_id = $1 and contact_id = $2'\n      using v_user_id, p_contact_id;\n    get diagnostics v_templates_archived = row_count;\n  end if;\n\n  -- A linked account must not keep pointing at a leader after its relationship\n  -- contact is removed.\n  update public.settings child\n     set parent_id = null\n   where child.parent_id = v_user_id\n     and exists (\n       select 1\n         from public.partners relationship\n        where relationship.user_id = v_user_id\n          and relationship.contact_id = p_contact_id\n          and relationship.partner_user_id = child.user_id\n     );\n\n  delete from public.partners\n   where user_id = v_user_id\n     and contact_id = p_contact_id;\n  get diagnostics v_partners_unlinked = row_count;\n\n  delete from public.contacts\n   where id = p_contact_id\n     and user_id = v_user_id;\n\n  return jsonb_build_object(\n    'status', 'anonymized',\n    'contact_id', p_contact_id,\n    'sales_preserved', v_sales_preserved,\n    'tasks_deleted', v_tasks_deleted,\n    'tasks_scrubbed', v_tasks_scrubbed,\n    'templates_archived', v_templates_archived,\n    'partners_unlinked', v_partners_unlinked\n  );\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_contact_id uuid"
+        },
+        {
+          "name": "archive_message_template",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.archive_message_template(p_template_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_template public.message_templates%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  update public.message_templates\n     set archived_at = now(), is_default = false\n   where user_id = v_user_id\n     and template_id = p_template_id\n     and archived_at is null\n  returning * into v_template;\n  if not found then\n    raise exception using errcode = '42501', message = 'template_not_owned_or_missing';\n  end if;\n  return to_jsonb(v_template);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_template_id text"
+        },
+        {
+          "name": "archive_template_category",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.archive_template_category(p_category_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_category public.template_categories%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n\n  select * into v_category\n    from public.template_categories\n   where id = p_category_id\n     and user_id = v_user_id\n     and archived_at is null\n   for update;\n  if not found then\n    raise exception using errcode = '42501', message = 'category_not_owned_or_missing';\n  end if;\n\n  update public.message_templates\n     set category_id = null\n   where user_id = v_user_id\n     and category_id = p_category_id;\n  update public.template_categories\n     set archived_at = now()\n   where id = p_category_id\n     and user_id = v_user_id\n  returning * into v_category;\n\n  return to_jsonb(v_category);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_category_id uuid"
         },
         {
           "name": "assert_stripe_connect_checkout_ready",
@@ -2875,6 +3720,20 @@
           "identity_arguments": "p_user_id uuid, p_operation_id uuid"
         },
         {
+          "name": "bulk_anonymize_contacts",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.bulk_anonymize_contacts(p_operation_id uuid, p_contact_ids uuid[])\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_ids uuid[];\n  v_request_hash text;\n  v_previous public.contact_batch_operations%rowtype;\n  v_contact_id uuid;\n  v_result jsonb;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null then\n    raise exception using errcode = '22023', message = 'operation_id_required';\n  end if;\n  select pg_catalog.array_agg(id order by id) into v_ids\n    from (select distinct pg_catalog.unnest(p_contact_ids) as id) selected;\n  if coalesce(pg_catalog.cardinality(v_ids), 0) < 1 or pg_catalog.cardinality(v_ids) > 1000 then\n    raise exception using errcode = '22023', message = 'contact_ids_must_have_1_to_1000_items';\n  end if;\n  v_request_hash := encode(extensions.digest(pg_catalog.convert_to(\n    jsonb_build_object('contact_ids', to_jsonb(v_ids))::text,\n    'UTF8'\n  ), 'sha256'), 'hex');\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_batch:' || v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n  select * into v_previous\n    from public.contact_batch_operations\n   where user_id = v_user_id and operation_id = p_operation_id;\n  if found then\n    if v_previous.operation_kind <> 'anonymize' or v_previous.request_hash <> v_request_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_contact_batch';\n    end if;\n    return v_previous.result;\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_bulk:' || v_user_id::text, 0)\n  );\n  if (select count(*) from public.contacts where user_id = v_user_id and id = any(v_ids)) <> pg_catalog.cardinality(v_ids) then\n    raise exception using errcode = '42501', message = 'contact_not_owned_or_missing';\n  end if;\n  if exists (\n    select 1 from public.partners\n     where user_id = v_user_id and contact_id = any(v_ids) and partner_user_id is not null\n  ) then\n    raise exception using errcode = '23514', message = 'linked_partner_delete_protected';\n  end if;\n\n  foreach v_contact_id in array v_ids loop\n    perform public.anonymize_contact(v_contact_id);\n  end loop;\n\n  v_result := jsonb_build_object(\n    'status', 'completed',\n    'anonymized', pg_catalog.cardinality(v_ids)\n  );\n  insert into public.contact_batch_operations (\n    user_id, operation_id, operation_kind, request_hash, result\n  ) values (v_user_id, p_operation_id, 'anonymize', v_request_hash, v_result);\n  return v_result;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_contact_ids uuid[]"
+        },
+        {
+          "name": "bulk_update_contact_type",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.bulk_update_contact_type(p_operation_id uuid, p_contact_ids uuid[], p_contact_type text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_ids uuid[];\n  v_request_hash text;\n  v_previous public.contact_batch_operations%rowtype;\n  v_contact public.contacts%rowtype;\n  v_days integer;\n  v_changed integer := 0;\n  v_result jsonb;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null then\n    raise exception using errcode = '22023', message = 'operation_id_required';\n  end if;\n  if p_contact_type is not null and p_contact_type not in (\n    'prospecto_producto', 'prospecto_partner', 'cliente_producto', 'partner'\n  ) then\n    raise exception using errcode = '22023', message = 'invalid_contact_type';\n  end if;\n\n  select pg_catalog.array_agg(id order by id) into v_ids\n    from (select distinct pg_catalog.unnest(p_contact_ids) as id) selected;\n  if coalesce(pg_catalog.cardinality(v_ids), 0) < 1 or pg_catalog.cardinality(v_ids) > 1000 then\n    raise exception using errcode = '22023', message = 'contact_ids_must_have_1_to_1000_items';\n  end if;\n  v_request_hash := encode(extensions.digest(pg_catalog.convert_to(\n    jsonb_build_object('contact_ids', to_jsonb(v_ids), 'contact_type', p_contact_type)::text,\n    'UTF8'\n  ), 'sha256'), 'hex');\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_batch:' || v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n  select * into v_previous\n    from public.contact_batch_operations\n   where user_id = v_user_id and operation_id = p_operation_id;\n  if found then\n    if v_previous.operation_kind <> 'change_type' or v_previous.request_hash <> v_request_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_contact_batch';\n    end if;\n    return v_previous.result;\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_bulk:' || v_user_id::text, 0)\n  );\n  if (select count(*) from public.contacts where user_id = v_user_id and id = any(v_ids)) <> pg_catalog.cardinality(v_ids) then\n    raise exception using errcode = '42501', message = 'contact_not_owned_or_missing';\n  end if;\n  if p_contact_type is distinct from 'partner' and exists (\n    select 1 from public.partners\n     where user_id = v_user_id and contact_id = any(v_ids) and partner_user_id is not null\n  ) then\n    raise exception using errcode = '23514', message = 'linked_partner_type_protected';\n  end if;\n\n  for v_contact in\n    select * from public.contacts\n     where user_id = v_user_id and id = any(v_ids)\n     order by id for update\n  loop\n    if v_contact.contact_type is not distinct from p_contact_type then\n      continue;\n    end if;\n\n    if v_contact.contact_type in ('prospecto_produto', 'prospecto_producto') then\n      delete from public.tasks\n       where user_id = v_user_id and contact_id = v_contact.id\n         and origin = 'contact_automation'\n         and task_area = 'prospecto_producto' and not coalesce(completed, false);\n    end if;\n    if v_contact.contact_type = 'prospecto_partner' then\n      delete from public.tasks\n       where user_id = v_user_id and contact_id = v_contact.id\n         and origin = 'contact_automation'\n         and task_area = 'prospecto_partner' and not coalesce(completed, false);\n    end if;\n    if v_contact.contact_type = 'partner' and p_contact_type is distinct from 'partner' then\n      delete from public.tasks\n       where user_id = v_user_id and contact_id = v_contact.id\n         and origin = 'partner_automation'\n         and task_area = 'partner' and not coalesce(completed, false);\n      delete from public.partners\n       where user_id = v_user_id and contact_id = v_contact.id and partner_user_id is null;\n    end if;\n    if p_contact_type not in ('cliente_producto', 'partner') or p_contact_type is null then\n      delete from public.tasks\n       where user_id = v_user_id and contact_id = v_contact.id\n         and origin = 'contact_automation'\n         and task_area = 'referidos' and not coalesce(completed, false);\n    end if;\n\n    update public.contacts set contact_type = p_contact_type\n     where id = v_contact.id and user_id = v_user_id;\n\n    if p_contact_type in ('prospecto_producto', 'prospecto_partner') then\n      for v_days in select value from unnest(array[0, 3, 7, 12, 18, 25]) as value loop\n        insert into public.tasks (\n          user_id, contact_id, category, subcategory, template_subcategory,\n          task_name, task_area, due_date, completed, origin\n        ) values (\n          v_user_id,\n          v_contact.id,\n          'seguimiento',\n          p_contact_type || '_msg_' || (array_position(array[0, 3, 7, 12, 18, 25], v_days))::text,\n          p_contact_type || '_msg_' || (array_position(array[0, 3, 7, 12, 18, 25], v_days))::text,\n          case p_contact_type\n            when 'prospecto_producto' then 'Prospecto Producto – Seguimiento ' || (array_position(array[0, 3, 7, 12, 18, 25], v_days))::text\n            else 'Prospecto Partner – Seguimiento ' || (array_position(array[0, 3, 7, 12, 18, 25], v_days))::text\n          end,\n          p_contact_type,\n          current_date + v_days,\n          false,\n          'contact_automation'\n        );\n      end loop;\n    end if;\n\n    if p_contact_type = 'partner' then\n      if not exists (\n        select 1 from public.partners where user_id = v_user_id and contact_id = v_contact.id\n      ) then\n        insert into public.partners (\n          user_id, contact_id, start_date, fast_start_deadline, fast_start_status,\n          fase_actual, qteam_completed, fs_level1_completed, fs_level2_completed,\n          xteam_completed\n        ) values (\n          v_user_id, v_contact.id, current_date, current_date + 120, 'activo',\n          1, false, false, false, false\n        );\n      end if;\n      if not exists (\n        select 1 from public.tasks where user_id = v_user_id and contact_id = v_contact.id\n          and origin = 'partner_automation'\n          and task_area = 'partner' and not coalesce(completed, false)\n      ) then\n        insert into public.tasks (\n          user_id, contact_id, category, subcategory, template_subcategory,\n          task_name, task_area, due_date, completed, origin\n        ) values (\n          v_user_id, v_contact.id, 'seguimiento', 'partner_invitar_zynergia',\n          'partner_invitar_zynergia', 'Invitar a Zynergia para ver su avance real',\n          'partner', current_date, false, 'partner_automation'\n        );\n      end if;\n    end if;\n\n    if p_contact_type in ('cliente_producto', 'partner') and not exists (\n      select 1 from public.tasks where user_id = v_user_id and contact_id = v_contact.id\n        and origin = 'contact_automation'\n        and task_area = 'referidos' and not coalesce(completed, false)\n    ) then\n      insert into public.tasks (\n        user_id, contact_id, category, subcategory, template_subcategory,\n        task_name, task_area, due_date, completed, origin\n      ) values (\n        v_user_id, v_contact.id, 'seguimiento', 'referido', 'referido',\n        'Pedir referido', 'referidos',\n        greatest(current_date, coalesce(v_contact.created_at::date, current_date) + 30), false,\n        'contact_automation'\n      );\n    end if;\n\n    v_changed := v_changed + 1;\n  end loop;\n\n  v_result := jsonb_build_object('status', 'completed', 'changed', v_changed);\n  insert into public.contact_batch_operations (\n    user_id, operation_id, operation_kind, request_hash, result\n  ) values (v_user_id, p_operation_id, 'change_type', v_request_hash, v_result);\n  return v_result;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_contact_ids uuid[], p_contact_type text"
+        },
+        {
           "name": "claim_billing_account",
           "result": "jsonb",
           "definition": "CREATE OR REPLACE FUNCTION public.claim_billing_account(p_user_id uuid, p_email text, p_expected_stripe_customer_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_email text := nullif(lower(btrim(p_email)), '');\n  v_account public.billing_accounts%rowtype;\nbegin\n  if v_email is null then\n    raise exception 'verified_email_required';\n  end if;\n  if p_user_id is null or not exists (\n    select 1\n      from auth.users\n     where id = p_user_id\n       and lower(email) = v_email\n       and email_confirmed_at is not null\n  ) then\n    raise exception 'invalid_user';\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_email, 0));\n\n  select *\n    into v_account\n    from public.billing_accounts\n   where user_id = p_user_id\n     and anonymized_at is null\n   for update;\n\n  if found then\n    if not v_account.entitlement_eligible\n       and v_account.subscription_status in ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete') then\n      return jsonb_build_object('status', 'conflict', 'reason', 'unsupported_price');\n    end if;\n    return jsonb_build_object(\n      'status', 'existing',\n      'stripe_customer_id', v_account.stripe_customer_id,\n      'stripe_subscription_id', v_account.stripe_subscription_id\n    );\n  end if;\n\n  if p_expected_stripe_customer_id is null then\n    return jsonb_build_object('status', 'validation_required');\n  end if;\n  if p_expected_stripe_customer_id !~ '^cus_' then\n    raise exception 'invalid_expected_stripe_customer_id';\n  end if;\n\n  select *\n    into v_account\n    from public.billing_accounts\n   where stripe_customer_id = p_expected_stripe_customer_id\n   for update;\n\n  if not found or v_account.anonymized_at is not null then\n    return jsonb_build_object('status', 'not_found');\n  end if;\n  if v_account.user_id is not null then\n    return jsonb_build_object('status', 'conflict', 'reason', 'billing_account_already_owned');\n  end if;\n  if v_account.claim_email is distinct from v_email then\n    return jsonb_build_object('status', 'conflict', 'reason', 'validated_customer_email_mismatch');\n  end if;\n  if not v_account.entitlement_eligible\n     and v_account.subscription_status in ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete') then\n    return jsonb_build_object('status', 'conflict', 'reason', 'unsupported_price');\n  end if;\n\n  update public.billing_accounts\n     set user_id = p_user_id,\n         claim_email = null\n   where id = v_account.id\n     and user_id is null\n   returning * into v_account;\n\n  if not found then\n    return jsonb_build_object('status', 'conflict', 'reason', 'billing_claim_race');\n  end if;\n\n  perform public.refresh_stripe_access_grant(v_account.stripe_customer_id);\n\n  return jsonb_build_object(\n    'status', 'claimed',\n    'stripe_customer_id', v_account.stripe_customer_id,\n    'stripe_subscription_id', v_account.stripe_subscription_id\n  );\nend;\n$function$\n",
@@ -2889,11 +3748,25 @@
           "identity_arguments": "p_limit integer"
         },
         {
+          "name": "claim_push_notifications",
+          "result": "TABLE(notification_id uuid, user_id uuid, title text, body text, route text, dedupe_key text, attempt_count integer)",
+          "definition": "CREATE OR REPLACE FUNCTION public.claim_push_notifications(p_limit integer DEFAULT 50)\n RETURNS TABLE(notification_id uuid, user_id uuid, title text, body text, route text, dedupe_key text, attempt_count integer)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  -- A preference or entitlement can change after a row was queued. Do not send\n  -- stale work, including an abandoned lease from a previous worker.\n  update public.notifications n\n     set delivery_status = 'skipped',\n         delivery_lease_until = null,\n         delivery_next_attempt_at = null,\n         delivery_error_code = 'push_not_allowed'\n   where n.channel = 'push'\n     and (\n       n.delivery_status = 'pending'\n       or (\n         n.delivery_status = 'sending'\n         and coalesce(n.delivery_lease_until, '-infinity'::timestamptz) <= now()\n       )\n     )\n     and not (\n       exists (\n         select 1\n           from public.access_grants access_grant\n          where access_grant.user_id = n.user_id\n            and access_grant.status in ('active', 'grace')\n            and access_grant.revoked_at is null\n            and (access_grant.access_until is null or access_grant.access_until > now())\n       )\n       and exists (\n         select 1\n           from public.settings s\n          where s.user_id = n.user_id\n            and s.notifications_enabled is true\n            and s.push_consent_given\n            and case\n              when n.dedupe_key like 'daily:%' then s.daily_summary_enabled\n              when n.dedupe_key like 'fast-start:%' then s.fast_start_notifications_enabled\n              else s.task_notifications_enabled\n            end\n       )\n     );\n\n  update public.notifications n\n     set delivery_status = 'failed',\n         delivery_lease_until = null,\n         delivery_next_attempt_at = null,\n         delivery_error_code = 'maximum_delivery_attempts_reached'\n   where n.channel = 'push'\n     and n.delivery_attempt_count >= 5\n     and (\n       n.delivery_status = 'pending'\n       or (\n         n.delivery_status = 'sending'\n         and coalesce(n.delivery_lease_until, '-infinity'::timestamptz) <= now()\n       )\n     );\n\n  return query\n  with due as (\n    select n.id\n      from public.notifications n\n     where n.channel = 'push'\n       and (\n         (\n           n.delivery_status = 'pending'\n           and coalesce(n.delivery_next_attempt_at, '-infinity'::timestamptz) <= now()\n         )\n         or (\n           n.delivery_status = 'sending'\n           and coalesce(n.delivery_lease_until, '-infinity'::timestamptz) <= now()\n         )\n       )\n       and n.delivery_attempt_count < 5\n       and coalesce(n.scheduled_for, n.created_at) <= now()\n       and exists (\n         select 1\n           from public.access_grants access_grant\n          where access_grant.user_id = n.user_id\n            and access_grant.status in ('active', 'grace')\n            and access_grant.revoked_at is null\n            and (access_grant.access_until is null or access_grant.access_until > now())\n       )\n       and exists (\n         select 1\n           from public.settings s\n          where s.user_id = n.user_id\n            and s.notifications_enabled is true\n            and s.push_consent_given\n            and case\n              when n.dedupe_key like 'daily:%' then s.daily_summary_enabled\n              when n.dedupe_key like 'fast-start:%' then s.fast_start_notifications_enabled\n              else s.task_notifications_enabled\n            end\n       )\n     order by coalesce(n.scheduled_for, n.created_at), n.created_at\n     for update skip locked\n     limit greatest(1, least(coalesce(p_limit, 50), 200))\n  ), claimed as (\n    update public.notifications n\n       set delivery_status = 'sending',\n           delivery_attempted_at = now(),\n           delivery_attempt_count = n.delivery_attempt_count + 1,\n           delivery_lease_until = now() + interval '2 minutes',\n           delivery_next_attempt_at = null,\n           delivery_error_code = null\n      from due\n     where n.id = due.id\n    returning n.*\n  )\n  select claimed.id, claimed.user_id, claimed.title, claimed.body,\n         claimed.route, claimed.dedupe_key, claimed.delivery_attempt_count\n    from claimed;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_limit integer"
+        },
+        {
           "name": "claim_stripe_webhook_event",
           "result": "boolean",
           "definition": "CREATE OR REPLACE FUNCTION public.claim_stripe_webhook_event(p_event_id text, p_event_type text, p_event_created_at timestamp with time zone, p_payload_sha256 text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_rows integer;\n  v_existing_hash text;\nbegin\n  if p_event_id is null or p_payload_sha256 !~ '^[0-9a-f]{64}$' then\n    raise exception 'invalid_webhook_event';\n  end if;\n\n  insert into public.stripe_webhook_events (\n    event_id, event_type, event_created_at, payload_sha256\n  ) values (\n    p_event_id, p_event_type, p_event_created_at, p_payload_sha256\n  )\n  on conflict (event_id) do nothing;\n  get diagnostics v_rows = row_count;\n  if v_rows = 1 then\n    return true;\n  end if;\n\n  select payload_sha256\n    into v_existing_hash\n    from public.stripe_webhook_events\n   where event_id = p_event_id;\n  if v_existing_hash is distinct from p_payload_sha256 then\n    raise exception 'webhook_event_hash_mismatch';\n  end if;\n\n  update public.stripe_webhook_events\n     set status = 'processing',\n         attempt_count = attempt_count + 1,\n         locked_at = now(),\n         processed_at = null,\n         last_error = null\n   where event_id = p_event_id\n     and (\n       status = 'failed'\n       or (status = 'processing' and locked_at < now() - interval '5 minutes')\n     );\n  get diagnostics v_rows = row_count;\n  return v_rows = 1;\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_event_id text, p_event_type text, p_event_created_at timestamp with time zone, p_payload_sha256 text"
+        },
+        {
+          "name": "classify_legacy_task_origin",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.classify_legacy_task_origin()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.origin is null or new.origin = 'legacy' then\n    new.origin := case\n      when new.task_area = 'manual' then 'manual'\n      when new.task_area = 'prospecto_producto'\n        and new.template_subcategory ~ '^prospecto_producto_msg_[1-6]$'\n        and new.task_name like 'Prospecto Producto – %'\n        then 'contact_automation'\n      when new.task_area = 'prospecto_partner'\n        and new.template_subcategory ~ '^prospecto_partner_msg_[1-6]$'\n        and new.task_name like 'Prospecto Partner – %'\n        then 'contact_automation'\n      when new.task_area = 'partner'\n        and (\n          (\n            new.template_subcategory = 'partner_invitar_zynergia'\n            and new.task_name = 'Invitar a Zynergia para ver su avance real'\n          )\n          or (\n            new.template_subcategory in (\n              'partner_smart_qteam', 'partner_smart_fs1', 'partner_smart_fs2',\n              'partner_smart_xteam', 'partner_smart_checkin'\n            )\n            and new.task_name is distinct from 'Partner / Fast Start'\n          )\n        ) then 'partner_automation'\n      when new.product_id is not null and (\n        (new.subcategory = 'dia_3' and new.template_subcategory = 'producto_dia_3'\n          and new.task_name = 'Bienvenida Día 3')\n        or (new.subcategory = '7_dias_antes' and new.template_subcategory = 'producto_7_dias_antes'\n          and new.task_name = 'Recompra 7 días antes')\n        or (new.subcategory = '3_dias_antes' and new.template_subcategory = 'producto_3_dias_antes'\n          and new.task_name = 'Recompra 3 días antes')\n        or (new.subcategory = '5_dias_despues' and new.template_subcategory = 'producto_5_dias_despues'\n          and new.task_name = 'Recompra 5 días después')\n        or (new.subcategory = 'reactivacion' and new.template_subcategory = 'producto_reactivacion'\n          and new.task_name = 'Reactivación')\n      ) then 'sale_automation'\n      else 'legacy'\n    end;\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": ""
         },
         {
           "name": "complete_account_deletion",
@@ -2924,11 +3797,39 @@
           "identity_arguments": "p_event_id text"
         },
         {
+          "name": "create_template_share",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.create_template_share(p_operation_id uuid, p_template_ids text[])\n RETURNS jsonb\n LANGUAGE sql\n SET search_path TO ''\nAS $function$\n  select public.create_template_share_bundle(p_operation_id, p_template_ids);\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": "p_operation_id uuid, p_template_ids text[]"
+        },
+        {
+          "name": "create_template_share_bundle",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.create_template_share_bundle(p_operation_id uuid, p_template_ids text[])\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_template_ids text[];\n  v_request_hash text;\n  v_snapshot jsonb;\n  v_token text;\n  v_bundle public.template_share_bundles%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null then\n    raise exception using errcode = '22023', message = 'operation_id_required';\n  end if;\n  if coalesce(cardinality(p_template_ids), 0) not between 1 and 120\n     or exists (\n       select 1\n         from unnest(coalesce(p_template_ids, array[]::text[])) as item(template_id)\n        where char_length(btrim(coalesce(item.template_id, ''))) not between 1 and 200\n     ) then\n    raise exception using errcode = '22023', message = 'template_ids_must_be_1_to_120_unique_values';\n  end if;\n  select array_agg(template_id order by template_id)\n    into v_template_ids\n    from (\n      select distinct btrim(item.template_id) as template_id\n        from unnest(coalesce(p_template_ids, array[]::text[])) as item(template_id)\n       where nullif(btrim(item.template_id), '') is not null\n    ) selected;\n  if cardinality(v_template_ids) <> cardinality(p_template_ids) then\n    raise exception using errcode = '22023', message = 'template_ids_must_be_1_to_120_unique_values';\n  end if;\n\n  v_request_hash := encode(\n    extensions.digest(\n      convert_to(array_to_string(v_template_ids, chr(31)), 'UTF8'),\n      'sha256'\n    ),\n    'hex'\n  );\n  v_token := encode(\n    extensions.digest(\n      convert_to('template-share:' || v_user_id::text || ':' || p_operation_id::text, 'UTF8'),\n      'sha256'\n    ),\n    'hex'\n  );\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('template_share:' || v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n  select * into v_bundle\n    from public.template_share_bundles\n   where owner_id = v_user_id and operation_id = p_operation_id;\n  if found then\n    if v_bundle.request_hash <> v_request_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_templates';\n    end if;\n    return jsonb_build_object(\n      'id', v_bundle.id,\n      'token', v_token,\n      'expires_at', v_bundle.expires_at,\n      'created_at', v_bundle.created_at,\n      'created', false\n    );\n  end if;\n\n  select jsonb_agg(\n    jsonb_build_object(\n      'name', btrim(template.name),\n      'content', template.content,\n      'situation', template.situation,\n      'tone', template.tone,\n      'category_name', category.name\n    ) order by selected.ordinality\n  ) into v_snapshot\n    from unnest(v_template_ids) with ordinality selected(template_id, ordinality)\n    join public.message_templates template\n      on template.template_id = selected.template_id\n     and template.user_id = v_user_id\n     and template.archived_at is null\n    left join public.template_categories category\n      on category.id = template.category_id\n     and category.user_id = v_user_id\n     and category.situation = template.situation\n     and category.archived_at is null\n   where char_length(btrim(coalesce(template.name, ''))) between 1 and 100\n     and char_length(coalesce(template.content, '')) between 1 and 5000\n     and template.situation in (\n       'repurchase', 'product', 'product-prospect', 'business',\n       'fast-start', 'referral', 'manual'\n     )\n     and coalesce(template.tone, '') ~ '^[a-z0-9_-]{1,30}$'\n     and regexp_replace(\n       template.content,\n       '\\{\\{(contact\\.full_name|product\\.name|product\\.link_url)\\}\\}',\n       '',\n       'g'\n     ) !~ '\\{\\{[^{}]+\\}\\}';\n\n  if coalesce(jsonb_array_length(v_snapshot), 0) <> cardinality(v_template_ids) then\n    raise exception using errcode = '42501', message = 'template_not_owned_missing_or_invalid';\n  end if;\n\n  insert into public.template_share_bundles (\n    owner_id, operation_id, request_hash, token_hash, snapshot\n  )\n  values (\n    v_user_id,\n    p_operation_id,\n    v_request_hash,\n    encode(extensions.digest(v_token, 'sha256'), 'hex'),\n    v_snapshot\n  )\n  returning * into v_bundle;\n\n  return jsonb_build_object(\n    'id', v_bundle.id,\n    'token', v_token,\n    'expires_at', v_bundle.expires_at,\n    'created_at', v_bundle.created_at,\n    'created', true\n  );\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_template_ids text[]"
+        },
+        {
           "name": "delete_user_data",
           "result": "void",
-          "definition": "CREATE OR REPLACE FUNCTION public.delete_user_data(p_request_id uuid, p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_request public.account_deletion_requests%rowtype;\n  v_table text;\nbegin\n  select *\n    into v_request\n    from public.account_deletion_requests\n   where id = p_request_id\n   for update;\n\n  if not found or v_request.user_id is distinct from p_user_id then\n    raise exception 'invalid_deletion_request';\n  end if;\n  if v_request.status = 'completed' then\n    return;\n  end if;\n\n  if to_regclass('public.partners') is not null\n     and exists (\n       select 1 from information_schema.columns\n        where table_schema = 'public' and table_name = 'partners' and column_name = 'partner_user_id'\n     ) then\n    execute 'update public.partners set partner_user_id = null where partner_user_id = $1'\n      using p_user_id;\n  end if;\n\n  if to_regclass('public.settings') is not null\n     and exists (\n       select 1 from information_schema.columns\n        where table_schema = 'public' and table_name = 'settings' and column_name = 'parent_id'\n     ) then\n    execute 'update public.settings set parent_id = null where parent_id = $1'\n      using p_user_id;\n  end if;\n\n  foreach v_table in array array[\n    'tasks', 'sales', 'partners', 'contacts', 'tags', 'product_links',\n    'user_templates', 'user_products', 'message_templates', 'notifications', 'settings'\n  ] loop\n    if to_regclass('public.' || v_table) is not null\n       and exists (\n         select 1 from information_schema.columns\n          where table_schema = 'public' and table_name = v_table and column_name = 'user_id'\n       ) then\n      execute format('delete from public.%I where user_id = $1', v_table)\n        using p_user_id;\n    end if;\n  end loop;\n\n  delete from public.access_grants where user_id = p_user_id;\n  update public.billing_accounts\n     set user_id = null,\n         claim_email = null,\n         operation_id = null,\n         operation_expires_at = null,\n         anonymized_at = coalesce(anonymized_at, now())\n   where user_id = p_user_id;\n\n  update public.account_deletion_requests\n     set status = 'data_deleted', failure_code = null\n   where id = p_request_id;\nend;\n$function$\n",
+          "definition": "CREATE OR REPLACE FUNCTION public.delete_user_data(p_request_id uuid, p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_request public.account_deletion_requests%rowtype;\n  v_table text;\nbegin\n  select *\n    into v_request\n    from public.account_deletion_requests\n   where id = p_request_id\n   for update;\n\n  if not found or v_request.user_id is distinct from p_user_id then\n    raise exception 'invalid_deletion_request';\n  end if;\n  if v_request.status = 'completed' then\n    return;\n  end if;\n\n  if pg_catalog.to_regclass('public.partners') is not null then\n    update public.partners set partner_user_id = null where partner_user_id = p_user_id;\n  end if;\n  if pg_catalog.to_regclass('public.settings') is not null then\n    update public.settings set parent_id = null where parent_id = p_user_id;\n  end if;\n\n  foreach v_table in array array[\n    'tasks', 'sales', 'partners', 'contacts', 'tags', 'product_links',\n    'user_templates', 'user_products', 'message_templates', 'notifications',\n    'template_share_imports', 'template_categories', 'sale_orders',\n    'contact_batch_operations', 'settings'\n  ] loop\n    if pg_catalog.to_regclass('public.' || v_table) is not null\n       and exists (\n         select 1 from information_schema.columns\n          where table_schema = 'public' and table_name = v_table and column_name = 'user_id'\n       ) then\n      execute pg_catalog.format('delete from public.%I where user_id = $1', v_table)\n        using p_user_id;\n    end if;\n  end loop;\n\n  if pg_catalog.to_regclass('public.template_share_bundles') is not null then\n    delete from public.template_share_bundles where owner_id = p_user_id;\n  end if;\n\n  delete from public.access_grants where user_id = p_user_id;\n  update public.billing_accounts\n     set user_id = null,\n         claim_email = null,\n         operation_id = null,\n         operation_expires_at = null,\n         anonymized_at = coalesce(anonymized_at, now())\n   where user_id = p_user_id;\n\n  update public.account_deletion_requests\n     set status = 'data_deleted', failure_code = null\n   where id = p_request_id;\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_request_id uuid, p_user_id uuid"
+        },
+        {
+          "name": "enforce_sale_client_update",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.enforce_sale_client_update()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if new.status is distinct from old.status\n     and not (\n       coalesce(old.status, '') = 'active'\n       and coalesce(new.status, '') = 'cancelled'\n     ) then\n    raise exception using errcode = '42501', message = 'sale_status_transition_not_allowed';\n  end if;\n  if old.follow_up_stopped_at is not null\n     and new.follow_up_stopped_at is distinct from old.follow_up_stopped_at then\n    raise exception using errcode = '42501', message = 'sale_follow_up_cannot_be_restarted';\n  end if;\n\n  -- Released 1.1.1 clients used status='cancelled' as their only way to stop\n  -- reminders. Stamp that legacy intent so v2 can preserve the sale for Fast\n  -- Start while the old UI still sees the state it expects. Historical rows\n  -- that were already cancelled keep a null marker and remain excluded.\n  if old.status = 'active' and new.status = 'cancelled' then\n    new.follow_up_stopped_at := coalesce(old.follow_up_stopped_at, now());\n    -- 1.1.1 deletes these rows from the client after changing status. Do the\n    -- same work atomically so a disconnect between those calls cannot leave\n    -- reminders behind. Manual, completed, overdue and historical rows stay.\n    delete from public.tasks\n     where user_id = old.user_id\n       and contact_id is not distinct from old.contact_id\n       and product_id is not distinct from old.product_id\n       and origin = 'sale_automation'\n       and not coalesce(completed, false)\n       and due_date >= current_date\n       and category in ('recompra', 'reactivacion');\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": ""
+        },
+        {
+          "name": "enqueue_due_daily_summaries",
+          "result": "integer",
+          "definition": "CREATE OR REPLACE FUNCTION public.enqueue_due_daily_summaries(p_now timestamp with time zone DEFAULT now())\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_inserted integer;\nbegin\n  with candidates as (\n    select s.user_id,\n           s.timezone,\n           (p_now at time zone s.timezone)::date as local_day,\n           (((p_now at time zone s.timezone)::date + s.daily_summary_time) at time zone s.timezone) as scheduled_for\n      from public.settings s\n      join pg_catalog.pg_timezone_names zone on zone.name = s.timezone\n     where s.notifications_enabled is true\n       and s.push_consent_given\n       and s.daily_summary_enabled\n       and exists (\n         select 1\n           from public.access_grants access_grant\n          where access_grant.user_id = s.user_id\n            and access_grant.status in ('active', 'grace')\n            and access_grant.revoked_at is null\n            and (access_grant.access_until is null or access_grant.access_until > p_now)\n       )\n  ), due as (\n    select candidate.*,\n           count(task.id)::integer as task_count\n      from candidates candidate\n      left join public.tasks task\n        on task.user_id = candidate.user_id\n       and not coalesce(task.completed, false)\n       and task.due_date <= candidate.local_day\n     where candidate.scheduled_for <= p_now\n       and candidate.scheduled_for > p_now - interval '70 minutes'\n     group by candidate.user_id, candidate.timezone, candidate.local_day, candidate.scheduled_for\n  )\n  insert into public.notifications (\n    user_id, title, body, type, related_entity_type, is_read, created_date,\n    channel, route, dedupe_key, scheduled_for, delivery_status\n  )\n  select due.user_id,\n         case when due.task_count = 0 then 'Hoy estás al día'\n              when due.task_count = 1 then '1 tarea pendiente'\n              else due.task_count::text || ' tareas pendientes' end,\n         case when due.task_count = 0 then 'No tienes tareas pendientes para este día.'\n              else 'Abre Hoy para avanzar con tus seguimientos.' end,\n         'daily_summary', 'tasks', false, due.local_day::text,\n         'push', '/Tasks', 'daily:' || due.local_day::text,\n         due.scheduled_for, 'pending'\n    from due\n  on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n\n  get diagnostics v_inserted = row_count;\n  return v_inserted;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_now timestamp with time zone"
         },
         {
           "name": "ensure_partner_code",
@@ -2959,11 +3860,32 @@
           "identity_arguments": "p_event_id text, p_last_error text"
         },
         {
+          "name": "finish_push_notification",
+          "result": "text",
+          "definition": "CREATE OR REPLACE FUNCTION public.finish_push_notification(p_notification_id uuid, p_attempt_count integer, p_sent boolean, p_provider_message_id text DEFAULT NULL::text, p_error_code text DEFAULT NULL::text)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_status text;\nbegin\n  update public.notifications\n     set delivery_status = case when p_sent then 'sent'\n                                when p_error_code = 'no_subscribed_device' then 'skipped'\n                                when p_error_code like 'retryable:%'\n                                  and delivery_attempt_count < 5 then 'pending'\n                                else 'failed' end,\n         provider_message_id = case when p_sent then left(p_provider_message_id, 200) else null end,\n         delivery_next_attempt_at = case\n           when not p_sent\n             and p_error_code like 'retryable:%'\n             and delivery_attempt_count < 5\n           then now() + case\n             when delivery_attempt_count <= 1 then interval '1 minute'\n             when delivery_attempt_count = 2 then interval '5 minutes'\n             when delivery_attempt_count = 3 then interval '15 minutes'\n             else interval '1 hour'\n           end\n           else null\n         end,\n         delivery_lease_until = null,\n         delivery_error_code = case when p_sent then null else left(coalesce(p_error_code, 'provider_error'), 120) end\n   where id = p_notification_id\n     and delivery_status = 'sending'\n     and delivery_attempt_count = p_attempt_count\n  returning delivery_status into v_status;\n\n  return v_status;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_notification_id uuid, p_attempt_count integer, p_sent boolean, p_provider_message_id text, p_error_code text"
+        },
+        {
           "name": "get_access_snapshot",
           "result": "jsonb",
           "definition": "CREATE OR REPLACE FUNCTION public.get_access_snapshot(p_user_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_billing public.billing_accounts%rowtype;\n  v_grant public.access_grants%rowtype;\n  v_onboarding timestamptz;\n  v_deletion_at timestamptz;\nbegin\n  select *\n    into v_billing\n    from public.billing_accounts\n   where user_id = p_user_id\n     and anonymized_at is null\n   limit 1;\n\n  select *\n    into v_grant\n    from public.access_grants\n   where user_id = p_user_id\n     and status in ('active', 'grace')\n     and revoked_at is null\n     and (access_until is null or access_until > now())\n   order by case status when 'active' then 0 else 1 end, access_until desc nulls first\n   limit 1;\n\n  if to_regclass('public.settings') is not null then\n    execute 'select onboarding_completed_at from public.settings where user_id = $1 limit 1'\n      into v_onboarding\n      using p_user_id;\n  end if;\n\n  select execute_at\n    into v_deletion_at\n    from public.account_deletion_requests\n   where user_id = p_user_id\n     and status in ('scheduling', 'scheduled', 'processing', 'failed')\n   limit 1;\n\n  return jsonb_build_object(\n    'billing', case when v_billing.id is null then null else jsonb_build_object(\n      'stripe_customer_id', v_billing.stripe_customer_id,\n      'stripe_subscription_id', v_billing.stripe_subscription_id,\n      'price_id', v_billing.price_id,\n      'entitlement_eligible', v_billing.entitlement_eligible,\n      'subscription_status', v_billing.subscription_status,\n      'current_period_end', v_billing.current_period_end,\n      'grace_until', v_billing.grace_until,\n      'scheduled_cancel_at', v_billing.scheduled_cancel_at,\n      'cancel_at_period_end', v_billing.cancel_at_period_end,\n      'access_blocked_reason', v_billing.access_blocked_reason\n    ) end,\n    'access', jsonb_build_object(\n      'entitled', v_grant.id is not null,\n      'state', case\n        when v_grant.id is null then 'inactive'\n        when v_grant.source = 'manual' and v_grant.status = 'active' then 'complimentary'\n        else v_grant.status\n      end,\n      'access_until', v_grant.access_until\n    ),\n    'onboarding_completed_at', v_onboarding,\n    'deletion_scheduled_for', v_deletion_at\n  );\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_user_id uuid"
+        },
+        {
+          "name": "get_fast_start_snapshots_v2",
+          "result": "TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)",
+          "definition": "CREATE OR REPLACE FUNCTION public.get_fast_start_snapshots_v2(p_user_ids uuid[])\n RETURNS TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(auth.uid()) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if exists (\n    select 1\n      from unnest(coalesce(p_user_ids, array[]::uuid[])) requested(user_id)\n     where requested.user_id is not null\n       and requested.user_id <> auth.uid()\n       and not exists (\n         select 1\n           from public.partners relationship\n          where relationship.user_id = auth.uid()\n            and relationship.partner_user_id = requested.user_id\n       )\n  ) then\n    raise exception using errcode = '42501', message = 'partner_access_denied';\n  end if;\n\n  return query\n  with canonical_premier(product_id) as (\n    select unnest(array[\n      'prod_kit_belage', 'prod_kit_kronuit_fire', 'prod_kit_inner_7',\n      'prod_kit_hasaki', 'prod_kit_zeal', 'prod_kit_zeal_10',\n      'prod_kit_balanceoil', 'prod_kit_balanceoil_with_test', 'prod_kit_viv',\n      'prod_kit_xtend', 'prod_kit_serum'\n    ]::text[])\n  ), requested_users as (\n    select distinct requested.user_id\n      from unnest(coalesce(p_user_ids, array[]::uuid[])) requested(user_id)\n     where requested.user_id is not null\n  ), account_base as (\n    select requested.user_id, settings.fast_start_started_at\n      from requested_users requested\n      left join public.settings settings on settings.user_id = requested.user_id\n  ), kit_totals as (\n    select account.user_id,\n           coalesce(sum(sale.quantity) filter (\n             where sale.purchase_date between account.fast_start_started_at\n                                          and account.fast_start_started_at + 30\n           ), 0)::integer as qteam_kits,\n           coalesce(sum(sale.quantity) filter (\n             where sale.purchase_date between account.fast_start_started_at\n                                          and account.fast_start_started_at + 120\n           ), 0)::integer as xteam_kits\n      from account_base account\n      left join public.sales sale\n        on sale.user_id = account.user_id\n       and sale.sale_type = 'nueva'\n       and (\n         coalesce(sale.status, 'active') <> 'cancelled'\n         or sale.follow_up_stopped_at is not null\n       )\n       and sale.purchase_date <= current_date\n      left join canonical_premier product on product.product_id = sale.product_id\n     where product.product_id is not null or sale.id is null\n     group by account.user_id\n  ), partner_counts as (\n    select relationship.user_id, count(*)::integer as partners_count\n      from public.partners relationship\n      join requested_users requested on requested.user_id = relationship.user_id\n      join account_base owner_account on owner_account.user_id = relationship.user_id\n     where owner_account.fast_start_started_at is not null\n       and relationship.start_date between owner_account.fast_start_started_at\n                                       and owner_account.fast_start_started_at + 60\n       and relationship.start_date <= current_date\n     group by relationship.user_id\n  ), linked_branches as (\n    select relationship.user_id as owner_user_id,\n           relationship.partner_user_id as branch_user_id,\n           owner_settings.fast_start_started_at as owner_started_at,\n           branch_settings.fast_start_started_at as branch_started_at\n      from public.partners relationship\n      join requested_users requested on requested.user_id = relationship.user_id\n      join public.settings owner_settings\n        on owner_settings.user_id = relationship.user_id\n      left join public.settings branch_settings\n        on branch_settings.user_id = relationship.partner_user_id\n     where relationship.partner_user_id is not null\n       and branch_settings.parent_id = relationship.user_id\n       and relationship.start_date between owner_settings.fast_start_started_at\n                                       and owner_settings.fast_start_started_at + 60\n       and relationship.start_date <= current_date\n  ), branch_totals as (\n    select branch.owner_user_id,\n           branch.branch_user_id,\n           case\n             when branch.branch_started_at is null then null\n             else coalesce(sum(sale.quantity) filter (\n               where product.product_id is not null\n                 and sale.sale_type = 'nueva'\n                 and (\n                   coalesce(sale.status, 'active') <> 'cancelled'\n                   or sale.follow_up_stopped_at is not null\n                 )\n                 and sale.purchase_date <= current_date\n                 and sale.purchase_date between branch.branch_started_at\n                                            and branch.branch_started_at + 30\n                 and sale.purchase_date between branch.owner_started_at\n                                            and branch.owner_started_at + 90\n             ), 0)::integer\n           end as qteam_kits\n      from linked_branches branch\n      left join public.sales sale on sale.user_id = branch.branch_user_id\n      left join canonical_premier product on product.product_id = sale.product_id\n     group by branch.owner_user_id, branch.branch_user_id, branch.branch_started_at\n  ), branch_aggregates as (\n    select branch.owner_user_id,\n           jsonb_agg(\n             jsonb_build_object('qteam_kits', branch.qteam_kits)\n             order by branch.qteam_kits desc nulls last\n           ) as direct_branches\n      from branch_totals branch\n     group by branch.owner_user_id\n  )\n  select account.user_id,\n         coalesce(totals.qteam_kits, 0),\n         coalesce(totals.xteam_kits, 0),\n         coalesce(partners.partners_count, 0),\n         account.fast_start_started_at,\n         coalesce(branches.direct_branches, '[]'::jsonb)\n    from account_base account\n    left join kit_totals totals on totals.user_id = account.user_id\n    left join partner_counts partners on partners.user_id = account.user_id\n    left join branch_aggregates branches on branches.owner_user_id = account.user_id;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_user_ids uuid[]"
+        },
+        {
+          "name": "get_my_fast_start_snapshot_v2",
+          "result": "TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)",
+          "definition": "CREATE OR REPLACE FUNCTION public.get_my_fast_start_snapshot_v2()\n RETURNS TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select * from public.get_fast_start_snapshots_v2(array[auth.uid()]);\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": ""
         },
         {
           "name": "get_partner_partners_count",
@@ -3008,6 +3930,13 @@
           "identity_arguments": "p_stripe_charge_id text"
         },
         {
+          "name": "get_team_snapshot_v2",
+          "result": "TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)",
+          "definition": "CREATE OR REPLACE FUNCTION public.get_team_snapshot_v2()\n RETURNS TABLE(user_id uuid, qteam_kits integer, xteam_kits integer, partners_count integer, fast_start_started_at date, direct_branches jsonb)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select *\n    from public.get_fast_start_snapshots_v2(\n      array[auth.uid()] || coalesce((\n        select array_agg(relationship.partner_user_id order by relationship.partner_user_id)\n          from public.partners relationship\n          join public.settings child\n            on child.user_id = relationship.partner_user_id\n           and child.parent_id = auth.uid()\n         where relationship.user_id = auth.uid()\n           and relationship.partner_user_id is not null\n      ), array[]::uuid[])\n    );\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": ""
+        },
+        {
           "name": "has_app_entitlement",
           "result": "boolean",
           "definition": "CREATE OR REPLACE FUNCTION public.has_app_entitlement(p_user_id uuid DEFAULT auth.uid())\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select p_user_id is not null\n    and p_user_id = auth.uid()\n    and exists (select 1 from auth.users where id = p_user_id)\n    and exists (\n      select 1\n        from public.access_grants grant_row\n       where grant_row.user_id = p_user_id\n         and grant_row.status in ('active', 'grace')\n         and grant_row.revoked_at is null\n         and (grant_row.access_until is null or grant_row.access_until > now())\n    );\n$function$\n",
@@ -3015,11 +3944,32 @@
           "identity_arguments": "p_user_id uuid"
         },
         {
+          "name": "import_contacts",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.import_contacts(p_operation_id uuid, p_contacts jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_previous public.contact_batch_operations%rowtype;\n  v_request_hash text;\n  v_item jsonb;\n  v_name text;\n  v_phone text;\n  v_country_code text;\n  v_country_iso text;\n  v_phone_raw text;\n  v_created integer := 0;\n  v_duplicates integer := 0;\n  v_result jsonb;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null then\n    raise exception using errcode = '22023', message = 'operation_id_required';\n  end if;\n  if p_contacts is null or pg_catalog.jsonb_typeof(p_contacts) <> 'array'\n     or pg_catalog.jsonb_array_length(p_contacts) < 1\n     or pg_catalog.jsonb_array_length(p_contacts) > 1000 then\n    raise exception using errcode = '22023', message = 'contacts_batch_must_have_1_to_1000_items';\n  end if;\n  v_request_hash := encode(\n    extensions.digest(pg_catalog.convert_to(p_contacts::text, 'UTF8'), 'sha256'),\n    'hex'\n  );\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_batch:' || v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n  select * into v_previous\n    from public.contact_batch_operations\n   where user_id = v_user_id and operation_id = p_operation_id;\n  if found then\n    if v_previous.operation_kind <> 'import' or v_previous.request_hash <> v_request_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_contact_batch';\n    end if;\n    return v_previous.result;\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('contact_import:' || v_user_id::text, 0)\n  );\n\n  for v_item in select value from pg_catalog.jsonb_array_elements(p_contacts) loop\n    v_name := btrim(coalesce(v_item ->> 'full_name', ''));\n    v_phone := btrim(coalesce(v_item ->> 'phone_e164', v_item ->> 'phone', ''));\n    v_country_code := btrim(coalesce(v_item ->> 'country_code', ''));\n    v_country_iso := nullif(upper(btrim(coalesce(v_item ->> 'phone_country_iso', ''))), '');\n    v_phone_raw := left(coalesce(v_item ->> 'phone_raw', v_phone), 80);\n\n    if length(v_name) < 1 or length(v_name) > 120 then\n      raise exception using errcode = '22023', message = 'invalid_import_contact_name';\n    end if;\n    if v_phone !~ '^\\+[1-9][0-9]{7,14}$' then\n      raise exception using errcode = '22023', message = 'invalid_import_contact_phone';\n    end if;\n    if v_country_code !~ '^\\+[1-9][0-9]{0,3}$' then\n      raise exception using errcode = '22023', message = 'invalid_import_country_code';\n    end if;\n    if v_country_iso is not null and v_country_iso !~ '^[A-Z]{2}$' then\n      raise exception using errcode = '22023', message = 'invalid_import_country_iso';\n    end if;\n\n    if exists (\n      select 1\n        from public.contacts contact\n       where contact.user_id = v_user_id\n         and (\n           contact.phone_e164 = v_phone\n           or (\n             contact.phone_e164 is null\n             and btrim(coalesce(contact.phone, '')) ~ '^\\+'\n             and '+' || pg_catalog.regexp_replace(contact.phone, '[^0-9]', '', 'g') = v_phone\n           )\n         )\n    ) then\n      v_duplicates := v_duplicates + 1;\n      continue;\n    end if;\n\n    insert into public.contacts (\n      user_id, full_name, phone, country_code, contact_type, notes, tag_ids,\n      phone_e164, phone_country_iso, phone_raw, import_source\n    ) values (\n      v_user_id, v_name, v_phone, v_country_code, null, null, '[]'::jsonb,\n      v_phone, v_country_iso, v_phone_raw, 'device'\n    );\n    v_created := v_created + 1;\n  end loop;\n\n  v_result := jsonb_build_object(\n    'status', 'completed',\n    'created', v_created,\n    'duplicates', v_duplicates\n  );\n  insert into public.contact_batch_operations (\n    user_id, operation_id, operation_kind, request_hash, result\n  ) values (v_user_id, p_operation_id, 'import', v_request_hash, v_result);\n  return v_result;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_contacts jsonb"
+        },
+        {
           "name": "import_partner_clients",
           "result": "integer",
           "definition": "CREATE OR REPLACE FUNCTION public.import_partner_clients(p_partner_user_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  imported INTEGER := 0;\r\n  r RECORD;\r\n  caller_id UUID := auth.uid();\r\nBEGIN\r\n  FOR r IN \r\n    SELECT * FROM contacts \r\n    WHERE user_id = p_partner_user_id AND contact_type = 'cliente_producto'\r\n  LOOP\r\n    INSERT INTO contacts (user_id, full_name, phone, country_code, notes, contact_type, tag_ids)\r\n    VALUES (caller_id, r.full_name, r.phone, r.country_code, r.notes, 'cliente_producto', r.tag_ids);\r\n    imported := imported + 1;\r\n  END LOOP;\r\n  RETURN imported;\r\nEND;\r\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_partner_user_id uuid"
+        },
+        {
+          "name": "import_template_share",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.import_template_share(p_operation_id uuid, p_token text)\n RETURNS jsonb\n LANGUAGE sql\n SET search_path TO ''\nAS $function$\n  select public.import_template_share_bundle(p_operation_id, p_token);\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": "p_operation_id uuid, p_token text"
+        },
+        {
+          "name": "import_template_share_bundle",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.import_template_share_bundle(p_operation_id uuid, p_token text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_bundle public.template_share_bundles%rowtype;\n  v_previous public.template_share_imports%rowtype;\n  v_operation_previous public.template_share_imports%rowtype;\n  v_request_hash text;\n  v_item jsonb;\n  v_category_id uuid;\n  v_template_id text;\n  v_template_name text;\n  v_template_ids text[] := '{}';\n  v_count integer := 0;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null then\n    raise exception using errcode = '22023', message = 'operation_id_required';\n  end if;\n  if p_token is null or p_token !~ '^[a-f0-9]{64}$' then\n    raise exception using errcode = '22023', message = 'invalid_share_token';\n  end if;\n  v_request_hash := encode(extensions.digest(p_token, 'sha256'), 'hex');\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('template_import_operation:' || v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n  select * into v_operation_previous\n    from public.template_share_imports\n   where user_id = v_user_id and operation_id = p_operation_id;\n  if found then\n    if v_operation_previous.request_hash <> v_request_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_share';\n    end if;\n    return jsonb_build_object(\n      'bundle_id', v_operation_previous.bundle_id,\n      'imported_count', v_operation_previous.imported_count,\n      'template_ids', to_jsonb(v_operation_previous.imported_template_ids),\n      'created', false\n    );\n  end if;\n\n  select * into v_bundle\n    from public.template_share_bundles\n   where token_hash = v_request_hash\n   for update;\n  if not found then\n    raise exception using errcode = '22023', message = 'share_bundle_unavailable';\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('template_import_user:' || v_user_id::text, 0)\n  );\n  select * into v_previous\n    from public.template_share_imports\n   where bundle_id = v_bundle.id and user_id = v_user_id;\n  if found then\n    return jsonb_build_object(\n      'bundle_id', v_bundle.id,\n      'imported_count', v_previous.imported_count,\n      'template_ids', to_jsonb(v_previous.imported_template_ids),\n      'created', false\n    );\n  end if;\n  if v_bundle.revoked_at is not null or v_bundle.expires_at <= now() then\n    raise exception using errcode = '22023', message = 'share_bundle_unavailable';\n  end if;\n\n  insert into public.template_share_imports (\n    bundle_id, user_id, operation_id, request_hash\n  ) values (\n    v_bundle.id, v_user_id, p_operation_id, v_request_hash\n  );\n\n  for v_item in select value from jsonb_array_elements(v_bundle.snapshot) loop\n    v_category_id := null;\n    if nullif(btrim(v_item->>'category_name'), '') is not null then\n      select id into v_category_id\n        from public.template_categories\n       where user_id = v_user_id\n         and lower(btrim(name)) = lower(btrim(v_item->>'category_name'))\n         and situation = v_item->>'situation'\n         and archived_at is null\n       limit 1;\n      if not found then\n        insert into public.template_categories (user_id, name, situation)\n        values (v_user_id, btrim(v_item->>'category_name'), v_item->>'situation')\n        returning id into v_category_id;\n      end if;\n    end if;\n\n    v_template_id := 'tpl_shared_' || replace(gen_random_uuid()::text, '-', '');\n    v_template_name := v_item->>'name';\n    if exists (\n      select 1\n        from public.message_templates template\n       where template.user_id = v_user_id\n         and template.archived_at is null\n         and lower(btrim(template.name)) = lower(btrim(v_template_name))\n    ) then\n      v_template_name := left(btrim(v_template_name), 88) || ' (importada)';\n    end if;\n    insert into public.message_templates (\n      user_id, template_id, name, content, situation, category, subcategory,\n      tone, category_id, contact_id, origin, is_default\n    ) values (\n      v_user_id,\n      v_template_id,\n      v_template_name,\n      v_item->>'content',\n      v_item->>'situation',\n      case when v_item->>'situation' = 'repurchase' then 'recompra' else 'seguimiento' end,\n      v_item->>'situation',\n      v_item->>'tone',\n      v_category_id,\n      null,\n      'user',\n      false\n    );\n    v_template_ids := array_append(v_template_ids, v_template_id);\n    v_count := v_count + 1;\n  end loop;\n\n  update public.template_share_imports\n     set imported_template_ids = v_template_ids,\n         imported_count = v_count\n   where bundle_id = v_bundle.id and user_id = v_user_id;\n\n  return jsonb_build_object(\n    'bundle_id', v_bundle.id,\n    'imported_count', v_count,\n    'template_ids', to_jsonb(v_template_ids),\n    'created', true\n  );\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_token text"
         },
         {
           "name": "join_upline_by_code",
@@ -3050,6 +4000,27 @@
           "identity_arguments": "code text"
         },
         {
+          "name": "preview_template_share",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.preview_template_share(p_token text)\n RETURNS jsonb\n LANGUAGE sql\n SET search_path TO ''\nAS $function$\n  select public.preview_template_share_bundle(p_token);\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": "p_token text"
+        },
+        {
+          "name": "preview_template_share_bundle",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.preview_template_share_bundle(p_token text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_bundle public.template_share_bundles%rowtype;\nbegin\n  if auth.uid() is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(auth.uid()) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_token is null or p_token !~ '^[a-f0-9]{64}$' then\n    return null;\n  end if;\n  select * into v_bundle\n    from public.template_share_bundles\n   where token_hash = encode(extensions.digest(p_token, 'sha256'), 'hex')\n     and revoked_at is null\n     and expires_at > now();\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'id', v_bundle.id,\n    'expires_at', v_bundle.expires_at,\n    'templates', v_bundle.snapshot\n  );\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_token text"
+        },
+        {
+          "name": "queue_fast_start_refresh",
+          "result": "integer",
+          "definition": "CREATE OR REPLACE FUNCTION public.queue_fast_start_refresh(p_user_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_caller_id uuid := auth.uid();\n  v_started_at date;\n  v_self_enabled boolean := false;\n  v_qteam_kits integer := 0;\n  v_xteam_kits integer := 0;\n  v_partners_count integer := 0;\n  v_completed_branches integer := 0;\n  v_leader_id uuid;\n  v_partner_id text;\n  v_window_key text;\n  v_title text;\n  v_body text;\n  v_dedupe_key text;\n  v_remaining integer;\n  v_inserted integer := 0;\n  v_rows integer := 0;\nbegin\n  if v_caller_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if p_user_id is null then\n    raise exception using errcode = '42501', message = 'fast_start_owner_mismatch';\n  end if;\n  if not public.has_app_entitlement(v_caller_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_user_id <> v_caller_id and not exists (\n    select 1\n      from public.partners relationship\n      join public.settings child\n        on child.user_id = relationship.partner_user_id\n       and child.parent_id = relationship.user_id\n     where (relationship.user_id = v_caller_id and relationship.partner_user_id = p_user_id)\n        or (relationship.user_id = p_user_id and relationship.partner_user_id = v_caller_id)\n  ) then\n    raise exception using errcode = '42501', message = 'fast_start_owner_mismatch';\n  end if;\n  if not exists (\n    select 1\n      from public.access_grants access_grant\n     where access_grant.user_id = p_user_id\n       and access_grant.status in ('active', 'grace')\n       and access_grant.revoked_at is null\n       and (access_grant.access_until is null or access_grant.access_until > now())\n  ) then\n    return 0;\n  end if;\n\n  -- Serialize the aggregate and milestone decision per account. Concurrent\n  -- orders with different operation IDs must not cross a threshold unseen.\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended('fast_start_refresh:' || p_user_id::text, 0)\n  );\n\n  select settings.fast_start_started_at,\n         settings.notifications_enabled is true\n           and settings.push_consent_given\n           and settings.fast_start_notifications_enabled\n    into v_started_at, v_self_enabled\n    from public.settings settings\n   where settings.user_id = p_user_id;\n\n  -- A missing Fast Start date means there is no authoritative window yet.\n  if not found or v_started_at is null then\n    return 0;\n  end if;\n  v_window_key := pg_catalog.to_char(v_started_at, 'YYYYMMDD');\n\n  -- A corrected Fast Start date invalidates queued advice from the prior\n  -- window. Rows already accepted by the provider stay immutable, but pending\n  -- or abandoned work must not tell the user about obsolete progress.\n  update public.notifications notification\n     set delivery_status = 'skipped',\n         delivery_lease_until = null,\n         delivery_next_attempt_at = null,\n         delivery_error_code = 'superseded_fast_start_window'\n   where notification.user_id = p_user_id\n     and notification.channel = 'push'\n     and (\n       notification.delivery_status = 'pending'\n       or (\n         notification.delivery_status = 'sending'\n         and coalesce(notification.delivery_lease_until, '-infinity'::timestamptz) <= now()\n       )\n     )\n     and notification.dedupe_key like 'fast-start:self:%'\n     and not (\n       notification.dedupe_key like '%:' || v_window_key\n       or notification.dedupe_key like '%:' || v_window_key || ':%'\n     );\n\n  select coalesce(sum(sale.quantity) filter (\n           where sale.purchase_date between v_started_at and v_started_at + 30\n         ), 0)::integer,\n         coalesce(sum(sale.quantity) filter (\n           where sale.purchase_date between v_started_at and v_started_at + 120\n         ), 0)::integer\n    into v_qteam_kits, v_xteam_kits\n    from public.sales sale\n   where sale.user_id = p_user_id\n     and sale.product_id = any(array[\n       'prod_kit_belage', 'prod_kit_kronuit_fire', 'prod_kit_inner_7',\n       'prod_kit_hasaki', 'prod_kit_zeal', 'prod_kit_zeal_10',\n       'prod_kit_balanceoil', 'prod_kit_balanceoil_with_test', 'prod_kit_viv',\n       'prod_kit_xtend', 'prod_kit_serum'\n     ]::text[])\n     and sale.sale_type = 'nueva'\n     and sale.purchase_date <= current_date\n     and (\n       coalesce(sale.status, 'active') <> 'cancelled'\n       or sale.follow_up_stopped_at is not null\n     );\n\n  select count(*)::integer\n    into v_partners_count\n    from public.partners relationship\n   where relationship.user_id = p_user_id\n     and relationship.start_date between v_started_at and v_started_at + 60\n     and relationship.start_date <= current_date;\n\n  select count(*)::integer\n    into v_completed_branches\n    from (\n      select relationship.id\n        from public.partners relationship\n        join public.settings child\n          on child.user_id = relationship.partner_user_id\n         and child.parent_id = p_user_id\n        left join public.sales sale\n          on sale.user_id = relationship.partner_user_id\n       where relationship.user_id = p_user_id\n         and relationship.partner_user_id is not null\n         and relationship.start_date between v_started_at and v_started_at + 60\n         and relationship.start_date <= current_date\n         and child.fast_start_started_at is not null\n       group by relationship.id, child.fast_start_started_at\n      having coalesce(sum(sale.quantity) filter (\n               where sale.product_id = any(array[\n                 'prod_kit_belage', 'prod_kit_kronuit_fire', 'prod_kit_inner_7',\n                 'prod_kit_hasaki', 'prod_kit_zeal', 'prod_kit_zeal_10',\n                 'prod_kit_balanceoil', 'prod_kit_balanceoil_with_test', 'prod_kit_viv',\n                 'prod_kit_xtend', 'prod_kit_serum'\n               ]::text[])\n                 and sale.sale_type = 'nueva'\n                 and sale.purchase_date <= current_date\n                 and sale.purchase_date between child.fast_start_started_at\n                                            and child.fast_start_started_at + 30\n                 and sale.purchase_date between v_started_at and v_started_at + 90\n                 and (\n                   coalesce(sale.status, 'active') <> 'cancelled'\n                   or sale.follow_up_stopped_at is not null\n                 )\n             ), 0) >= 4\n    ) completed;\n\n  if v_self_enabled then\n    -- Bonus crossings are independent. One order can cross several thresholds,\n    -- so enqueue every newly reached bonus before selecting one next action.\n    if v_qteam_kits >= 4 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, is_read, created_date,\n        channel, route, dedupe_key, scheduled_for, delivery_status\n      ) values (\n        p_user_id, '¡Meta Q-Team alcanzada!',\n        'Alcanzaste 4 kits Premier. Revisa el estado de tu bono Q-Team.',\n        'info', 'dashboard', false, now()::text,\n        'push', '/Partners', 'fast-start:self:bonus:q-team:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_qteam_kits >= 4 and v_partners_count >= 2 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, is_read, created_date,\n        channel, route, dedupe_key, scheduled_for, delivery_status\n      ) values (\n        p_user_id, '¡Fast Start Nivel 1 alcanzado!',\n        'Completaste Q-Team y agregaste 2 partners directos. Revisa el estado de tu bono.',\n        'info', 'dashboard', false, now()::text,\n        'push', '/Partners', 'fast-start:self:bonus:level-1:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_qteam_kits >= 4 and v_partners_count >= 2 and v_completed_branches >= 2 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, is_read, created_date,\n        channel, route, dedupe_key, scheduled_for, delivery_status\n      ) values (\n        p_user_id, '¡Fast Start Nivel 2 alcanzado!',\n        'Dos ramas directas completaron Q-Team. Revisa el estado de tu bono.',\n        'info', 'dashboard', false, now()::text,\n        'push', '/Partners', 'fast-start:self:bonus:level-2:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_xteam_kits >= 10 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, is_read, created_date,\n        channel, route, dedupe_key, scheduled_for, delivery_status\n      ) values (\n        p_user_id, '¡Meta X-Team alcanzada!',\n        'Alcanzaste 10 kits Premier. Revisa el estado de tu bono X-Team.',\n        'info', 'dashboard', false, now()::text,\n        'push', '/Partners', 'fast-start:self:bonus:x-team:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    v_title := null;\n    v_body := null;\n    v_dedupe_key := null;\n\n    if v_qteam_kits < 4 and current_date <= v_started_at + 30 then\n      v_remaining := 4 - v_qteam_kits;\n      v_title := case when v_remaining = 1\n        then 'Te falta 1 kit para Q-Team'\n        else 'Te faltan ' || v_remaining::text || ' kits para Q-Team' end;\n      v_body := case when v_remaining = 1\n        then 'Estás a 1 kit Premier de tu siguiente meta y su bono.'\n        else 'Estás a ' || v_remaining::text || ' kits Premier de tu siguiente meta y su bono.' end;\n      v_dedupe_key := 'fast-start:self:next:q-team:' || v_window_key || ':' || v_remaining::text;\n    elsif v_qteam_kits >= 4 and v_partners_count < 2\n          and current_date <= v_started_at + 60 then\n      v_remaining := 2 - v_partners_count;\n      v_title := case when v_remaining = 1\n        then 'Te falta 1 partner para Nivel 1'\n        else 'Te faltan 2 partners para Nivel 1' end;\n      v_body := 'Agrega partners directos para avanzar a tu siguiente bono Fast Start.';\n      v_dedupe_key := 'fast-start:self:next:level-1:' || v_window_key || ':' || v_remaining::text;\n    elsif v_qteam_kits >= 4 and v_partners_count >= 2\n          and v_completed_branches < 2\n          and current_date <= v_started_at + 90 then\n      v_remaining := 2 - v_completed_branches;\n      v_title := case when v_remaining = 1\n        then 'Te falta 1 rama para Nivel 2'\n        else 'Te faltan 2 ramas para Nivel 2' end;\n      v_body := 'Apoya a tus ramas directas para que completen 4 kits Premier en Q-Team.';\n      v_dedupe_key := 'fast-start:self:next:level-2:' || v_window_key || ':' || v_remaining::text;\n    end if;\n\n    if v_dedupe_key is null and v_xteam_kits < 10\n          and current_date <= v_started_at + 120 then\n      v_remaining := 10 - v_xteam_kits;\n      v_title := case when v_remaining = 1\n        then 'Te falta 1 kit para X-Team'\n        else 'Te faltan ' || v_remaining::text || ' kits para X-Team' end;\n      v_body := case when v_remaining = 1\n        then 'Estás a 1 kit Premier de tu siguiente meta y su bono.'\n        else 'Estás a ' || v_remaining::text || ' kits Premier de tu siguiente meta y su bono.' end;\n      v_dedupe_key := 'fast-start:self:next:x-team:' || v_window_key || ':' || v_remaining::text;\n    end if;\n\n    update public.notifications notification\n       set delivery_status = 'skipped',\n           delivery_lease_until = null,\n           delivery_next_attempt_at = null,\n           delivery_error_code = 'superseded_fast_start_action'\n     where notification.user_id = p_user_id\n       and notification.channel = 'push'\n       and (\n         notification.delivery_status = 'pending'\n         or (\n           notification.delivery_status = 'sending'\n           and coalesce(notification.delivery_lease_until, '-infinity'::timestamptz) <= now()\n         )\n       )\n       and notification.dedupe_key like 'fast-start:self:next:%'\n       and notification.dedupe_key is distinct from v_dedupe_key;\n\n    if v_dedupe_key is not null then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, is_read, created_date,\n        channel, route, dedupe_key, scheduled_for, delivery_status\n      ) values (\n        p_user_id, v_title, v_body,\n        'info', 'dashboard', false, now()::text,\n        'push', '/Partners', v_dedupe_key, now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n  end if;\n\n  -- Both graph edges must agree before the upline receives anything. The\n  -- payload is intentionally aggregate-only: no contact, order or sale data.\n  select child.parent_id, relationship.id::text\n    into v_leader_id, v_partner_id\n    from public.settings child\n    join public.partners relationship\n      on relationship.user_id = child.parent_id\n     and relationship.partner_user_id = p_user_id\n   where child.user_id = p_user_id\n     and child.parent_id is not null\n   limit 1;\n\n  if v_leader_id is not null then\n    update public.notifications notification\n       set delivery_status = 'skipped',\n           delivery_lease_until = null,\n           delivery_next_attempt_at = null,\n           delivery_error_code = 'superseded_fast_start_window'\n     where notification.user_id = v_leader_id\n       and notification.channel = 'push'\n       and (\n         notification.delivery_status = 'pending'\n         or (\n           notification.delivery_status = 'sending'\n           and coalesce(notification.delivery_lease_until, '-infinity'::timestamptz) <= now()\n         )\n       )\n       and notification.dedupe_key like 'fast-start:partner:' || p_user_id::text || ':%'\n       and not (\n         notification.dedupe_key like '%:' || v_window_key\n         or notification.dedupe_key like '%:' || v_window_key || ':%'\n       );\n  end if;\n\n  if v_leader_id is not null\n     and exists (\n       select 1\n         from public.settings leader_settings\n        where leader_settings.user_id = v_leader_id\n          and leader_settings.notifications_enabled is true\n          and leader_settings.push_consent_given\n          and leader_settings.fast_start_notifications_enabled\n     )\n     and exists (\n       select 1\n         from public.access_grants access_grant\n        where access_grant.user_id = v_leader_id\n          and access_grant.status in ('active', 'grace')\n          and access_grant.revoked_at is null\n          and (access_grant.access_until is null or access_grant.access_until > now())\n     ) then\n    -- The leader receives every independently crossed bonus as aggregate-only\n    -- data. Conflict keys make repeated refreshes silent.\n    if v_qteam_kits >= 4 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, related_entity_id,\n        is_read, created_date, channel, route, dedupe_key, scheduled_for,\n        delivery_status\n      ) values (\n        v_leader_id, 'Un partner alcanzó Q-Team',\n        'Un partner vinculado alcanzó 4 kits Premier. Revisa el estado de su bono.',\n        'info', 'partner', v_partner_id, false, now()::text,\n        'push', '/Partners?partnerId=' || v_partner_id,\n        'fast-start:partner:' || p_user_id::text || ':bonus:q-team:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_qteam_kits >= 4 and v_partners_count >= 2 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, related_entity_id,\n        is_read, created_date, channel, route, dedupe_key, scheduled_for,\n        delivery_status\n      ) values (\n        v_leader_id, 'Un partner alcanzó Nivel 1',\n        'Un partner vinculado completó Q-Team y agregó 2 partners directos.',\n        'info', 'partner', v_partner_id, false, now()::text,\n        'push', '/Partners?partnerId=' || v_partner_id,\n        'fast-start:partner:' || p_user_id::text || ':bonus:level-1:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_qteam_kits >= 4 and v_partners_count >= 2 and v_completed_branches >= 2 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, related_entity_id,\n        is_read, created_date, channel, route, dedupe_key, scheduled_for,\n        delivery_status\n      ) values (\n        v_leader_id, 'Un partner alcanzó Nivel 2',\n        'Dos ramas directas de un partner vinculado completaron Q-Team.',\n        'info', 'partner', v_partner_id, false, now()::text,\n        'push', '/Partners?partnerId=' || v_partner_id,\n        'fast-start:partner:' || p_user_id::text || ':bonus:level-2:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    if v_xteam_kits >= 10 then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, related_entity_id,\n        is_read, created_date, channel, route, dedupe_key, scheduled_for,\n        delivery_status\n      ) values (\n        v_leader_id, 'Un partner alcanzó X-Team',\n        'Un partner vinculado alcanzó 10 kits Premier. Revisa el estado de su bono.',\n        'info', 'partner', v_partner_id, false, now()::text,\n        'push', '/Partners?partnerId=' || v_partner_id,\n        'fast-start:partner:' || p_user_id::text || ':bonus:x-team:' || v_window_key,\n        now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n\n    v_title := null;\n    v_body := null;\n    v_dedupe_key := null;\n\n    if v_qteam_kits < 4 and current_date <= v_started_at + 30 then\n      v_remaining := 4 - v_qteam_kits;\n      v_title := case when v_remaining = 1\n        then 'A un partner le falta 1 kit para Q-Team'\n        else 'A un partner le faltan ' || v_remaining::text || ' kits para Q-Team' end;\n      v_body := case when v_remaining = 1\n        then 'Su avance real está a 1 kit Premier de su siguiente meta.'\n        else 'Su avance real está a ' || v_remaining::text || ' kits Premier de su siguiente meta.' end;\n      v_dedupe_key := 'fast-start:partner:' || p_user_id::text || ':next:q-team:' || v_window_key || ':' || v_remaining::text;\n    elsif v_qteam_kits >= 4 and v_partners_count < 2\n          and current_date <= v_started_at + 60 then\n      v_remaining := 2 - v_partners_count;\n      v_title := case when v_remaining = 1\n        then 'A un partner le falta 1 partner para Nivel 1'\n        else 'A un partner le faltan 2 partners para Nivel 1' end;\n      v_body := 'Su siguiente acción es agregar partners directos para avanzar de nivel.';\n      v_dedupe_key := 'fast-start:partner:' || p_user_id::text || ':next:level-1:' || v_window_key || ':' || v_remaining::text;\n    elsif v_qteam_kits >= 4 and v_partners_count >= 2\n          and v_completed_branches < 2\n          and current_date <= v_started_at + 90 then\n      v_remaining := 2 - v_completed_branches;\n      v_title := case when v_remaining = 1\n        then 'A un partner le falta 1 rama para Nivel 2'\n        else 'A un partner le faltan 2 ramas para Nivel 2' end;\n      v_body := 'Su siguiente acción es ayudar a sus ramas directas a completar Q-Team.';\n      v_dedupe_key := 'fast-start:partner:' || p_user_id::text || ':next:level-2:' || v_window_key || ':' || v_remaining::text;\n    end if;\n\n    if v_dedupe_key is null and v_xteam_kits < 10\n          and current_date <= v_started_at + 120 then\n      v_remaining := 10 - v_xteam_kits;\n      v_title := case when v_remaining = 1\n        then 'A un partner le falta 1 kit para X-Team'\n        else 'A un partner le faltan ' || v_remaining::text || ' kits para X-Team' end;\n      v_body := case when v_remaining = 1\n        then 'Su avance real está a 1 kit Premier de su siguiente meta.'\n        else 'Su avance real está a ' || v_remaining::text || ' kits Premier de su siguiente meta.' end;\n      v_dedupe_key := 'fast-start:partner:' || p_user_id::text || ':next:x-team:' || v_window_key || ':' || v_remaining::text;\n    end if;\n\n    update public.notifications notification\n       set delivery_status = 'skipped',\n           delivery_lease_until = null,\n           delivery_next_attempt_at = null,\n           delivery_error_code = 'superseded_fast_start_action'\n     where notification.user_id = v_leader_id\n       and notification.channel = 'push'\n       and (\n         notification.delivery_status = 'pending'\n         or (\n           notification.delivery_status = 'sending'\n           and coalesce(notification.delivery_lease_until, '-infinity'::timestamptz) <= now()\n         )\n       )\n       and notification.dedupe_key like 'fast-start:partner:' || p_user_id::text || ':next:%'\n       and notification.dedupe_key is distinct from v_dedupe_key;\n\n    if v_dedupe_key is not null then\n      insert into public.notifications (\n        user_id, title, body, type, related_entity_type, related_entity_id,\n        is_read, created_date, channel, route, dedupe_key, scheduled_for,\n        delivery_status\n      ) values (\n        v_leader_id, v_title, v_body,\n        'info', 'partner', v_partner_id,\n        false, now()::text, 'push', '/Partners?partnerId=' || v_partner_id,\n        v_dedupe_key, now(), 'pending'\n      )\n      on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;\n      get diagnostics v_rows = row_count;\n      v_inserted := v_inserted + v_rows;\n    end if;\n  end if;\n\n  return v_inserted;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_user_id uuid"
+        },
+        {
           "name": "reconcile_stripe_access_incident_canonical",
           "result": "jsonb",
           "definition": "CREATE OR REPLACE FUNCTION public.reconcile_stripe_access_incident_canonical(p_stripe_customer_id text, p_stripe_subscription_id text, p_claim_email text, p_incident_key text, p_incident_kind text, p_access_blocked_reason text, p_event_id text, p_event_created_at timestamp with time zone)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_account public.billing_accounts%rowtype;\n  v_email text := nullif(lower(btrim(p_claim_email)), '');\n  v_status text := case when p_access_blocked_reason is null then 'resolved' else 'blocking' end;\nbegin\n  if p_stripe_customer_id !~ '^cus_' or p_stripe_subscription_id !~ '^sub_'\n     or p_event_id is null or btrim(p_event_id) = '' or p_event_created_at is null\n     or p_incident_kind not in ('full_refund', 'dispute')\n     or (p_incident_kind = 'full_refund' and p_incident_key !~ '^charge:ch_')\n     or (p_incident_kind = 'dispute' and p_incident_key !~ '^dispute:(dp_|du_)')\n     or (p_incident_kind = 'full_refund' and p_access_blocked_reason is not null\n         and p_access_blocked_reason <> 'full_refund')\n     or (p_incident_kind = 'dispute' and p_access_blocked_reason is not null\n         and p_access_blocked_reason not in ('dispute_open', 'dispute_lost')) then\n    raise exception 'invalid_canonical_access_incident';\n  end if;\n\n  insert into public.billing_accounts (\n    stripe_customer_id, stripe_subscription_id, claim_email\n  ) values (\n    p_stripe_customer_id, p_stripe_subscription_id, v_email\n  ) on conflict (stripe_customer_id) do nothing;\n\n  select * into v_account\n    from public.billing_accounts\n   where stripe_customer_id = p_stripe_customer_id\n   for update;\n  if v_account.anonymized_at is not null then\n    return jsonb_build_object('status', 'ignored_anonymized');\n  end if;\n  if v_status = 'blocking' and v_account.stripe_subscription_id is not null\n     and v_account.stripe_subscription_id <> p_stripe_subscription_id then\n    return jsonb_build_object('status', 'ignored_unrelated_subscription');\n  end if;\n\n  update public.billing_accounts\n     set stripe_subscription_id = coalesce(stripe_subscription_id, p_stripe_subscription_id),\n         claim_email = case when user_id is null then coalesce(claim_email, v_email) else null end,\n         access_decision_event_id = case\n           when access_decision_at is null or p_event_created_at >= access_decision_at\n             then p_event_id\n           else access_decision_event_id\n         end,\n         access_decision_at = greatest(\n           coalesce(access_decision_at, '-infinity'::timestamptz),\n           p_event_created_at\n         )\n   where id = v_account.id;\n\n  insert into public.stripe_access_incidents (\n    stripe_customer_id, stripe_subscription_id, incident_key, incident_kind,\n    status, blocked_reason, last_event_id, last_event_created_at, resolved_at\n  ) values (\n    p_stripe_customer_id, p_stripe_subscription_id, p_incident_key, p_incident_kind,\n    v_status, p_access_blocked_reason, p_event_id, p_event_created_at,\n    case when v_status = 'resolved' then now() else null end\n  ) on conflict (stripe_customer_id, incident_key) do update\n    set stripe_subscription_id = excluded.stripe_subscription_id,\n        incident_kind = excluded.incident_kind,\n        status = excluded.status,\n        blocked_reason = excluded.blocked_reason,\n        last_event_id = excluded.last_event_id,\n        last_event_created_at = greatest(\n          public.stripe_access_incidents.last_event_created_at,\n          excluded.last_event_created_at\n        ),\n        resolved_at = excluded.resolved_at;\n\n  perform public.refresh_stripe_access_block(p_stripe_customer_id);\n  perform public.refresh_stripe_access_grant(p_stripe_customer_id);\n  return jsonb_build_object('status', v_status, 'incident_key', p_incident_key);\nend;\n$function$\n",
@@ -3059,9 +4030,16 @@
         {
           "name": "record_sale",
           "result": "jsonb",
-          "definition": "CREATE OR REPLACE FUNCTION public.record_sale(p_operation_id uuid, p_contact_id uuid, p_product_id text, p_purchase_date date, p_sale_type text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_sale public.sales%rowtype;\n  v_created boolean := false;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null or p_contact_id is null or p_purchase_date is null then\n    raise exception using errcode = '22023', message = 'sale_fields_required';\n  end if;\n  if nullif(btrim(p_product_id), '') is null then\n    raise exception using errcode = '22023', message = 'product_required';\n  end if;\n  if p_sale_type not in ('nueva', 'recompra') then\n    raise exception using errcode = '22023', message = 'invalid_sale_type';\n  end if;\n\n  perform 1\n    from public.contacts\n   where id = p_contact_id\n     and user_id = v_user_id\n   for key share;\n  if not found then\n    raise exception using errcode = '42501', message = 'contact_not_owned_or_missing';\n  end if;\n\n  -- A retry with the same operation must describe the same sale.\n  select *\n    into v_sale\n    from public.sales\n   where user_id = v_user_id\n     and operation_id = p_operation_id;\n\n  if found then\n    if v_sale.contact_id is distinct from p_contact_id\n       or v_sale.product_id is distinct from p_product_id\n       or v_sale.purchase_date is distinct from p_purchase_date\n       or v_sale.sale_type is distinct from p_sale_type then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_sale';\n    end if;\n    return to_jsonb(v_sale) || jsonb_build_object('created', false);\n  end if;\n\n  insert into public.sales (\n    user_id,\n    contact_id,\n    product_id,\n    purchase_date,\n    sale_type,\n    status,\n    operation_id\n  ) values (\n    v_user_id,\n    p_contact_id,\n    p_product_id,\n    p_purchase_date,\n    p_sale_type,\n    'active',\n    p_operation_id\n  )\n  on conflict (user_id, operation_id) where operation_id is not null\n  do nothing\n  returning * into v_sale;\n\n  v_created := found;\n  if not v_created then\n    select *\n      into v_sale\n      from public.sales\n     where user_id = v_user_id\n       and operation_id = p_operation_id;\n  end if;\n\n  if v_sale.id is null then\n    raise exception using errcode = '40001', message = 'sale_retry_required';\n  end if;\n  if v_sale.contact_id is distinct from p_contact_id\n     or v_sale.product_id is distinct from p_product_id\n     or v_sale.purchase_date is distinct from p_purchase_date\n     or v_sale.sale_type is distinct from p_sale_type then\n    raise exception using errcode = '23505', message = 'operation_id_reused_with_different_sale';\n  end if;\n\n  return to_jsonb(v_sale) || jsonb_build_object('created', v_created);\nend;\n$function$\n",
+          "definition": "CREATE OR REPLACE FUNCTION public.record_sale(p_operation_id uuid, p_contact_id uuid, p_product_id text, p_purchase_date date, p_sale_type text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_sale public.sales%rowtype;\n  v_result jsonb;\n  v_order_id uuid;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n\n  select *\n    into v_sale\n    from public.sales\n   where user_id = v_user_id\n     and operation_id = p_operation_id;\n\n  if found then\n    if v_sale.contact_id is distinct from p_contact_id\n       or v_sale.product_id is distinct from p_product_id\n       or v_sale.purchase_date is distinct from p_purchase_date\n       or v_sale.sale_type is distinct from p_sale_type then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_sale';\n    end if;\n    return to_jsonb(v_sale) || jsonb_build_object('created', false);\n  end if;\n\n  v_result := public.record_sale_order(\n    p_operation_id,\n    p_contact_id,\n    jsonb_build_array(jsonb_build_object('product_id', p_product_id, 'quantity', 1)),\n    p_purchase_date,\n    p_sale_type\n  );\n  v_order_id := (v_result->>'order_id')::uuid;\n\n  update public.sales\n     set operation_id = p_operation_id\n   where user_id = v_user_id\n     and order_id = v_order_id\n  returning * into v_sale;\n\n  -- The released 1.1.1 client owns follow-up creation after this RPC returns.\n  -- Remove the v2 reminders made by record_sale_order inside this same\n  -- transaction, including overdue rows that the old client would not replace.\n  delete from public.tasks\n   where user_id = v_user_id\n     and source_sale_id = v_sale.id\n     and origin = 'sale_automation';\n\n  return to_jsonb(v_sale) || jsonb_build_object('created', coalesce((v_result->>'created')::boolean, false));\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_operation_id uuid, p_contact_id uuid, p_product_id text, p_purchase_date date, p_sale_type text"
+        },
+        {
+          "name": "record_sale_order",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.record_sale_order(p_operation_id uuid, p_contact_id uuid, p_items jsonb, p_purchase_date date, p_sale_type text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_order public.sale_orders%rowtype;\n  v_created boolean := false;\n  v_normalized_items jsonb;\n  v_content_hash text;\n  v_item record;\n  v_sale_id uuid;\n  v_parent_id uuid;\n  v_cycle_days integer;\n  v_repurchase_enabled boolean;\n  v_all_product_ids constant text[] := array[\n    'prod_kit_belage', 'prod_kit_kronuit_fire', 'prod_kit_inner_7',\n    'prod_kit_hasaki', 'prod_kit_zeal', 'prod_kit_zeal_10',\n    'prod_kit_balanceoil', 'prod_kit_balanceoil_with_test', 'prod_kit_viv',\n    'prod_kit_xtend', 'prod_kit_serum', 'prod_belage', 'prod_kronuit',\n    'prod_inner_7', 'prod_hasaki', 'prod_zeal_mango',\n    'prod_zeal_wild_berry', 'prod_zeal_mango_10', 'prod_burn',\n    'prod_essentoil', 'prod_viv', 'prod_xtend', 'prod_zinobiotic', 'prod_serum'\n  ]::text[];\n  v_premier_product_ids constant text[] := array[\n    'prod_kit_belage', 'prod_kit_kronuit_fire', 'prod_kit_inner_7',\n    'prod_kit_hasaki', 'prod_kit_zeal', 'prod_kit_zeal_10',\n    'prod_kit_balanceoil', 'prod_kit_balanceoil_with_test', 'prod_kit_viv',\n    'prod_kit_xtend', 'prod_kit_serum'\n  ]::text[];\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if p_operation_id is null or p_contact_id is null or p_purchase_date is null then\n    raise exception using errcode = '22023', message = 'sale_fields_required';\n  end if;\n  if p_purchase_date > current_date then\n    raise exception using errcode = '22023', message = 'future_sale_date_not_allowed';\n  end if;\n  if coalesce(p_sale_type, '') not in ('nueva', 'recompra') then\n    raise exception using errcode = '22023', message = 'invalid_sale_type';\n  end if;\n  if p_items is null\n     or jsonb_typeof(p_items) <> 'array'\n     or jsonb_array_length(p_items) = 0\n     or jsonb_array_length(p_items) > 50 then\n    raise exception using errcode = '22023', message = 'invalid_sale_items';\n  end if;\n  if exists (\n    select 1\n      from jsonb_array_elements(p_items) item\n     where jsonb_typeof(item) <> 'object'\n        or nullif(btrim(item->>'product_id'), '') is null\n        or coalesce(item->>'quantity', '') !~ '^[1-9][0-9]{0,2}$'\n  ) then\n    raise exception using errcode = '22023', message = 'invalid_sale_item';\n  end if;\n\n  select jsonb_agg(\n           jsonb_build_object('product_id', normalized.product_id, 'quantity', normalized.quantity)\n           order by normalized.product_id\n         )\n    into v_normalized_items\n    from (\n      select btrim(item->>'product_id') as product_id,\n             sum((item->>'quantity')::integer)::integer as quantity\n        from jsonb_array_elements(p_items) item\n       group by btrim(item->>'product_id')\n    ) normalized;\n\n  if exists (\n    select 1\n      from jsonb_array_elements(v_normalized_items) item\n     where (item->>'quantity')::integer > 999\n  ) then\n    raise exception using errcode = '22023', message = 'sale_item_quantity_too_large';\n  end if;\n\n  v_content_hash := md5(pg_catalog.concat_ws(\n    '|', p_contact_id::text, p_purchase_date::text, p_sale_type,\n    v_normalized_items::text\n  ));\n\n  -- Resolve an already committed operation before revalidating mutable CRM\n  -- state. A legitimate retry must still return its original result after its\n  -- contact was anonymized or a product was archived.\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended(v_user_id::text || ':' || p_operation_id::text, 0)\n  );\n\n  select *\n    into v_order\n    from public.sale_orders\n   where user_id = v_user_id\n     and operation_id = p_operation_id\n   for update;\n\n  if found then\n    if v_order.content_hash is distinct from v_content_hash then\n      raise exception using errcode = '23505', message = 'operation_id_reused_with_different_sale';\n    end if;\n\n    return jsonb_build_object(\n      'order_id', v_order.id,\n      'created', false,\n      'items', (\n        select coalesce(jsonb_agg(to_jsonb(sale) order by sale.product_id), '[]'::jsonb)\n          from public.sales sale\n         where sale.order_id = v_order.id and sale.user_id = v_user_id\n      )\n    );\n  end if;\n\n  perform 1\n    from public.contacts\n   where id = p_contact_id\n     and user_id = v_user_id\n   for key share;\n  if not found then\n    raise exception using errcode = '42501', message = 'contact_not_owned_or_missing';\n  end if;\n\n  if exists (\n    select 1\n      from jsonb_array_elements(v_normalized_items) item\n     where not (\n       (\n         item->>'product_id' = any(v_all_product_ids)\n         and not exists (\n           select 1\n             from public.user_products archived\n            where archived.user_id = v_user_id\n              and archived.product_id = item->>'product_id'\n              and archived.archived_at is not null\n         )\n       )\n       or exists (\n         select 1\n           from public.user_products custom_product\n          where custom_product.user_id = v_user_id\n            and custom_product.product_id = item->>'product_id'\n            and custom_product.archived_at is null\n       )\n     )\n  ) then\n    raise exception using errcode = '22023', message = 'product_not_available';\n  end if;\n\n  if exists (\n    select 1 from public.sales\n     where user_id = v_user_id and operation_id = p_operation_id\n  ) then\n    raise exception using errcode = '23505', message = 'operation_id_already_used_by_legacy_sale';\n  end if;\n\n  insert into public.sale_orders (\n    user_id, operation_id, contact_id, purchase_date, sale_type, status,\n    content_hash\n  ) values (\n    v_user_id, p_operation_id, p_contact_id, p_purchase_date, p_sale_type,\n    'active', v_content_hash\n  )\n  returning * into v_order;\n  v_created := true;\n\n  insert into public.sales (\n    user_id, contact_id, product_id, purchase_date, sale_type, status,\n    order_id, quantity\n  )\n  select v_user_id,\n         p_contact_id,\n         item->>'product_id',\n         p_purchase_date,\n         p_sale_type,\n         'active',\n         v_order.id,\n         (item->>'quantity')::integer\n    from jsonb_array_elements(v_normalized_items) item;\n\n  -- One follow-up sequence per distinct product, regardless of quantity.\n  for v_item in\n    select item->>'product_id' as product_id\n      from jsonb_array_elements(v_normalized_items) item\n  loop\n    select sale.id\n      into v_sale_id\n      from public.sales sale\n     where sale.user_id = v_user_id\n       and sale.order_id = v_order.id\n       and sale.product_id = v_item.product_id;\n\n    select coalesce(\n             (\n               select product.cycle_days\n                 from public.user_products product\n                where product.user_id = v_user_id\n                  and product.product_id = v_item.product_id\n                  and product.archived_at is null\n             ),\n             case\n               when v_item.product_id = any(v_premier_product_ids) then 180\n               when v_item.product_id = any(v_all_product_ids) then 30\n               else null\n             end\n           ),\n           coalesce(\n             (\n               select product.repurchase_enabled\n                 from public.user_products product\n                where product.user_id = v_user_id\n                  and product.product_id = v_item.product_id\n                  and product.archived_at is null\n             ),\n             true\n           )\n      into v_cycle_days, v_repurchase_enabled;\n\n    delete from public.tasks\n     where user_id = v_user_id\n       and contact_id = p_contact_id\n       and product_id = v_item.product_id\n       and origin = 'sale_automation'\n       and not coalesce(completed, false);\n\n    if p_sale_type = 'nueva' then\n      insert into public.tasks (\n        user_id, contact_id, product_id, category, subcategory,\n        template_subcategory, task_name, task_area, due_date, completed,\n        origin, source_sale_id\n      ) values (\n        v_user_id, p_contact_id, v_item.product_id, 'seguimiento', 'dia_3',\n        'producto_dia_3', 'Bienvenida Día 3', 'producto', p_purchase_date + 3, false,\n        'sale_automation', v_sale_id\n      );\n    end if;\n\n    if v_repurchase_enabled and v_cycle_days is not null and v_cycle_days > 0 then\n      insert into public.tasks (\n        user_id, contact_id, product_id, category, subcategory,\n        template_subcategory, task_name, task_area, due_date, completed,\n        origin, source_sale_id\n      ) values\n        (v_user_id, p_contact_id, v_item.product_id, 'recompra', '7_dias_antes',\n         'producto_7_dias_antes', 'Recompra 7 días antes', 'producto',\n         p_purchase_date + v_cycle_days - 7, false, 'sale_automation', v_sale_id),\n        (v_user_id, p_contact_id, v_item.product_id, 'recompra', '3_dias_antes',\n         'producto_3_dias_antes', 'Recompra 3 días antes', 'producto',\n         p_purchase_date + v_cycle_days - 3, false, 'sale_automation', v_sale_id),\n        (v_user_id, p_contact_id, v_item.product_id, 'recompra', '5_dias_despues',\n         'producto_5_dias_despues', 'Recompra 5 días después', 'producto',\n         p_purchase_date + v_cycle_days + 5, false, 'sale_automation', v_sale_id),\n        (v_user_id, p_contact_id, v_item.product_id, 'reactivacion', 'reactivacion',\n         'producto_reactivacion', 'Reactivación', 'producto',\n         p_purchase_date + v_cycle_days + 35, false, 'sale_automation', v_sale_id);\n    end if;\n  end loop;\n\n  -- A later migration may install the push outbox hook. Dynamic SQL keeps\n  -- this migration deployable before that function exists.\n  if pg_catalog.to_regprocedure('public.queue_fast_start_refresh(uuid)') is not null then\n    execute 'select public.queue_fast_start_refresh($1)' using v_user_id;\n    -- A stale one-sided parent_id must never make the core sale transaction\n    -- fail inside the optional notification hook. Queue the upline refresh\n    -- only when both persisted graph edges still agree.\n    select settings.parent_id\n      into v_parent_id\n      from public.settings settings\n      join public.partners relationship\n        on relationship.user_id = settings.parent_id\n       and relationship.partner_user_id = settings.user_id\n     where settings.user_id = v_user_id;\n    if v_parent_id is not null then\n      -- A direct branch sale can change the leader's Level 2 snapshot too.\n      execute 'select public.queue_fast_start_refresh($1)' using v_parent_id;\n    end if;\n  end if;\n\n  return jsonb_build_object(\n    'order_id', v_order.id,\n    'created', v_created,\n    'items', (\n      select coalesce(jsonb_agg(to_jsonb(sale) order by sale.product_id), '[]'::jsonb)\n        from public.sales sale\n       where sale.order_id = v_order.id and sale.user_id = v_user_id\n    )\n  );\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_operation_id uuid, p_contact_id uuid, p_items jsonb, p_purchase_date date, p_sale_type text"
         },
         {
           "name": "record_stripe_access_incident",
@@ -3099,6 +4077,20 @@
           "identity_arguments": "p_stripe_customer_id text, p_stripe_subscription_id text, p_event_id text, p_event_created_at timestamp with time zone"
         },
         {
+          "name": "refresh_fast_start_after_partner_change",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.refresh_fast_start_after_partner_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid;\nbegin\n  if auth.uid() is null then\n    if tg_op = 'DELETE' then\n      return old;\n    end if;\n    return new;\n  end if;\n  if tg_op = 'DELETE' then\n    v_user_id := old.user_id;\n  else\n    v_user_id := new.user_id;\n  end if;\n  -- A linked row is followed by the authoritative settings.parent_id update,\n  -- which refreshes only after both sides of the edge agree.\n  if tg_op = 'INSERT' and new.partner_user_id is not null then\n    return new;\n  end if;\n  if tg_op = 'UPDATE'\n     and old.partner_user_id is distinct from new.partner_user_id\n     and new.partner_user_id is not null then\n    return new;\n  end if;\n  perform public.queue_fast_start_refresh(v_user_id);\n  if tg_op = 'DELETE' then\n    return old;\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": ""
+        },
+        {
+          "name": "refresh_fast_start_after_settings_change",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.refresh_fast_start_after_settings_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is null then\n    return new;\n  end if;\n  if new.fast_start_started_at is distinct from old.fast_start_started_at then\n    perform public.queue_fast_start_refresh(new.user_id);\n    if new.parent_id is not null then\n      perform public.queue_fast_start_refresh(new.parent_id);\n    end if;\n  elsif new.parent_id is distinct from old.parent_id and new.parent_id is not null then\n    -- The child is the snapshot subject; refreshing it also emits the verified\n    -- leader's aggregate next-action notification.\n    perform public.queue_fast_start_refresh(new.user_id);\n    perform public.queue_fast_start_refresh(new.parent_id);\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": ""
+        },
+        {
           "name": "refresh_stripe_access_block",
           "result": "void",
           "definition": "CREATE OR REPLACE FUNCTION public.refresh_stripe_access_block(p_stripe_customer_id text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_reason text;\nbegin\n  select blocked_reason\n    into v_reason\n    from public.stripe_access_incidents\n   where stripe_customer_id = p_stripe_customer_id\n     and status = 'blocking'\n   order by last_event_created_at desc, incident_key\n   limit 1;\n\n  update public.billing_accounts\n     set access_blocked_reason = v_reason\n   where stripe_customer_id = p_stripe_customer_id;\nend;\n$function$\n",
@@ -3134,6 +4126,20 @@
           "identity_arguments": "p_stripe_charge_id text, p_event_id text, p_event_created_at timestamp with time zone"
         },
         {
+          "name": "revoke_template_share",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.revoke_template_share(p_share_id uuid)\n RETURNS jsonb\n LANGUAGE sql\n SET search_path TO ''\nAS $function$\n  select public.revoke_template_share_bundle(p_share_id);\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": "p_share_id uuid"
+        },
+        {
+          "name": "revoke_template_share_bundle",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.revoke_template_share_bundle(p_bundle_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_bundle public.template_share_bundles%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  update public.template_share_bundles\n     set revoked_at = coalesce(revoked_at, now())\n   where id = p_bundle_id and owner_id = v_user_id\n  returning * into v_bundle;\n  if not found then\n    raise exception using errcode = '42501', message = 'share_bundle_not_owned_or_missing';\n  end if;\n  return jsonb_build_object('id', v_bundle.id, 'revoked_at', v_bundle.revoked_at);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_bundle_id uuid"
+        },
+        {
           "name": "rls_auto_enable",
           "result": "event_trigger",
           "definition": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n",
@@ -3162,6 +4168,27 @@
           "identity_arguments": "p_child_user_id uuid, p_parent_user_id uuid"
         },
         {
+          "name": "set_template_default",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.set_template_default(p_template_id text, p_enabled boolean)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_template public.message_templates%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  select * into v_template\n    from public.message_templates\n   where user_id = v_user_id\n     and template_id = p_template_id\n     and archived_at is null\n   for update;\n  if not found then\n    raise exception using errcode = '42501', message = 'template_not_owned_or_missing';\n  end if;\n  if coalesce(p_enabled, false) then\n    update public.message_templates\n       set is_default = false\n     where user_id = v_user_id\n       and id <> v_template.id\n       and situation = v_template.situation\n       and contact_id is not distinct from v_template.contact_id\n       and is_default\n       and archived_at is null;\n  end if;\n  update public.message_templates\n     set is_default = coalesce(p_enabled, false)\n   where id = v_template.id\n  returning * into v_template;\n  return to_jsonb(v_template);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_template_id text, p_enabled boolean"
+        },
+        {
+          "name": "stop_product_follow_up",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.stop_product_follow_up(p_contact_id uuid, p_product_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_sale_id uuid;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n\n  select sale.id\n    into v_sale_id\n    from public.sales sale\n   where sale.user_id = v_user_id\n     and sale.contact_id = p_contact_id\n     and sale.product_id = p_product_id\n   order by sale.purchase_date desc, sale.created_at desc\n   limit 1;\n\n  if v_sale_id is null then\n    raise exception using errcode = '42501', message = 'sale_not_owned_or_missing';\n  end if;\n  return public.stop_sale_follow_up(v_sale_id);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_contact_id uuid, p_product_id text"
+        },
+        {
+          "name": "stop_sale_follow_up",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.stop_sale_follow_up(p_sale_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_sale public.sales%rowtype;\n  v_sales_updated integer := 0;\n  v_tasks_deleted integer := 0;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  select *\n    into v_sale\n    from public.sales\n   where id = p_sale_id and user_id = v_user_id\n   for update;\n  if not found then\n    raise exception using errcode = '42501', message = 'sale_not_owned_or_missing';\n  end if;\n\n  update public.sales\n     set follow_up_stopped_at = coalesce(follow_up_stopped_at, now())\n   where user_id = v_user_id\n     and contact_id = v_sale.contact_id\n     and product_id = v_sale.product_id\n     and coalesce(status, 'active') <> 'cancelled';\n  get diagnostics v_sales_updated = row_count;\n\n  delete from public.tasks\n   where user_id = v_user_id\n     and contact_id = v_sale.contact_id\n     and product_id = v_sale.product_id\n     and origin = 'sale_automation'\n     and not coalesce(completed, false)\n     and due_date >= current_date\n     and category in ('recompra', 'reactivacion');\n  get diagnostics v_tasks_deleted = row_count;\n\n  return jsonb_build_object(\n    'sales_updated', v_sales_updated,\n    'tasks_deleted', v_tasks_deleted\n  );\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_sale_id uuid"
+        },
+        {
           "name": "sync_stripe_billing_account",
           "result": "jsonb",
           "definition": "CREATE OR REPLACE FUNCTION public.sync_stripe_billing_account(p_stripe_customer_id text, p_stripe_subscription_id text, p_user_id uuid, p_claim_email text, p_price_id text, p_subscription_status text, p_current_period_end timestamp with time zone, p_grace_until timestamp with time zone, p_cancel_at_period_end boolean, p_scheduled_cancel_at timestamp with time zone, p_entitlement_eligible boolean, p_operation_id uuid, p_last_event_id text, p_event_created_at timestamp with time zone)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_account public.billing_accounts%rowtype;\n  v_candidate_user uuid;\n  v_owner uuid;\n  v_email text;\n  v_grace_until timestamptz;\nbegin\n  if p_stripe_customer_id is null or p_stripe_customer_id !~ '^cus_' then\n    raise exception 'invalid_stripe_customer_id';\n  end if;\n\n  if p_subscription_status not in (\n    'none', 'incomplete', 'incomplete_expired', 'trialing', 'active',\n    'past_due', 'canceled', 'unpaid', 'paused'\n  ) then\n    raise exception 'invalid_subscription_status';\n  end if;\n\n  v_email := nullif(lower(btrim(p_claim_email)), '');\n  if p_user_id is not null and exists (select 1 from auth.users where id = p_user_id) then\n    v_candidate_user := p_user_id;\n  end if;\n\n  select *\n    into v_account\n    from public.billing_accounts\n   where stripe_customer_id = p_stripe_customer_id\n   for update;\n\n  if found then\n    if p_event_created_at is not null\n       and v_account.last_stripe_event_created_at is not null\n       and p_event_created_at < v_account.last_stripe_event_created_at then\n      return jsonb_build_object(\n        'status', 'ignored_stale_event',\n        'stripe_customer_id', v_account.stripe_customer_id,\n        'stripe_subscription_id', v_account.stripe_subscription_id\n      );\n    end if;\n\n    if v_account.anonymized_at is not null then\n      update public.billing_accounts\n         set stripe_subscription_id = coalesce(p_stripe_subscription_id, stripe_subscription_id),\n             price_id = p_price_id,\n             entitlement_eligible = coalesce(p_entitlement_eligible, false),\n             subscription_status = p_subscription_status,\n             current_period_end = p_current_period_end,\n             grace_until = null,\n             scheduled_cancel_at = p_scheduled_cancel_at,\n             cancel_at_period_end = coalesce(p_cancel_at_period_end, false),\n             last_stripe_event_id = coalesce(p_last_event_id, last_stripe_event_id),\n             last_stripe_event_created_at = coalesce(p_event_created_at, last_stripe_event_created_at),\n             user_id = null,\n             claim_email = null,\n             operation_id = null,\n             operation_expires_at = null\n       where id = v_account.id\n       returning * into v_account;\n      perform public.refresh_stripe_access_grant(p_stripe_customer_id);\n      return jsonb_build_object('status', 'anonymized', 'stripe_customer_id', p_stripe_customer_id);\n    end if;\n\n    v_owner := coalesce(v_account.user_id, v_candidate_user);\n    if v_owner is null then\n      v_email := coalesce(v_email, v_account.claim_email);\n    else\n      v_email := null;\n    end if;\n\n    if p_subscription_status = 'past_due' then\n      v_grace_until := case\n        when v_account.subscription_status = 'past_due'\n          then coalesce(v_account.grace_until, p_grace_until)\n        else p_grace_until\n      end;\n    else\n      v_grace_until := null;\n    end if;\n\n    update public.billing_accounts\n       set user_id = v_owner,\n           stripe_subscription_id = coalesce(p_stripe_subscription_id, stripe_subscription_id),\n           claim_email = v_email,\n           price_id = p_price_id,\n           entitlement_eligible = coalesce(p_entitlement_eligible, false),\n           subscription_status = p_subscription_status,\n           current_period_end = p_current_period_end,\n           grace_until = v_grace_until,\n           scheduled_cancel_at = p_scheduled_cancel_at,\n           cancel_at_period_end = coalesce(p_cancel_at_period_end, false),\n           operation_id = coalesce(p_operation_id, operation_id),\n           operation_expires_at = case\n             when p_subscription_status in ('active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete')\n               then null\n             else operation_expires_at\n           end,\n           last_stripe_event_id = coalesce(p_last_event_id, last_stripe_event_id),\n           last_stripe_event_created_at = coalesce(p_event_created_at, last_stripe_event_created_at)\n     where id = v_account.id\n     returning * into v_account;\n  else\n    insert into public.billing_accounts (\n      user_id,\n      stripe_customer_id,\n      stripe_subscription_id,\n      claim_email,\n      price_id,\n      entitlement_eligible,\n      subscription_status,\n      current_period_end,\n      grace_until,\n      scheduled_cancel_at,\n      cancel_at_period_end,\n      operation_id,\n      operation_expires_at,\n      last_stripe_event_id,\n      last_stripe_event_created_at\n    ) values (\n      v_candidate_user,\n      p_stripe_customer_id,\n      p_stripe_subscription_id,\n      case when v_candidate_user is null then v_email else null end,\n      p_price_id,\n      coalesce(p_entitlement_eligible, false),\n      p_subscription_status,\n      p_current_period_end,\n      case when p_subscription_status = 'past_due' then p_grace_until else null end,\n      p_scheduled_cancel_at,\n      coalesce(p_cancel_at_period_end, false),\n      p_operation_id,\n      null,\n      p_last_event_id,\n      p_event_created_at\n    )\n    returning * into v_account;\n  end if;\n\n  perform public.refresh_stripe_access_grant(p_stripe_customer_id);\n\n  return jsonb_build_object(\n    'status', 'synced',\n    'stripe_customer_id', v_account.stripe_customer_id,\n    'stripe_subscription_id', v_account.stripe_subscription_id,\n    'subscription_status', v_account.subscription_status\n  );\nend;\n$function$\n",
@@ -3181,6 +4208,34 @@
           "definition": "CREATE OR REPLACE FUNCTION public.sync_stripe_connect_transfer_snapshot(p_stripe_charge_id text, p_stripe_transfer_id text, p_kind text, p_amount bigint, p_amount_reversed bigint, p_currency text, p_destination_account_id text, p_transfer_created_at timestamp with time zone, p_reversals jsonb, p_event_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_charge public.stripe_connect_charges%rowtype;\n  v_existing public.stripe_connect_transfers%rowtype;\n  v_reversal jsonb;\n  v_reversal_total bigint := 0;\nbegin\n  select * into v_charge\n    from public.stripe_connect_charges\n   where stripe_charge_id = p_stripe_charge_id\n   for update;\n  if not found then raise exception 'connect_charge_missing'; end if;\n  if p_stripe_transfer_id !~ '^tr_' or p_kind not in ('original', 'restoration')\n     or p_amount <= 0 or p_amount_reversed < 0 or p_amount_reversed > p_amount\n     or p_currency is distinct from v_charge.currency\n     or p_destination_account_id is distinct from v_charge.stripe_destination_account_id\n     or p_transfer_created_at is null or p_event_id is null\n     or jsonb_typeof(p_reversals) is distinct from 'array' then\n    raise exception 'invalid_connect_transfer_snapshot';\n  end if;\n  if p_kind = 'original' and p_stripe_transfer_id is distinct from v_charge.stripe_original_transfer_id then\n    raise exception 'connect_original_transfer_mismatch';\n  end if;\n\n  select * into v_existing\n    from public.stripe_connect_transfers\n   where stripe_transfer_id = p_stripe_transfer_id;\n  if found and (\n    v_existing.stripe_charge_id is distinct from p_stripe_charge_id\n    or v_existing.kind is distinct from p_kind\n    or v_existing.amount is distinct from p_amount\n    or v_existing.currency is distinct from p_currency\n    or v_existing.stripe_destination_account_id is distinct from p_destination_account_id\n    or v_existing.stripe_created_at is distinct from p_transfer_created_at\n  ) then\n    raise exception 'connect_transfer_identity_mismatch';\n  end if;\n\n  insert into public.stripe_connect_transfers (\n    stripe_transfer_id, stripe_charge_id, kind, amount, amount_reversed,\n    currency, stripe_destination_account_id, stripe_created_at, last_seen_at\n  ) values (\n    p_stripe_transfer_id, p_stripe_charge_id, p_kind, p_amount, p_amount_reversed,\n    p_currency, p_destination_account_id, p_transfer_created_at, now()\n  ) on conflict (stripe_transfer_id) do update\n    set amount = excluded.amount,\n        amount_reversed = excluded.amount_reversed,\n        last_seen_at = now();\n\n  for v_reversal in select value from jsonb_array_elements(p_reversals)\n  loop\n    if coalesce(v_reversal->>'id', '') !~ '^trr_'\n       or coalesce((v_reversal->>'amount')::bigint, 0) <= 0\n       or v_reversal->>'currency' is distinct from p_currency then\n      raise exception 'invalid_connect_reversal_snapshot';\n    end if;\n    v_reversal_total := v_reversal_total + (v_reversal->>'amount')::bigint;\n    insert into public.stripe_connect_adjustments (\n      operation_key, stripe_charge_id, kind, source_transfer_id,\n      stripe_object_id, amount, event_id\n    ) values (\n      'stripe:' || (v_reversal->>'id'), p_stripe_charge_id, 'reversal',\n      p_stripe_transfer_id, v_reversal->>'id', (v_reversal->>'amount')::bigint, p_event_id\n    ) on conflict (stripe_object_id) do nothing;\n  end loop;\n\n  if v_reversal_total <> p_amount_reversed then\n    raise exception 'connect_reversal_total_mismatch';\n  end if;\n\n  return public.get_stripe_connect_charge_state(p_stripe_charge_id);\nend;\n$function$\n",
           "security_definer": true,
           "identity_arguments": "p_stripe_charge_id text, p_stripe_transfer_id text, p_kind text, p_amount bigint, p_amount_reversed bigint, p_currency text, p_destination_account_id text, p_transfer_created_at timestamp with time zone, p_reversals jsonb, p_event_id text"
+        },
+        {
+          "name": "update_message_template",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.update_message_template(p_template_id text, p_name text, p_content text, p_situation text, p_category text, p_subcategory text, p_tone text, p_contact_id uuid, p_category_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_template public.message_templates%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if nullif(btrim(p_template_id), '') is null\n     or char_length(btrim(p_template_id)) > 200\n     or nullif(btrim(p_name), '') is null\n     or char_length(btrim(p_name)) > 100\n     or char_length(coalesce(p_content, '')) not between 1 and 5000\n     or coalesce(p_situation, '') not in (\n       'repurchase', 'product', 'product-prospect', 'business',\n       'fast-start', 'referral', 'manual'\n     )\n     or nullif(btrim(p_category), '') is null\n     or char_length(btrim(p_category)) > 60\n     or nullif(btrim(p_subcategory), '') is null\n     or char_length(btrim(p_subcategory)) > 100\n     or coalesce(p_tone, '') !~ '^[a-z0-9_-]{1,30}$'\n     or regexp_replace(\n       p_content,\n       '\\{\\{(contact\\.full_name|product\\.name|product\\.link_url)\\}\\}',\n       '',\n       'g'\n     ) ~ '\\{\\{[^{}]+\\}\\}' then\n    raise exception using errcode = '22023', message = 'invalid_message_template';\n  end if;\n  if p_contact_id is not null and not exists (\n    select 1 from public.contacts\n     where id = p_contact_id and user_id = v_user_id\n  ) then\n    raise exception using errcode = '42501', message = 'contact_not_owned_or_missing';\n  end if;\n  if p_category_id is not null and not exists (\n    select 1 from public.template_categories\n     where id = p_category_id\n       and user_id = v_user_id\n       and situation = p_situation\n       and archived_at is null\n  ) then\n    raise exception using errcode = '42501', message = 'category_not_owned_or_incompatible';\n  end if;\n\n  update public.message_templates\n     set name = btrim(p_name),\n         content = p_content,\n         situation = p_situation,\n         category = btrim(p_category),\n         subcategory = btrim(p_subcategory),\n         tone = p_tone,\n         contact_id = p_contact_id,\n         category_id = p_category_id\n   where user_id = v_user_id\n     and template_id = p_template_id\n     and archived_at is null\n  returning * into v_template;\n  if not found then\n    raise exception using errcode = '42501', message = 'template_not_owned_or_missing';\n  end if;\n  return to_jsonb(v_template);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_template_id text, p_name text, p_content text, p_situation text, p_category text, p_subcategory text, p_tone text, p_contact_id uuid, p_category_id uuid"
+        },
+        {
+          "name": "update_template_category",
+          "result": "jsonb",
+          "definition": "CREATE OR REPLACE FUNCTION public.update_template_category(p_category_id uuid, p_name text, p_situation text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_user_id uuid := auth.uid();\n  v_category public.template_categories%rowtype;\nbegin\n  if v_user_id is null then\n    raise exception using errcode = '42501', message = 'authentication_required';\n  end if;\n  if not public.has_app_entitlement(v_user_id) then\n    raise exception using errcode = '42501', message = 'app_entitlement_required';\n  end if;\n  if nullif(btrim(p_name), '') is null or char_length(btrim(p_name)) > 80 then\n    raise exception using errcode = '22023', message = 'invalid_category_name';\n  end if;\n  if coalesce(p_situation, '') not in (\n    'repurchase', 'product', 'product-prospect', 'business',\n    'fast-start', 'referral', 'manual'\n  ) then\n    raise exception using errcode = '22023', message = 'invalid_template_situation';\n  end if;\n\n  update public.template_categories\n     set name = btrim(p_name), situation = p_situation\n   where id = p_category_id\n     and user_id = v_user_id\n     and archived_at is null\n  returning * into v_category;\n  if not found then\n    raise exception using errcode = '42501', message = 'category_not_owned_or_missing';\n  end if;\n\n  update public.message_templates\n     set situation = p_situation,\n         category = case when p_situation = 'repurchase' then 'recompra' else 'seguimiento' end\n   where user_id = v_user_id\n     and category_id = p_category_id\n     and archived_at is null;\n\n  return to_jsonb(v_category);\nend;\n$function$\n",
+          "security_definer": true,
+          "identity_arguments": "p_category_id uuid, p_name text, p_situation text"
+        },
+        {
+          "name": "validate_message_template_write",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.validate_message_template_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if char_length(btrim(coalesce(new.template_id, ''))) not between 1 and 200\n     or char_length(coalesce(new.content, '')) not between 1 and 5000\n     or regexp_replace(\n       new.content,\n       '\\{\\{(contact\\.full_name|product\\.name|product\\.link_url)\\}\\}',\n       '',\n       'g'\n     ) ~ '\\{\\{[^{}]+\\}\\}'\n     or (new.name is not null and char_length(btrim(new.name)) not between 1 and 100)\n     or (new.situation is not null and new.situation not in (\n       'repurchase', 'product', 'product-prospect', 'business',\n       'fast-start', 'referral', 'manual'\n     ))\n     or (new.category is not null and char_length(btrim(new.category)) not between 1 and 60)\n     or (new.subcategory is not null and char_length(btrim(new.subcategory)) not between 1 and 100)\n     or (new.tone is not null and new.tone !~ '^[a-z0-9_-]{1,30}$')\n     or (\n       new.origin = 'user'\n       and (\n         new.name is null\n         or new.situation is null\n         or new.category is null\n         or new.subcategory is null\n         or new.tone is null\n       )\n     ) then\n    raise exception using errcode = '22023', message = 'invalid_message_template';\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": ""
+        },
+        {
+          "name": "validate_settings_timezone_write",
+          "result": "trigger",
+          "definition": "CREATE OR REPLACE FUNCTION public.validate_settings_timezone_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if new.timezone is null or not exists (\n    select 1\n      from pg_catalog.pg_timezone_names timezone_row\n     where timezone_row.name = new.timezone\n  ) then\n    raise exception using errcode = '22023', message = 'invalid_settings_timezone';\n  end if;\n  return new;\nend;\n$function$\n",
+          "security_definer": false,
+          "identity_arguments": ""
         },
         {
           "name": "zynergia_clear_previous_template_default",
@@ -3313,6 +4368,48 @@
           "definition": "UNIQUE (user_id)"
         },
         {
+          "name": "contact_batch_operations_operation_kind_check",
+          "type": "c",
+          "table": "contact_batch_operations",
+          "definition": "CHECK ((operation_kind = ANY (ARRAY['import'::text, 'change_type'::text, 'anonymize'::text])))"
+        },
+        {
+          "name": "contact_batch_operations_pkey",
+          "type": "p",
+          "table": "contact_batch_operations",
+          "definition": "PRIMARY KEY (user_id, operation_id)"
+        },
+        {
+          "name": "contact_batch_operations_request_hash_check",
+          "type": "c",
+          "table": "contact_batch_operations",
+          "definition": "CHECK ((request_hash ~ '^[a-f0-9]{64}$'::text))"
+        },
+        {
+          "name": "contact_batch_operations_user_id_fkey",
+          "type": "f",
+          "table": "contact_batch_operations",
+          "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "contacts_import_source_check",
+          "type": "c",
+          "table": "contacts",
+          "definition": "CHECK ((import_source = ANY (ARRAY['manual'::text, 'device'::text])))"
+        },
+        {
+          "name": "contacts_phone_country_iso_format",
+          "type": "c",
+          "table": "contacts",
+          "definition": "CHECK (((phone_country_iso IS NULL) OR (phone_country_iso ~ '^[A-Z]{2}$'::text)))"
+        },
+        {
+          "name": "contacts_phone_e164_format",
+          "type": "c",
+          "table": "contacts",
+          "definition": "CHECK (((phone_e164 IS NULL) OR (phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'::text)))"
+        },
+        {
           "name": "contacts_pkey",
           "type": "p",
           "table": "contacts",
@@ -3323,6 +4420,12 @@
           "type": "f",
           "table": "contacts",
           "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+        },
+        {
+          "name": "message_templates_category_owner_fk",
+          "type": "f",
+          "table": "message_templates",
+          "definition": "FOREIGN KEY (category_id) REFERENCES template_categories(id) ON DELETE SET NULL"
         },
         {
           "name": "message_templates_check",
@@ -3361,10 +4464,34 @@
           "definition": "UNIQUE (user_id, template_id)"
         },
         {
+          "name": "notifications_channel_check",
+          "type": "c",
+          "table": "notifications",
+          "definition": "CHECK ((channel = ANY (ARRAY['in_app'::text, 'local'::text, 'push'::text])))"
+        },
+        {
+          "name": "notifications_delivery_attempt_count_check",
+          "type": "c",
+          "table": "notifications",
+          "definition": "CHECK (((delivery_attempt_count >= 0) AND (delivery_attempt_count <= 20)))"
+        },
+        {
+          "name": "notifications_delivery_status_check",
+          "type": "c",
+          "table": "notifications",
+          "definition": "CHECK ((delivery_status = ANY (ARRAY['not_applicable'::text, 'pending'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'failed'::text, 'skipped'::text])))"
+        },
+        {
           "name": "notifications_pkey",
           "type": "p",
           "table": "notifications",
           "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notifications_route_check",
+          "type": "c",
+          "table": "notifications",
+          "definition": "CHECK (((route IS NULL) OR (route = '/'::text) OR (route ~ '^/(Tasks|Partners)(\\?(taskId|partnerId)=[A-Za-z0-9_-]{1,80})?$'::text)))"
         },
         {
           "name": "notifications_user_id_fkey",
@@ -3403,10 +4530,70 @@
           "definition": "UNIQUE (user_id, product_id)"
         },
         {
+          "name": "sale_orders_contact_owner_fk",
+          "type": "f",
+          "table": "sale_orders",
+          "definition": "FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL"
+        },
+        {
+          "name": "sale_orders_content_hash_check",
+          "type": "c",
+          "table": "sale_orders",
+          "definition": "CHECK ((content_hash ~ '^[a-f0-9]{32}$'::text))"
+        },
+        {
+          "name": "sale_orders_pkey",
+          "type": "p",
+          "table": "sale_orders",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "sale_orders_sale_type_check",
+          "type": "c",
+          "table": "sale_orders",
+          "definition": "CHECK ((sale_type = ANY (ARRAY['nueva'::text, 'recompra'::text])))"
+        },
+        {
+          "name": "sale_orders_status_check",
+          "type": "c",
+          "table": "sale_orders",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'cancelled'::text])))"
+        },
+        {
+          "name": "sale_orders_user_id_fkey",
+          "type": "f",
+          "table": "sale_orders",
+          "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "sale_orders_user_id_operation_id_key",
+          "type": "u",
+          "table": "sale_orders",
+          "definition": "UNIQUE (user_id, operation_id)"
+        },
+        {
+          "name": "sales_order_id_fkey",
+          "type": "f",
+          "table": "sales",
+          "definition": "FOREIGN KEY (order_id) REFERENCES sale_orders(id) ON DELETE SET NULL"
+        },
+        {
           "name": "sales_pkey",
           "type": "p",
           "table": "sales",
           "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "sales_quantity_check",
+          "type": "c",
+          "table": "sales",
+          "definition": "CHECK (((quantity >= 1) AND (quantity <= 999)))"
+        },
+        {
+          "name": "sales_status_check",
+          "type": "c",
+          "table": "sales",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'cancelled'::text])))"
         },
         {
           "name": "sales_user_id_fkey",
@@ -3775,16 +4962,130 @@
           "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
         },
         {
+          "name": "tasks_origin_check",
+          "type": "c",
+          "table": "tasks",
+          "definition": "CHECK ((origin = ANY (ARRAY['legacy'::text, 'manual'::text, 'contact_automation'::text, 'sale_automation'::text, 'partner_automation'::text])))"
+        },
+        {
           "name": "tasks_pkey",
           "type": "p",
           "table": "tasks",
           "definition": "PRIMARY KEY (id)"
         },
         {
+          "name": "tasks_source_sale_id_fkey",
+          "type": "f",
+          "table": "tasks",
+          "definition": "FOREIGN KEY (source_sale_id) REFERENCES sales(id) ON DELETE SET NULL"
+        },
+        {
           "name": "tasks_user_id_fkey",
           "type": "f",
           "table": "tasks",
           "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+        },
+        {
+          "name": "template_categories_name_check",
+          "type": "c",
+          "table": "template_categories",
+          "definition": "CHECK (((char_length(btrim(name)) >= 1) AND (char_length(btrim(name)) <= 80)))"
+        },
+        {
+          "name": "template_categories_pkey",
+          "type": "p",
+          "table": "template_categories",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "template_categories_situation_check",
+          "type": "c",
+          "table": "template_categories",
+          "definition": "CHECK ((situation = ANY (ARRAY['repurchase'::text, 'product'::text, 'product-prospect'::text, 'business'::text, 'fast-start'::text, 'referral'::text, 'manual'::text])))"
+        },
+        {
+          "name": "template_categories_user_id_fkey",
+          "type": "f",
+          "table": "template_categories",
+          "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "template_share_bundles_owner_id_fkey",
+          "type": "f",
+          "table": "template_share_bundles",
+          "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "template_share_bundles_owner_id_operation_id_key",
+          "type": "u",
+          "table": "template_share_bundles",
+          "definition": "UNIQUE (owner_id, operation_id)"
+        },
+        {
+          "name": "template_share_bundles_pkey",
+          "type": "p",
+          "table": "template_share_bundles",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "template_share_bundles_request_hash_check",
+          "type": "c",
+          "table": "template_share_bundles",
+          "definition": "CHECK ((request_hash ~ '^[a-f0-9]{64}$'::text))"
+        },
+        {
+          "name": "template_share_bundles_snapshot_check",
+          "type": "c",
+          "table": "template_share_bundles",
+          "definition": "CHECK (((jsonb_typeof(snapshot) = 'array'::text) AND ((jsonb_array_length(snapshot) >= 1) AND (jsonb_array_length(snapshot) <= 120))))"
+        },
+        {
+          "name": "template_share_bundles_token_hash_check",
+          "type": "c",
+          "table": "template_share_bundles",
+          "definition": "CHECK ((token_hash ~ '^[a-f0-9]{64}$'::text))"
+        },
+        {
+          "name": "template_share_bundles_token_hash_key",
+          "type": "u",
+          "table": "template_share_bundles",
+          "definition": "UNIQUE (token_hash)"
+        },
+        {
+          "name": "template_share_imports_bundle_id_fkey",
+          "type": "f",
+          "table": "template_share_imports",
+          "definition": "FOREIGN KEY (bundle_id) REFERENCES template_share_bundles(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "template_share_imports_imported_count_check",
+          "type": "c",
+          "table": "template_share_imports",
+          "definition": "CHECK (((imported_count >= 0) AND (imported_count <= 120)))"
+        },
+        {
+          "name": "template_share_imports_pkey",
+          "type": "p",
+          "table": "template_share_imports",
+          "definition": "PRIMARY KEY (bundle_id, user_id)"
+        },
+        {
+          "name": "template_share_imports_request_hash_check",
+          "type": "c",
+          "table": "template_share_imports",
+          "definition": "CHECK ((request_hash ~ '^[a-f0-9]{64}$'::text))"
+        },
+        {
+          "name": "template_share_imports_user_id_fkey",
+          "type": "f",
+          "table": "template_share_imports",
+          "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "template_share_imports_user_id_operation_id_key",
+          "type": "u",
+          "table": "template_share_imports",
+          "definition": "UNIQUE (user_id, operation_id)"
         },
         {
           "name": "user_products_check",
@@ -3803,6 +5104,12 @@
           "type": "c",
           "table": "user_products",
           "definition": "CHECK (((frequency_months IS NULL) OR ((frequency_months >= 1) AND (frequency_months <= 24))))"
+        },
+        {
+          "name": "user_products_image_path_safe",
+          "type": "c",
+          "table": "user_products",
+          "definition": "CHECK (((image_path IS NULL) OR (image_path ~ '^[0-9a-fA-F-]{36}/[0-9a-fA-F-]+\\.(webp|jpg|jpeg|png)$'::text)))"
         },
         {
           "name": "user_products_image_url_check",
@@ -3860,7 +5167,7 @@
         }
       ],
       "project_ref": "sbezuysumqlwqnvrhckg",
-      "generated_at": "2026-09-04T22:42:51.251811+00:00"
+      "generated_at": "2026-09-08T15:37:57.130565+00:00"
     }
   }
 ]

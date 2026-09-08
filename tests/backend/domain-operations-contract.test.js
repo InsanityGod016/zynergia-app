@@ -68,20 +68,32 @@ test('anonymize_contact preserves anonymous sales and removes owned personal wor
   );
 });
 
-test('the sale confirmation delegates insertion to record_sale and keeps legacy side effects', async () => {
+test('the sale confirmation delegates the complete order to one atomic RPC', async () => {
   const page = await source('src/pages/NewSale4.jsx');
 
-  expect(page).toMatch(/\.rpc\('record_sale'/);
+  expect(page).toMatch(/\.rpc\('record_sale_order'/);
   for (const parameter of [
     'p_operation_id',
     'p_contact_id',
-    'p_product_id',
+    'p_items',
     'p_purchase_date',
     'p_sale_type',
   ]) {
     expect(page).toContain(parameter);
   }
   expect(page).not.toMatch(/db\.Sale\.create\(/);
-  expect(page).toMatch(/createSaleTasks\(/);
-  expect(page).toMatch(/recalculateAllPartners\(/);
+  expect(page).not.toMatch(/createSaleTasks\(/);
+  expect(page).not.toMatch(/recalculateAllPartners\(/);
+  expect(page).toMatch(/isValidSaleDate\(purchaseDate, today\)/);
+});
+
+test('sale cart and manual task choices survive navigation or relaunch', async () => {
+  const cart = await source('src/pages/NewSale2.jsx');
+  const task = await source('src/pages/NewTask.jsx');
+
+  expect(cart).toMatch(/cartChanged[\s\S]+purchaseDate: null, saleType: null/);
+  expect(cart).toMatch(/useMemo\(\(\) => readSaleDraft\(\), \[\]\)/);
+  expect(task).toMatch(/saveDraft\(\{ reason: item\.value, templateId: '', productId: nextProductId \}\)/);
+  expect(task).toMatch(/saveDraft\(\{ productId: event\.target\.value \}\)/);
+  expect(task).toMatch(/saveDraft\(\{ templateId: event\.target\.value \}\)/);
 });

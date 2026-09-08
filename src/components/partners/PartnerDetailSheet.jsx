@@ -139,26 +139,30 @@ export default function PartnerDetailSheet({
   // The leader may only receive the aggregate Fast Start snapshot. Never load
   // a partner's private contacts or sales into this sheet.
   const isLoading = hasApp && metricsLoading;
-  const activePremierClients = hasApp && Number.isFinite(fastStartMetrics?.premier_clients)
-    ? fastStartMetrics.premier_clients
+  const qteamKits = hasApp && Number.isFinite(fastStartMetrics?.qteam_kits)
+    ? fastStartMetrics.qteam_kits
+    : 0;
+  const xteamKits = hasApp && Number.isFinite(fastStartMetrics?.xteam_kits)
+    ? fastStartMetrics.xteam_kits
     : 0;
   const partnersCount = hasApp && Number.isFinite(fastStartMetrics?.partners_count)
     ? fastStartMetrics.partners_count
     : 0;
   const directBranches = Array.isArray(fastStartMetrics?.direct_branches)
     ? fastStartMetrics.direct_branches.map(branch => ({
-      premierClients: Number.isFinite(branch?.premier_clients) ? branch.premier_clients : null,
+      qteamKits: Number.isFinite(branch?.qteam_kits) ? branch.qteam_kits : null,
     }))
     : [];
   const progress = hasApp ? calculateFastStartProgress({
-    premierClients: activePremierClients,
+    qteamKits,
+    xteamKits,
     directPartners: partnersCount,
     directBranches,
     startDate: fastStartMetrics?.fast_start_started_at || null,
   }) : null;
   const daysIn = progress?.timeline?.daysElapsed ?? null;
   const daysRemaining = progress?.timeline?.daysRemaining ?? null;
-  const retryMetrics = () => queryClient.invalidateQueries({ queryKey: ['partners_fs_metrics'] });
+  const retryMetrics = () => queryClient.invalidateQueries({ queryKey: ['fast_start_snapshots_v2'] });
 
   const handleShare = async () => {
     const text = 'Únete a mi equipo en Zynergia. Descarga la app para hacer mejor tracking de tu negocio.';
@@ -238,10 +242,10 @@ export default function PartnerDetailSheet({
                 ) : (
                   <div className="space-y-2.5">
                     <p className="text-[15px] font-semibold text-[#475569]">Progreso Fast Start</p>
-                    <ProgressRow label="Q-Team" subtitle="Meta día 30" amount={formatBonus('qteam', currency)} status={progress.stages.qteam.status} current={activePremierClients} target={4} detail={progress.stages.qteam.completed ? 'Meta registrada.' : `Le faltan ${Math.max(0, 4 - activePremierClients)} clientes Premier.`} />
+                    <ProgressRow label="Q-Team" subtitle="Meta día 30" amount={formatBonus('qteam', currency)} status={progress.stages.qteam.status} current={qteamKits} target={4} detail={progress.stages.qteam.completed ? 'Meta registrada.' : `Le faltan ${Math.max(0, 4 - qteamKits)} kits.`} />
                     <ProgressRow label="Fast Start Nivel 1" subtitle="Meta día 60" amount={formatBonus('fs_nivel1', currency)} status={progress.stages.fs_nivel1.status} current={partnersCount} target={2} detail={!progress.stages.qteam.completed ? 'Primero necesita completar Q-Team.' : progress.stages.fs_nivel1.completed ? 'Meta registrada.' : `Le faltan ${Math.max(0, 2 - partnersCount)} partners.`} />
                     <ProgressRow label="Fast Start Nivel 2" subtitle="Meta día 90" amount={formatBonus('fs_nivel2', currency)} status={progress.stages.fs_nivel2.status} current={progress.stages.fs_nivel2.current} target={2} detail={!progress.stages.fs_nivel1.completed ? 'Primero necesita completar el Nivel 1.' : progress.stages.fs_nivel2.completed ? 'Dos ramas directas tienen Q-Team verificado.' : progress.stages.fs_nivel2.status === 'sin_datos' ? 'No recibimos métricas verificadas de todas sus ramas directas; no mostramos progreso inventado.' : `Le faltan ${Math.max(0, 2 - progress.stages.fs_nivel2.current)} ramas con Q-Team.`} />
-                    <ProgressRow label="X-Team" subtitle="Meta día 120" amount={formatBonus('xteam', currency)} status={progress.stages.xteam.status} current={activePremierClients} target={10} detail={!progress.stages.fs_nivel1.completed ? 'Primero necesita completar el Nivel 1.' : progress.stages.xteam.completed ? 'Meta registrada.' : `Le faltan ${Math.max(0, 10 - activePremierClients)} clientes Premier.`} />
+                    <ProgressRow label="X-Team" subtitle="Meta día 120" amount={formatBonus('xteam', currency)} status={progress.stages.xteam.status} current={xteamKits} target={10} detail={progress.stages.xteam.completed ? 'Meta registrada.' : `Le faltan ${Math.max(0, 10 - xteamKits)} kits.`} />
                   </div>
                 )
               ) : (
