@@ -4,7 +4,7 @@ import {
   getStripe,
   newSignupsEnabled,
   validatedPriceForPlan,
-} from '../_lib/clients.js';
+} from '../clients.js';
 import {
   accessSnapshot,
   billingConflict,
@@ -12,10 +12,10 @@ import {
   ensureStripeCustomer,
   refreshSubscription,
   reserveCheckoutOperation,
-} from '../_lib/billing-service.js';
-import { isNonTerminalSubscription } from '../_lib/billing-state.js';
-import { connectCohortMetadata, partnerTransferData } from '../_lib/connect.js';
-import { handleApi, HttpError, isOperationId, readJson } from '../_lib/http.js';
+} from '../billing-service.js';
+import { isNonTerminalSubscription } from '../billing-state.js';
+import { connectCohortMetadata, partnerTransferData } from '../connect.js';
+import { handleApi, HttpError, isOperationId, readJson } from '../http.js';
 
 export default async function handler(req, res) {
   return handleApi(req, res, { methods: ['POST'], label: 'billing-checkout' }, async () => {

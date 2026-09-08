@@ -1,6 +1,6 @@
-import { newSignupsEnabled, validatedPriceForPlan } from '../_lib/clients.js';
-import { connectCohortMetadata, partnerTransferData } from '../_lib/connect.js';
-import { handleApi } from '../_lib/http.js';
+import { newSignupsEnabled, validatedPriceForPlan } from '../clients.js';
+import { connectCohortMetadata, partnerTransferData } from '../connect.js';
+import { handleApi } from '../http.js';
 
 export default async function handler(req, res) {
   return handleApi(req, res, { methods: ['GET'], label: 'signup-status' }, async () => {

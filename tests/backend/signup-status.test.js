@@ -17,7 +17,7 @@ vi.mock('../../api/_lib/connect.js', () => ({
   partnerTransferData: mocks.partnerTransferData,
 }));
 
-import handler from '../../api/billing/signup-status.js';
+import handler from '../../api/_lib/billing-endpoints/signup-status.js';
 
 function response() {
   return {

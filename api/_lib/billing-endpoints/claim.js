@@ -1,10 +1,10 @@
-import { authenticatedUser } from '../_lib/clients.js';
+import { authenticatedUser } from '../clients.js';
 import {
   accessSnapshot,
   claimBillingForUser,
   publicBillingStatus,
-} from '../_lib/billing-service.js';
-import { handleApi } from '../_lib/http.js';
+} from '../billing-service.js';
+import { handleApi } from '../http.js';
 
 export default async function handler(req, res) {
   return handleApi(req, res, { methods: ['POST'], label: 'billing-claim' }, async () => {

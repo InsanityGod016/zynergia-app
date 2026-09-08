@@ -29,7 +29,7 @@ test('legacy identity and client-verified payment endpoints are retired', async 
 });
 
 test('checkout uses the server-controlled Connect transfer and server-selected price', async () => {
-  const contents = await source('api/billing/checkout.js');
+  const contents = await source('api/_lib/billing-endpoints/checkout.js');
   expect(contents).toMatch(/partnerTransferData\(\)/);
   expect(contents).toMatch(/connectCohortMetadata\(\)/);
   expect(contents).toMatch(/transfer_data: transferData/);
@@ -90,7 +90,7 @@ test('Connect ledger is private, proportional, idempotent, and webhook-driven', 
 });
 
 test('mobile cancellation uses the authenticated billing row and never client Stripe IDs', async () => {
-  const endpoint = await source('api/billing/cancel.js');
+  const endpoint = await source('api/_lib/billing-endpoints/cancel.js');
   const service = await source('api/_lib/billing-service.js');
   const settings = await source('src/pages/Settings.jsx');
 
@@ -128,7 +128,7 @@ test('mobile shows grace and cancellation without linking to an external payment
 
 test('web account separates card updates from guaranteed end-of-period cancellation', async () => {
   const account = await source('src/pages/Account.jsx');
-  const portal = await source('api/billing/portal.js');
+  const portal = await source('api/_lib/billing-endpoints/portal.js');
 
   expect(account).toMatch(/Actualizar tarjeta/);
   expect(account).toMatch(/canUpdatePaymentMethod/);
@@ -138,6 +138,15 @@ test('web account separates card updates from guaranteed end-of-period cancellat
   expect(account).not.toMatch(/Actualizar tarjeta o cancelar/);
   expect(portal).toMatch(/type: 'payment_method_update'/);
   expect(portal).not.toMatch(/type: 'subscription_cancel'/);
+});
+
+test('billing URLs share one dynamic Vercel function without changing public actions', async () => {
+  const route = await source('api/billing/[action].js');
+
+  for (const action of ['cancel', 'checkout', 'claim', 'portal', 'signup-status', 'status']) {
+    expect(route).toMatch(new RegExp(`\\['${action}',`));
+  }
+  expect(route).toMatch(/ENDPOINT_NOT_FOUND/);
 });
 
 test('new checkout accepts only the monthly server price', async () => {

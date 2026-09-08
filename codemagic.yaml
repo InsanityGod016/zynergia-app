@@ -12,6 +12,7 @@ workflows:
         VITE_SUPPORT_EMAIL: equipo@coreflowia.com
         VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
         VITE_PLAY_STORE_URL: https://play.google.com/store/apps/details?id=com.zynergia.app
+        VITE_ONESIGNAL_APP_ID: a7228dd0-b242-450b-b0d0-6bf903b43919
       node: 22.14.0
       xcode: 26.6
     scripts:
@@ -166,6 +167,7 @@ workflows:
         VITE_SUPPORT_EMAIL: equipo@coreflowia.com
         VITE_APP_STORE_URL: https://apps.apple.com/mx/app/zynergia/id6761772857?l=en-GB
         VITE_PLAY_STORE_URL: https://play.google.com/store/apps/details?id=com.zynergia.app
+        VITE_ONESIGNAL_APP_ID: a7228dd0-b242-450b-b0d0-6bf903b43919
       node: 22.14.0
       xcode: 26.6
       java: 21

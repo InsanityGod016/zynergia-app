@@ -35,7 +35,7 @@ vi.mock('../../api/_lib/connect.js', () => ({
   partnerTransferData: mocks.partnerTransferData,
 }));
 
-import handler from '../../api/billing/checkout.js';
+import handler from '../../api/_lib/billing-endpoints/checkout.js';
 import { HttpError } from '../../api/_lib/http.js';
 
 function response() {

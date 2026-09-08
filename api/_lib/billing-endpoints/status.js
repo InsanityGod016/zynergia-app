@@ -1,6 +1,6 @@
-import { authenticatedUser } from '../_lib/clients.js';
-import { accessSnapshot, publicBillingStatus } from '../_lib/billing-service.js';
-import { handleApi } from '../_lib/http.js';
+import { authenticatedUser } from '../clients.js';
+import { accessSnapshot, publicBillingStatus } from '../billing-service.js';
+import { handleApi } from '../http.js';
 
 export default async function handler(req, res) {
   return handleApi(req, res, { methods: ['GET'], label: 'billing-status' }, async () => {

@@ -1,12 +1,12 @@
-import { authenticatedUser } from '../_lib/clients.js';
+import { authenticatedUser } from '../clients.js';
 import {
   accessSnapshot,
   billingConflict,
   cancelSubscriptionAtPeriodEnd,
   claimBillingForUser,
   publicBillingStatus,
-} from '../_lib/billing-service.js';
-import { handleApi, HttpError } from '../_lib/http.js';
+} from '../billing-service.js';
+import { handleApi, HttpError } from '../http.js';
 
 export default async function handler(req, res) {
   return handleApi(req, res, { methods: ['POST'], label: 'billing-cancel' }, async () => {
