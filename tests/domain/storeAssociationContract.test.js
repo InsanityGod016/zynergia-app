@@ -57,6 +57,7 @@ test('native release configuration keeps push, permissions, stores and update ma
     gitignore,
     releaseManifestSource,
     codemagic,
+    androidKeyResolver,
     gate,
     vercelSource,
   ] = await Promise.all([
@@ -70,6 +71,7 @@ test('native release configuration keeps push, permissions, stores and update ma
     read('.gitignore'),
     read('public/.well-known/mobile-releases.json'),
     read('codemagic.yaml'),
+    read('scripts/resolve-android-upload-key.sh'),
     read('supabase/scripts/predeploy-gate.mjs'),
     read('vercel.json'),
   ]);
@@ -106,9 +108,9 @@ test('native release configuration keeps push, permissions, stores and update ma
   expect(releaseManifestSource).not.toMatch(/(?:jwt|session_id|access_token|https?:\/\/)/i);
 
   expect(codemagic.match(/VITE_PLAY_STORE_URL: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.zynergia\.app/g)).toHaveLength(2);
-  expect(codemagic).toContain("expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'");
-  expect(codemagic).toContain('ANDROID_PLAY_UPLOAD_KEYSTORE');
-  expect(codemagic).toContain('ANDROID_KEYSTORE_PASSWORD');
+  expect(androidKeyResolver).toContain("expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'");
+  expect(androidKeyResolver).toContain('ANDROID_PLAY_UPLOAD_KEYSTORE');
+  expect(androidKeyResolver).toContain('ANDROID_KEYSTORE_PASSWORD');
   expect(codemagic).toContain("Print :Entitlements:get-task-allow");
   expect(codemagic).toContain("Print :Entitlements:com.apple.developer.associated-domains");
   expect(codemagic).toContain("grep -Fq 'applinks:zynergia.pro'");

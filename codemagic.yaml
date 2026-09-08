@@ -137,24 +137,8 @@ workflows:
       - name: Verify reset upload key
         script: |
           set -euo pipefail
-          trap 'rm -f /tmp/zynergia-upload.p12 /tmp/zynergia-upload.pem' EXIT
-          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.p12
-          keytool -exportcert -rfc \
-            -storetype PKCS12 \
-            -keystore /tmp/zynergia-upload.p12 \
-            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
-            -alias "$ANDROID_KEY_ALIAS" > /tmp/zynergia-upload.pem
-
-          actual_sha1=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha1 | cut -d= -f2)
-          actual_sha256=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha256 | cut -d= -f2)
-          expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'
-          expected_sha256='E3:06:AF:9A:30:99:7C:C3:FE:47:30:5B:9E:16:9E:C9:A0:DA:89:B8:5F:29:61:DC:C1:A4:62:6F:F1:1A:CD:BA'
-
-          if [ "$actual_sha1" != "$expected_sha1" ] || [ "$actual_sha256" != "$expected_sha256" ]; then
-            echo "Android upload key fingerprint does not match the key approved by Google Play."
-            exit 1
-          fi
-          echo "Android upload key fingerprint verified."
+          trap 'rm -f /tmp/zynergia-upload.keystore' EXIT
+          source scripts/resolve-android-upload-key.sh
 
   android-distribution:
     name: Android Distribution
@@ -197,34 +181,18 @@ workflows:
       - name: Set up keystore
         script: |
           set -euo pipefail
-          trap 'rm -f /tmp/zynergia-upload.p12 /tmp/zynergia-upload.pem' ERR
-          printf '%s' "$ANDROID_PLAY_UPLOAD_KEYSTORE" | base64 --decode > /tmp/zynergia-upload.p12
-          keytool -exportcert -rfc \
-            -storetype PKCS12 \
-            -keystore /tmp/zynergia-upload.p12 \
-            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
-            -alias "$ANDROID_KEY_ALIAS" > /tmp/zynergia-upload.pem
-
-          actual_sha1=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha1 | cut -d= -f2)
-          actual_sha256=$(openssl x509 -in /tmp/zynergia-upload.pem -noout -fingerprint -sha256 | cut -d= -f2)
-          expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'
-          expected_sha256='E3:06:AF:9A:30:99:7C:C3:FE:47:30:5B:9E:16:9E:C9:A0:DA:89:B8:5F:29:61:DC:C1:A4:62:6F:F1:1A:CD:BA'
-
-          if [ "$actual_sha1" != "$expected_sha1" ] || [ "$actual_sha256" != "$expected_sha256" ]; then
-            echo "Android upload key fingerprint does not match the key approved by Google Play."
-            exit 1
-          fi
-          echo "Android upload key fingerprint verified."
+          source scripts/resolve-android-upload-key.sh
       - name: Build Android App Bundle
         script: |
           set -euo pipefail
-          trap 'rm -f /tmp/zynergia-upload.p12 /tmp/zynergia-upload.pem' EXIT
+          trap 'rm -f /tmp/zynergia-upload.keystore' EXIT
+          source scripts/resolve-android-upload-key.sh
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=/tmp/zynergia-upload.p12 \
-            -Pandroid.injected.signing.store.password=$ANDROID_KEYSTORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$ANDROID_KEYSTORE_PASSWORD
+            -Pandroid.injected.signing.store.file=$ANDROID_RESOLVED_KEYSTORE \
+            -Pandroid.injected.signing.store.password=$ANDROID_RESOLVED_KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$ANDROID_RESOLVED_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$ANDROID_RESOLVED_KEYSTORE_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
