@@ -42,7 +42,7 @@ workflows:
           keychain initialize
           printf '%s' "$CM_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
           keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CM_CERTIFICATE_PASSWORD"
-          printf '%s' "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+          printf '%s' "$CM_PROVISIONING_PROFILE_V2" | base64 --decode > /tmp/profile.mobileprovision
           printf '%s' "$CM_NSE_PROVISIONING_PROFILE" | base64 --decode > /tmp/nse-profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
@@ -74,19 +74,43 @@ workflows:
             cp "$profile" "$HOME/Library/MobileDevice/Provisioning Profiles/$uuid.mobileprovision"
           }
 
+          profile_allows_associated_domain() {
+            decoded_profile="$1"
+            required_domain="$2"
+            profile_domains=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' "$decoded_profile" 2>/dev/null) || {
+              echo "The App provisioning profile does not authorize Associated Domains."
+              exit 1
+            }
+            printf '%s\n' "$profile_domains" | awk -v required="$required_domain" '
+              {
+                value = $0
+                sub(/^[[:space:]]+/, "", value)
+                sub(/[[:space:]]+$/, "", value)
+                if (value == "*" || value == required) found = 1
+              }
+              END { exit(found ? 0 : 1) }
+            ' || {
+              echo "The App provisioning profile does not authorize $required_domain."
+              exit 1
+            }
+          }
+
           install_profile /tmp/profile.mobileprovision com.zynergia.app
           install_profile /tmp/nse-profile.mobileprovision com.zynergia.app.OneSignalNotificationServiceExtension
 
-          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/profile.mobileprovision.plist \
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' ios/App/App/App.entitlements \
             | grep -Fq 'applinks:zynergia.pro' || {
-              echo "The App provisioning profile is missing the zynergia.pro Universal Link domain."
+              echo "App.entitlements is missing the zynergia.pro Universal Link domain."
               exit 1
             }
-          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/profile.mobileprovision.plist \
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' ios/App/App/App.entitlements \
             | grep -Fq 'webcredentials:zynergia.pro' || {
-              echo "The App provisioning profile is missing the zynergia.pro web credentials domain."
+              echo "App.entitlements is missing the zynergia.pro web credentials domain."
               exit 1
             }
+
+          profile_allows_associated_domain /tmp/profile.mobileprovision.plist 'applinks:zynergia.pro'
+          profile_allows_associated_domain /tmp/profile.mobileprovision.plist 'webcredentials:zynergia.pro'
 
           app_push_environment=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.mobileprovision.plist)
           if [ "$app_push_environment" != production ]; then

@@ -108,13 +108,17 @@ test('native release configuration keeps push, permissions, stores and update ma
   expect(releaseManifestSource).not.toMatch(/(?:jwt|session_id|access_token|https?:\/\/)/i);
 
   expect(codemagic.match(/VITE_PLAY_STORE_URL: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.zynergia\.app/g)).toHaveLength(2);
-  expect(androidKeyResolver).toContain("expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'");
-  expect(androidKeyResolver).toContain('ANDROID_PLAY_UPLOAD_KEYSTORE');
-  expect(androidKeyResolver).toContain('ANDROID_KEYSTORE_PASSWORD');
+  expect(androidKeyResolver).toContain("expected_sha1='D4:36:FC:6F:1F:A3:02:6C:CE:FE:ED:F9:52:CC:14:0F:AD:6D:BB:02'");
+  expect(androidKeyResolver).toContain('ANDROID_ACTIVE_UPLOAD_KEYSTORE');
+  expect(androidKeyResolver).toContain('ANDROID_ACTIVE_UPLOAD_KEYSTORE_PASSWORD');
   expect(codemagic).toContain("Print :Entitlements:get-task-allow");
-  expect(codemagic).toContain("Print :Entitlements:com.apple.developer.associated-domains");
+  expect(codemagic).toContain("Print :com.apple.developer.associated-domains' ios/App/App/App.entitlements");
   expect(codemagic).toContain("grep -Fq 'applinks:zynergia.pro'");
   expect(codemagic).toContain("grep -Fq 'webcredentials:zynergia.pro'");
+  expect(codemagic).toContain("Print :Entitlements:com.apple.developer.associated-domains");
+  expect(codemagic).toContain('if (value == "*" || value == required) found = 1');
+  expect(codemagic).toContain("profile_allows_associated_domain /tmp/profile.mobileprovision.plist 'applinks:zynergia.pro'");
+  expect(codemagic).toContain("profile_allows_associated_domain /tmp/profile.mobileprovision.plist 'webcredentials:zynergia.pro'");
   expect(codemagic).toContain("Expected exactly one IPA, found $ipa_count.");
   expect(codemagic).toContain('--path "$ipa_path"');
   expect(codemagic).toContain("trap 'rm -f /tmp/api_key.p8' EXIT");

@@ -1,5 +1,6 @@
 import { allowedPriceIds, getStripe } from './clients.js';
 import { stripeCustomerId, stripePriceId } from './billing-state.js';
+import { deleteOneSignalUser } from './onesignal.js';
 
 const TERMINAL_SUBSCRIPTION_STATUSES = new Set(['canceled', 'incomplete_expired']);
 const STORAGE_PAGE_SIZE = 1000;
@@ -140,6 +141,7 @@ export async function executeAccountDeletion(admin, request) {
   });
 
   if (request.user_id) {
+    await deleteOneSignalUser(request.user_id);
     await deleteUserProductImages(admin, request.user_id);
     await rpc(admin, 'delete_user_data', {
       p_request_id: request.request_id,

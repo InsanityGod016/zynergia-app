@@ -23,6 +23,10 @@ export default async function handler(req, res) {
     if (body.confirmation !== 'DELETE') {
       throw new HttpError(400, 'CONFIRMATION_REQUIRED', 'Escribe DELETE para confirmar la eliminación.');
     }
+    if (body.delete_now !== undefined && typeof body.delete_now !== 'boolean') {
+      throw new HttpError(400, 'INVALID_DELETE_MODE', 'delete_now debe ser booleano.');
+    }
+    const deleteNow = body.delete_now === true;
     if (!isOperationId(body.operation_id)) {
       throw new HttpError(400, 'INVALID_OPERATION_ID', 'Envía un operation_id UUID para continuar.');
     }
@@ -47,7 +51,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    if (request.should_schedule) {
+    if (request.should_schedule && !deleteNow) {
       try {
         await scheduleBillingDeletion({
           customerId: request.stripe_customer_id,
@@ -71,9 +75,15 @@ export default async function handler(req, res) {
     }
 
     try {
+      const executeAt = new Date().toISOString();
+      await rpc(admin, 'schedule_account_deletion', {
+        p_request_id: request.request_id,
+        p_execute_at: executeAt,
+      });
       await executeAccountDeletion(admin, {
         ...request,
         user_id: user.id,
+        execute_at: executeAt,
       });
     } catch (error) {
       await rpc(admin, 'fail_account_deletion', {

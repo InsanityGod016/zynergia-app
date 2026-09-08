@@ -1,6 +1,6 @@
 # Zynergia 1.2.0 — guía de release y cumplimiento
 
-Actualizada: 7 de septiembre de 2026.
+Actualizada: 8 de septiembre de 2026.
 
 ## Estado del artefacto
 
@@ -23,7 +23,7 @@ Android está configurado para API 36. El 7 de septiembre de 2026 se comprobó e
 - [ ] **Rotar la contraseña de la cuenta de revisión.** La guía anterior contenía credenciales en Git. Guardar la nueva contraseña sólo en App Store Connect, Play Console y un gestor de secretos.
 - [x] **Upload key Android fijada en Codemagic.** SHA-1: `16:54:71:1F:4B:E5:93:99:AD:95:A7:4A:20:88:CF:BF:1C:65:CB:B7`; SHA-256: `33:3A:D5:C4:5D:6B:12:7D:94:EF:B6:D8:90:5E:D0:C6:66:4C:0F:E6:1C:3E:E0:9A:C5:74:D7:EB:2B:B9:BF:6E`. El SHA-256 de **Play App Signing**, usado sólo en Android App Links, sigue siendo `48:E3:32:2F:76:49:4B:3A:86:2D:F0:E4:9D:23:7C:0E:25:C0:03:F7:4A:7A:C4:11:51:5F:09:68:78:DA:D0:61`. No intercambiar ambas llaves.
 - [ ] **Revisar permisos y declaraciones contra el binario 1.2 final.** Deben aparecer `READ_CONTACTS` y notificaciones; deben quedar fuera `WRITE_CONTACTS` y permisos de alarma exacta. Declarar contactos seleccionados, imágenes privadas de productos y el identificador técnico de OneSignal en App Privacy y Data Safety.
-- [ ] **Probar la eliminación coordinada con Stripe.** La solicitud debe detener la renovación y programar el borrado para `current_period_end`; sólo una cuenta sin periodo vigente se borra de inmediato. Si Stripe falla, no debe programarse ni ejecutarse el borrado.
+- [ ] **Probar las dos opciones de eliminación coordinada con Stripe.** Ambas deben detener la renovación: `Eliminar ahora` borra de inmediato sin generar un reembolso automático, mientras `Eliminar al terminar mi periodo` programa el borrado para `current_period_end`. Sin periodo vigente, el borrado es inmediato. Si Stripe falla, no debe programarse ni ejecutarse el borrado.
 - [ ] **Desplegar y vigilar el job de borrado programado.** El cron debe procesar solicitudes vencidas de forma idempotente, borrar datos y autenticación una sola vez, reintentar fallos y generar evidencia operativa sin registrar datos sensibles.
 - [x] **Código móvil sin precio, checkout, CTA ni enlace de compra en la experiencia nativa.** Volver a comprobarlo en el AAB/IPA 1.2 final; la app debe seguir siendo estrictamente de inicio de sesión.
 - [x] **Copy móvil corregido** para describir facturación web mediante Stripe. La app móvil sólo muestra estado y cancelación de renovación; no contiene compra, precio, actualización de tarjeta ni enlaces de pago. Volver a comprobar las URLs después de desplegar.
@@ -100,20 +100,20 @@ En App Store Connect usar privacidad como **Privacy Policy URL** y eliminación 
 
 Completar el formulario contra el binario final, no copiando respuestas antiguas. Base actual:
 
-| Tipo de dato | Recopilado | Compartido | Vinculado | Finalidad |
+| Tipo de dato | Recopilado | Compartido | Vinculado | Finalidad en Google Play |
 |---|---|---|---|---|
-| Nombre | Obligatorio | Sí, sólo con equipo vinculado | Sí | Perfil, cuenta y vinculación |
-| Correo electrónico | Obligatorio | No; proveedores operan como encargados | Sí | Cuenta, autenticación y soporte |
-| Teléfono | Opcional | No; WhatsApp sólo por acción del usuario | Sí | Perfil y CRM |
-| ID de usuario | Obligatorio | Sí, sólo con equipo vinculado | Sí | Cuenta, seguridad y vinculación |
-| Fotos | Opcional | No | Sí | Foto de perfil e imágenes de producto elegidas por el usuario |
-| Contactos | Opcional | No | Sí | Nombre y teléfonos de los contactos que el usuario selecciona para importar |
+| Nombre | Obligatorio | Sí, sólo con equipo vinculado; revisar además la excepción de proveedor | Sí | `App functionality` y `Account management` |
+| Correo electrónico | Obligatorio | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `Account management`, `App functionality` y soporte |
+| Teléfono | Opcional | Confirmación del propietario pendiente para la excepción de proveedor; WhatsApp sólo se abre por acción del usuario | Sí | `App functionality` |
+| ID de usuario | Obligatorio | Sí, sólo con equipo vinculado; revisar además la excepción de proveedor | Sí | `Account management`, `App functionality`, `Fraud prevention, security, and compliance`, `Developer communications` y `Analytics` |
+| Fotos | Opcional | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `App functionality`: foto de perfil e imágenes de producto elegidas por el usuario |
+| Contactos | Opcional | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `App functionality`: nombre y teléfonos que el usuario selecciona para importar |
 | Historial de compras | Sí | Sí, para reparto y conciliación de pagos nuevos | Sí | Suscripción, acceso y ventas registradas en el CRM |
-| Otro contenido generado por el usuario | Opcional | Sólo métricas agregadas con equipo vinculado | Sí | Notas, tareas, etiquetas, enlaces, plantillas y recordatorios |
-| Interacciones con la app | Sí | Sí, actividad reciente con equipo vinculado | Sí | Seguimiento, progreso y funcionamiento |
-| Ubicación aproximada | Sí, inferida de IP por infraestructura | No; proveedores como encargados | Sí | Seguridad y funcionamiento |
-| ID de dispositivo u otros IDs | Sí, declaración conservadora de infraestructura y push | No; proveedores como encargados | Sí | Seguridad, funcionamiento y entrega de avisos habilitados |
-| Diagnósticos | Sí | No; proveedores como encargados | Sí | Rendimiento, errores y seguridad |
+| Otro contenido generado por el usuario | Opcional | Sólo métricas agregadas con equipo vinculado; revisar además la excepción de proveedor | Sí | `App functionality`: notas, tareas, etiquetas, enlaces, plantillas y recordatorios |
+| Interacciones con la app | Opcional para OneSignal | Sí, actividad reciente con equipo vinculado; revisar además la excepción de proveedor | Sí | `Analytics`, `Developer communications` y `App functionality`; incluye sesiones, duración y clics de notificaciones |
+| Ubicación aproximada | Sí, inferida de IP por infraestructura | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `Fraud prevention, security, and compliance` y `App functionality` |
+| ID de dispositivo u otros IDs | Opcional; se recopila al habilitar push y vincular el alias de OneSignal | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `App functionality`, `Developer communications` y `Analytics` de entrega/interacción |
+| Diagnósticos | Sí | Confirmación del propietario pendiente para la excepción de proveedor | Sí | `App functionality` y `Fraud prevention, security, and compliance` |
 
 Respuestas de seguridad actuales:
 
@@ -125,27 +125,23 @@ Respuestas de seguridad actuales:
 
 El generador QR y las 24 imágenes incluidas funcionan localmente en el dispositivo; no envían contenido a un proveedor de QR o CDN. Las imágenes personalizadas de producto se optimizan y se guardan en un bucket privado de Supabase después de la confirmación del usuario. El contenido compartido mediante el menú del sistema sale sólo por acción explícita.
 
-La infraestructura infiere región aproximada desde IP y conserva logs de solicitudes y autenticación. Por ello el primer release declara **Approximate location**, **Device or other IDs** y **Diagnostics**, todos recopilados, obligatorios, no compartidos para fines publicitarios y no usados para tracking. Vercel y Supabase se tratan como proveedores de servicio.
+La infraestructura trata la IP y puede inferir país o región aproximados; OneSignal también trata la IP y el país aproximado al habilitar push. OneSignal recibe identificadores propios de usuario y suscripción, token push, datos técnicos del dispositivo, fechas, número y duración de sesiones y eventos de entrega, apertura o clic. No recibe ubicación GPS en esta configuración. Estos datos no se usan para publicidad ni tracking.
+
+**Confirmación obligatoria del propietario antes de enviar:** la columna `Compartido` no puede marcarse `No` sólo por llamar “encargado” o “proveedor de servicio” a Supabase, Vercel, OneSignal u otro tercero. El propietario debe confirmar que cada transferencia cumple íntegramente la excepción de proveedor de servicios de Google Play y que los contratos y usos reales la respaldan; si no puede confirmarlo, debe declararse como compartida. Esta guía no sustituye esa determinación legal ni contractual.
 
 ## App Store Privacy
 
-La declaración de App Store Connect y `PrivacyInfo.xcprivacy` deben coincidir. Declarar, todos vinculados al usuario, para **App Functionality** y sin tracking:
+La declaración de App Store Connect y `PrivacyInfo.xcprivacy` deben coincidir. Todo se declara vinculado al usuario y sin tracking. Usar estas finalidades:
 
-- Name.
-- Email Address.
-- Phone Number.
-- User ID.
-- Photos or Videos.
-- Contacts.
-- Purchase History.
-- Other User Content.
-- Product Interaction.
-- Coarse Location.
-- Device ID.
-- Performance Data.
-- Other Diagnostic Data.
+| Tipo de Apple | Recopilación | Finalidad |
+|---|---|---|
+| Contacts | Opcional | App Functionality |
+| Photos or Videos | Opcional | App Functionality |
+| User ID | Obligatoria | App Functionality |
+| Device ID | Opcional al habilitar push | App Functionality |
+| Product Interaction | Opcional al habilitar push; incluye sesiones, duración e interacción con avisos | App Functionality y Analytics |
 
-No declarar analítica, publicidad ni tracking mientras no existan en el binario. Volver a revisar si se añade cualquier SDK.
+Mantener también Name, Email Address, Phone Number, Purchase History, Other User Content, Coarse Location, Performance Data y Other Diagnostic Data para **App Functionality**, vinculados y sin tracking, conforme al uso auditado. `Analytics` se declara únicamente para Product Interaction por las métricas de sesión e interacción de OneSignal; no declarar publicidad ni tracking. Volver a revisar si cambia el SDK, sus opciones o cualquier integración.
 
 ## Eliminación de cuenta
 
@@ -156,14 +152,14 @@ Flujos disponibles:
 
 Prueba obligatoria antes de enviar:
 
-1. Crear una cuenta de prueba con periodo vigente y registros en todas las tablas.
-2. Solicitar la eliminación desde la app y comprobar en Stripe que la renovación queda detenida para `current_period_end`.
-3. Confirmar que la cuenta conserva acceso hasta esa fecha y que el estado visible es `pending_deletion`.
-4. Ejecutar el job con una fecha de prueba vencida y verificar que elimina filas y autenticación exactamente una vez.
-5. Repetir sin periodo vigente y confirmar borrado inmediato.
-6. Simular un fallo de Stripe y confirmar que no se programa ni se ejecuta el borrado.
-7. Repetir el proceso mediante soporte web y conservar evidencia interna de atención.
-8. Reutilizar el JWT emitido antes del borrado e intentar leer, insertar y ejecutar RPC;
+1. Crear dos cuentas de prueba con periodo vigente y registros en todas las tablas.
+2. En la primera, elegir `Eliminar ahora` y comprobar que se detiene la renovación, termina el acceso, se eliminan cuenta y datos y Stripe no genera un reembolso automático.
+3. En la segunda, elegir `Eliminar al terminar mi periodo` y comprobar que se detiene la renovación, se conserva el acceso hasta `current_period_end` y el estado visible es `pending_deletion`.
+4. Ejecutar el job con la fecha programada vencida y verificar que elimina filas y autenticación exactamente una vez.
+5. Repetir sin periodo vigente y confirmar que cualquiera de las opciones produce borrado inmediato.
+6. Simular un fallo de Stripe en ambos modos y confirmar que no se programa ni se ejecuta el borrado.
+7. Repetir ambos procesos mediante la ruta web y conservar evidencia interna de atención.
+8. Reutilizar el JWT emitido antes de cada borrado e intentar leer, insertar y ejecutar RPC;
    todas las operaciones deben fallar aun antes de que expire el token.
 
 ## Firma Android
@@ -246,6 +242,9 @@ Los archivos `.well-known`, el SHA-256 de Play App Signing, el Team ID de Apple,
 - [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Apple account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/)
 - [Apple App Store privacy](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy)
+- [OneSignal: Apple App Privacy](https://documentation.onesignal.com/docs/en/apple-app-privacy-requirements)
+- [OneSignal: Google Play Data Safety](https://documentation.onesignal.com/docs/en/google-play-data-safety-requirements)
+- [OneSignal: datos recopilados por el SDK](https://documentation.onesignal.com/docs/en/data-collected-by-the-onesignal-sdk)
 - [Google Play Impersonation](https://support.google.com/googleplay/android-developer/answer/9888374)
 - [Google Play Intellectual Property](https://support.google.com/googleplay/android-developer/answer/9888072)
 - [Zinzino: términos de partner publicados (ejemplo regional)](https://www.zinzino.com/site/in/en-gb/policys-and-terms-india/)

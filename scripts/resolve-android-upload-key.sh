@@ -4,11 +4,12 @@
 # This script intentionally prints only the matching variable names and alias;
 # keystore bytes and passwords never leave the process environment.
 
-expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'
-expected_sha256='E3:06:AF:9A:30:99:7C:C3:FE:47:30:5B:9E:16:9E:C9:A0:DA:89:B8:5F:29:61:DC:C1:A4:62:6F:F1:1A:CD:BA'
+expected_sha1='D4:36:FC:6F:1F:A3:02:6C:CE:FE:ED:F9:52:CC:14:0F:AD:6D:BB:02'
+expected_sha256='FC:E3:53:CE:FC:CF:E9:B0:F4:35:EA:6B:95:30:5B:A5:B7:F3:3A:D1:B8:F9:99:49:60:C5:F7:6E:A7:91:64:C6'
 resolved_keystore='/tmp/zynergia-upload.keystore'
 
 keystore_variables=(
+  ANDROID_ACTIVE_UPLOAD_KEYSTORE
   ANDROID_PLAY_UPLOAD_KEYSTORE
   ANDROID_PLAY_UPLOAD_KEYSTORE_ANDROID
   ANDROID_RESET_KEYSTORE
@@ -17,6 +18,7 @@ keystore_variables=(
 )
 
 password_variables=(
+  ANDROID_ACTIVE_UPLOAD_KEYSTORE_PASSWORD
   ANDROID_KEYSTORE_PASSWORD
   ANDROID_KEY_PASSWORD
   ANDROID_NEW_PASSWORD

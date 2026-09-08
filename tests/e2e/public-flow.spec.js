@@ -188,6 +188,8 @@ test('soporte y legales canónicos son accesibles sin instalar la app', async ({
 test('la ruta web de eliminación explica el proceso y conserva el retorno al login', async ({ page }) => {
   await page.goto('/eliminar-cuenta');
   await expect(page.getByRole('heading', { name: 'Eliminar mi cuenta' })).toBeVisible();
+  await expect(page.getByText(/conservar el acceso hasta que termine tu periodo pagado/i)).toBeVisible();
+  await expect(page.getByText(/no genera un reembolso automático/i)).toBeVisible();
   await page.getByRole('link', { name: 'Iniciar sesión y continuar' }).click();
   await expect(page).toHaveURL(/\/iniciar-sesion\?returnTo=%2Feliminar-cuenta$/);
   await expect(page.getByText(/volverás a la solicitud/i)).toBeVisible();

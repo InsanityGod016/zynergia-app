@@ -7,6 +7,7 @@ const stripe = vi.hoisted(() => ({
   update: vi.fn(),
   deleteCustomer: vi.fn(),
 }));
+const oneSignal = vi.hoisted(() => ({ deleteUser: vi.fn() }));
 
 vi.mock('../../api/_lib/clients.js', () => ({
   allowedPriceIds: () => new Set(['price_zynergia']),
@@ -19,6 +20,9 @@ vi.mock('../../api/_lib/clients.js', () => ({
     },
     customers: { del: stripe.deleteCustomer },
   }),
+}));
+vi.mock('../../api/_lib/onesignal.js', () => ({
+  deleteOneSignalUser: oneSignal.deleteUser,
 }));
 
 import {
@@ -40,6 +44,7 @@ beforeEach(() => {
   stripe.retrieve.mockResolvedValue(subscription);
   stripe.update.mockResolvedValue({ ...subscription, cancel_at_period_end: true });
   stripe.cancel.mockResolvedValue({ ...subscription, status: 'canceled' });
+  oneSignal.deleteUser.mockResolvedValue(undefined);
 });
 
 test('scheduled deletion touches only the recorded Zynergia subscription', async () => {
@@ -87,7 +92,35 @@ test('immediate deletion preserves the shared Stripe Customer and other products
   expect(stripe.deleteCustomer).not.toHaveBeenCalled();
   expect(admin.storage.from).toHaveBeenCalledWith('product-images');
   expect(storage.list).toHaveBeenCalledWith('user', expect.objectContaining({ limit: 1000, offset: 0 }));
+  expect(oneSignal.deleteUser).toHaveBeenCalledWith('user');
+  expect(oneSignal.deleteUser.mock.invocationCallOrder[0])
+    .toBeLessThan(admin.rpc.mock.invocationCallOrder[0]);
+  expect(oneSignal.deleteUser.mock.invocationCallOrder[0])
+    .toBeLessThan(admin.auth.admin.deleteUser.mock.invocationCallOrder[0]);
   expect(admin.auth.admin.deleteUser).toHaveBeenCalledWith('user');
+});
+
+test('OneSignal failure leaves Supabase data and Auth intact for a retry', async () => {
+  oneSignal.deleteUser.mockRejectedValueOnce(Object.assign(new Error('onesignal_http_503'), {
+    retryable: true,
+  }));
+  const admin = {
+    rpc: vi.fn(async () => ({ data: null, error: null })),
+    storage: { from: vi.fn() },
+    auth: { admin: { deleteUser: vi.fn() } },
+  };
+
+  await expect(executeAccountDeletion(admin, {
+    request_id: 'request',
+    operation_id: 'operation',
+    user_id: 'user',
+    stripe_customer_id: 'cus_shared',
+    stripe_subscription_id: 'sub_zynergia',
+  })).rejects.toThrow('onesignal_http_503');
+
+  expect(admin.storage.from).not.toHaveBeenCalled();
+  expect(admin.rpc).not.toHaveBeenCalled();
+  expect(admin.auth.admin.deleteUser).not.toHaveBeenCalled();
 });
 
 test('product image cleanup removes root and nested objects and is retry-safe', async () => {

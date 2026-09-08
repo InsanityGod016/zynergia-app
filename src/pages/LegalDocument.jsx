@@ -10,7 +10,7 @@ export default function LegalDocument({ type }) {
       <article className="legal-card">
         <p className="eyebrow">Legal</p>
         <h1>{privacy ? 'Política de privacidad' : 'Términos de servicio'}</h1>
-        <p className="legal-updated">Última actualización: 7 de septiembre de 2026</p>
+        <p className="legal-updated">Última actualización: 8 de septiembre de 2026</p>
         {privacy ? <PrivacyContent /> : <TermsContent />}
       </article>
     </main>
@@ -27,9 +27,9 @@ function PrivacyContent() {
       <li><strong>Perfil opcional:</strong> nombre, teléfono, foto, moneda y preferencias.</li>
       <li><strong>Contenido que proporcionas:</strong> contactos que agregas o eliges importar, teléfonos, notas, etiquetas, tareas, ventas, socios, enlaces de productos, plantillas y recordatorios. Con tu permiso, al importar leemos localmente nombres y teléfonos para mostrarte la lista; sólo guardamos en tu cuenta los contactos que eliges y confirmas.</li>
       <li><strong>Acceso al servicio:</strong> estado de acceso y referencias técnicas de la sesión de pago. Zynergia no recibe ni almacena el número completo de tu tarjeta.</li>
-      <li><strong>Datos técnicos:</strong> sesión, dirección IP, región aproximada derivada de esa IP, navegador, sistema operativo, identificadores técnicos que puedan asignar los proveedores y registros de rendimiento, seguridad o error. Zynergia no solicita GPS ni ubicación precisa.</li>
+      <li><strong>Datos técnicos y de uso:</strong> sesiones y su duración, dirección IP, país o región aproximados derivados de esa IP, navegador, sistema operativo, modelo e idioma del dispositivo, zona horaria, versión de la app, estado de red, identificadores técnicos que asignan los proveedores y registros de rendimiento, seguridad o error. Zynergia no solicita GPS ni ubicación precisa.</li>
       <li><strong>Imágenes y códigos QR:</strong> guardamos la foto de perfil y las imágenes de productos que decides subir. Procesamos las imágenes que eliges para crear o compartir un QR.</li>
-      <li><strong>Notificaciones:</strong> si las habilitas, tratamos un identificador técnico del dispositivo, tus preferencias y el estado de entrega para enviarte recordatorios sin duplicarlos.</li>
+      <li><strong>Notificaciones:</strong> si las habilitas, tratamos el token push, identificadores técnicos del usuario y del dispositivo, tus preferencias, el contenido necesario para entregar el aviso y sus eventos de entrega, apertura o clic.</li>
     </ul>
     <p>No vendemos datos personales, no mostramos publicidad conductual y no usamos tus datos para rastrearte entre aplicaciones o sitios de otras empresas.</p>
 
@@ -38,6 +38,7 @@ function PrivacyContent() {
       <li>Crear y proteger tu cuenta, mantener tu sesión y prestar las funciones solicitadas.</li>
       <li>Guardar, sincronizar y mostrar el contenido que registras.</li>
       <li>Programar los recordatorios que habilitas.</li>
+      <li>Medir sesiones e interacciones con notificaciones para operar, diagnosticar y mejorar ese servicio, sin publicidad ni rastreo entre apps o sitios.</li>
       <li>Confirmar el acceso al servicio y atender facturación, soporte, seguridad y prevención de abuso.</li>
       <li>Cumplir obligaciones legales y hacer valer nuestros términos.</li>
     </ul>
@@ -50,7 +51,8 @@ function PrivacyContent() {
     <p>Los proveedores pueden tratar datos en otros países y aplican sus propias medidas contractuales y técnicas. No vendemos información; sólo la comunicamos cuando es necesario para la función solicitada, operar y proteger el servicio o cumplir la ley.</p>
 
     <h2>4. Notificaciones</h2>
-    <p>Las tareas con fecha y hora usan notificaciones locales. Si habilitas resúmenes o avisos de Fast Start/equipo, OneSignal entrega esos avisos al dispositivo vinculado con tu cuenta. Puedes elegir cada categoría, cambiar la hora del resumen o desactivar todo desde Cuenta y desde los ajustes del sistema. Al cerrar sesión desvinculamos ese dispositivo. No usamos identificadores publicitarios.</p>
+    <p>Las tareas con fecha y hora usan notificaciones locales. Sólo después de que habilitas las notificaciones push, Zynergia vincula tu cuenta mediante un identificador opaco y OneSignal asigna identificadores propios de usuario y suscripción. Para entregar y medir los avisos, OneSignal trata el token de APNs o FCM; fechas, número y duración de sesiones; estado del permiso; entrega, apertura o clic de las notificaciones; versión de la app; sistema operativo, modelo, idioma, zona horaria y red del dispositivo; dirección IP y país aproximado derivado de ella.</p>
+    <p>Puedes elegir cada categoría, cambiar la hora del resumen o desactivar todo desde Cuenta y desde los ajustes del sistema. Al cerrar sesión desvinculamos el dispositivo. La ubicación GPS está deshabilitada y no usamos identificadores publicitarios ni estos datos para rastrearte entre aplicaciones o sitios de otras empresas.</p>
 
     <h2>5. Conservación y seguridad</h2>
     <p>Conservamos los datos mientras exista la cuenta o sean necesarios para prestar el servicio. Aplicamos cifrado en tránsito y controles de acceso, pero ningún sistema es infalible; protege también tu contraseña y dispositivo.</p>
@@ -58,7 +60,7 @@ function PrivacyContent() {
 
     <h2>6. Tus opciones y derechos</h2>
     <p>Puedes consultar y corregir datos desde la app o pedir ayuda en el <Link to="/soporte">centro de soporte</Link>. Revocar el permiso de Contactos impide lecturas nuevas, pero no elimina las copias que ya confirmaste; puedes eliminarlas en Zynergia sin modificar la libreta de tu teléfono. Podemos solicitar información razonable para verificar tu identidad.</p>
-    <p>Puedes solicitar la eliminación desde Configuración en la app o desde <Link to="/eliminar-cuenta">Eliminar cuenta</Link> sin reinstalarla. La solicitud detiene la renovación de Stripe. Si queda un periodo pagado, conservas el acceso y el borrado se programa para su final; sin periodo vigente, se procesa de inmediato.</p>
+    <p>Puedes solicitar la eliminación desde Configuración en la app o desde <Link to="/eliminar-cuenta">Eliminar cuenta</Link> sin reinstalarla. La solicitud detiene la renovación de Stripe. Si queda un periodo pagado, puedes elegir entre eliminar la cuenta ahora —el acceso termina de inmediato y no se genera un reembolso automático por el tiempo restante— o conservar el acceso y programar el borrado para el final del periodo. Sin periodo vigente, el borrado se procesa de inmediato, sin perjuicio de los derechos que otorgue la ley.</p>
 
     <h2>7. Menores</h2>
     <p>Zynergia está dirigida a personas adultas y no está diseñada para menores de 18 años. Usa el <Link to="/soporte">centro de soporte</Link> si crees que un menor proporcionó datos.</p>
@@ -92,11 +94,11 @@ function TermsContent() {
 
     <h2>6. Acceso de pago</h2>
     <p>Las altas nuevas cuestan 17 USD al mes, precio final mostrado antes de confirmar. El acceso se contrata en el sitio web y Stripe procesa el pago. La app móvil no procesa compras ni dirige a un flujo de pago.</p>
-    <p>La renovación es automática hasta que canceles desde Configuración en la app o desde tu cuenta web. La cancelación conserva acceso hasta el final del periodo pagado y no genera un reembolso automático. Tras el primer fallo de pago puede aplicarse una gracia de tres días, sin que nuevos reintentos extiendan ese plazo. Los planes o precios anteriores continúan bajo las condiciones aplicables a cada cuenta.</p>
+    <p>La renovación es automática hasta que canceles desde Configuración en la app o desde tu cuenta web. Cancelar únicamente la renovación conserva el acceso hasta el final del periodo pagado y no genera un reembolso automático; la eliminación inmediata de la cuenta se rige por la sección siguiente. Tras el primer fallo de pago puede aplicarse una gracia de tres días, sin que nuevos reintentos extiendan ese plazo. Los planes o precios anteriores continúan bajo las condiciones aplicables a cada cuenta.</p>
 
     <h2>7. Eliminación y facturación</h2>
-    <p>Puedes solicitar la eliminación siguiendo <Link to="/eliminar-cuenta">estas instrucciones</Link>. Al confirmar, Zynergia detiene la renovación en Stripe. Si queda un periodo pagado, el acceso continúa hasta su vencimiento y el borrado se programa para esa fecha; sin periodo vigente, la cuenta y sus datos operativos se eliminan de inmediato.</p>
-    <p>Si no podemos detener la facturación, no programamos ni completamos el borrado. La solicitud no crea por sí misma un derecho a reembolso, sin perjuicio de los derechos que otorgue la ley.</p>
+    <p>Puedes solicitar la eliminación siguiendo <Link to="/eliminar-cuenta">estas instrucciones</Link>. Al confirmar, Zynergia detiene la renovación en Stripe. Si queda un periodo pagado, puedes elegir entre eliminar la cuenta ahora o programar el borrado para su vencimiento. La primera opción termina el acceso de inmediato y no genera un reembolso automático por el tiempo restante; la segunda conserva el acceso hasta la fecha programada. Sin periodo vigente, la cuenta y sus datos operativos se eliminan de inmediato.</p>
+    <p>Si no podemos detener la facturación, no programamos ni completamos el borrado. Lo anterior no limita los derechos que otorgue la ley.</p>
 
     <h2>8. Servicios y marcas de terceros</h2>
     <p>El servicio puede abrir enlaces o mostrar recursos de terceros, cuyas condiciones se aplican por separado. Zynergia y CoreFlowAI LLC son independientes y no están afiliados, patrocinados, respaldados ni administrados por Zinzino AB ni por otras empresas mencionadas como referencia. Sus marcas pertenecen a sus titulares.</p>

@@ -13,8 +13,7 @@ export default function AccountDeletion() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const requestDeletion = async event => {
-    event.preventDefault();
+  const requestDeletion = async deleteNow => {
     setLoading(true);
     setError('');
     try {
@@ -25,7 +24,7 @@ export default function AccountDeletion() {
       sessionStorage.setItem(operationKey, operationId);
       const data = await apiFetch('/api/account/deletion-request', {
         method: 'POST',
-        body: JSON.stringify({ confirmation: 'DELETE', operation_id: operationId }),
+        body: JSON.stringify({ confirmation: 'DELETE', operation_id: operationId, delete_now: deleteNow }),
       });
       sessionStorage.removeItem(operationKey);
       setResult(data);
@@ -59,7 +58,7 @@ export default function AccountDeletion() {
         <article className="legal-card" aria-labelledby="delete-title">
           <p className="eyebrow eyebrow--danger">Control de tus datos</p>
           <h1 id="delete-title">Eliminar mi cuenta</h1>
-          <p>La solicitud detiene la renovación vinculada en Stripe. Si tienes un periodo pagado vigente, conservarás el acceso hasta que termine y programaremos el borrado para esa fecha. Sin periodo vigente, el borrado se procesa de inmediato.</p>
+          <p>La solicitud detiene la renovación vinculada en Stripe. Puedes conservar el acceso hasta que termine tu periodo pagado o eliminar la cuenta de inmediato. El borrado inmediato termina el acceso en ese momento y no genera un reembolso automático.</p>
 
           <h2>Qué se elimina</h2>
           <p>Tu cuenta de autenticación y la información operativa asociada: perfil, contactos, tareas, ventas, socios, etiquetas, enlaces, plantillas, avisos y preferencias.</p>
@@ -84,14 +83,19 @@ export default function AccountDeletion() {
         <Link className="back-link" to="/cuenta">← Volver</Link>
         <p className="eyebrow eyebrow--danger">Acción irreversible</p>
         <h1 id="delete-title">Eliminar mi cuenta</h1>
-        <p className="auth-lead">Se cancelará tu renovación. Si tienes un periodo pagado, conservarás acceso hasta que termine y después eliminaremos tus datos.</p>
-        <form className="auth-form" onSubmit={requestDeletion}>
+        <p className="auth-lead">Se cancelará tu renovación. Elige si quieres conservar el acceso pagado restante o eliminar todo ahora.</p>
+        <form className="auth-form" onSubmit={event => event.preventDefault()}>
           <label htmlFor="delete-password">Escribe tu contraseña para confirmar</label>
           <input id="delete-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required />
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="danger-action" type="submit" disabled={loading || !password}>
-            {loading && <Loader2 className="spinner" />}{loading ? 'Enviando…' : 'Eliminar mi cuenta'}
+          <button className="secondary-action" type="button" onClick={() => requestDeletion(false)} disabled={loading || !password}>
+            {loading && <Loader2 className="spinner" />}{loading ? 'Enviando…' : 'Eliminar al terminar mi periodo'}
           </button>
+          <p className="field-help">Conservas el acceso pagado restante; si no existe un periodo vigente, se elimina ahora.</p>
+          <button className="danger-action" type="button" onClick={() => requestDeletion(true)} disabled={loading || !password}>
+            {loading && <Loader2 className="spinner" />}{loading ? 'Eliminando…' : 'Eliminar ahora'}
+          </button>
+          <p className="field-error">Tu acceso termina de inmediato. Esta opción no genera un reembolso automático.</p>
         </form>
       </section>
     </main>

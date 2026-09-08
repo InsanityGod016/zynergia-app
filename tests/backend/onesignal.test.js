@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildOneSignalPayload,
+  deleteOneSignalUser,
   isRetryableOneSignalError,
   oneSignalExternalId,
   sendOneSignalPush,
@@ -103,5 +104,62 @@ describe('OneSignal transactional payload', () => {
     }));
 
     expect(response).toEqual({ sent: false, errorCode: 'no_subscribed_device' });
+  });
+});
+
+describe('OneSignal account deletion', () => {
+  const userId = '30000000-0000-4000-8000-000000000003';
+
+  it('deletes by the server-derived external_id and treats accepted or missing users as success', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ status: 202 })
+      .mockResolvedValueOnce({ status: 404 });
+    const externalId = oneSignalExternalId(userId);
+
+    await deleteOneSignalUser(userId, fetcher);
+    await deleteOneSignalUser(userId, fetcher);
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledWith(
+      `https://api.onesignal.com/apps/${process.env.ONESIGNAL_APP_ID}/users/by/external_id/${externalId}`,
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: { Authorization: 'Key test-key' },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('fails closed for partial configuration and skips only when both variables are absent', async () => {
+    const fetcher = vi.fn();
+    delete process.env.ONESIGNAL_APP_ID;
+    delete process.env.ONESIGNAL_REST_API_KEY;
+
+    await expect(deleteOneSignalUser(userId, fetcher)).resolves.toBeUndefined();
+    expect(fetcher).not.toHaveBeenCalled();
+
+    process.env.ONESIGNAL_APP_ID = '10000000-0000-4000-8000-000000000001';
+    await expect(deleteOneSignalUser(userId, fetcher)).rejects.toMatchObject({
+      code: 'PUSH_NOT_CONFIGURED',
+    });
+
+    delete process.env.ONESIGNAL_APP_ID;
+    process.env.ONESIGNAL_REST_API_KEY = 'test-key';
+    await expect(deleteOneSignalUser(userId, fetcher)).rejects.toMatchObject({
+      code: 'PUSH_NOT_CONFIGURED',
+    });
+  });
+
+  it('marks network, throttling, and provider failures as retryable', async () => {
+    const failures = [
+      () => deleteOneSignalUser(userId, async () => { throw new Error('offline'); }),
+      () => deleteOneSignalUser(userId, async () => ({ status: 429 })),
+      () => deleteOneSignalUser(userId, async () => ({ status: 503 })),
+    ];
+
+    for (const fail of failures) {
+      const error = await fail().catch(cause => cause);
+      expect(isRetryableOneSignalError(error)).toBe(true);
+    }
   });
 });

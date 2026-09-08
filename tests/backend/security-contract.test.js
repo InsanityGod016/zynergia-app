@@ -222,17 +222,28 @@ test('migration locks billing writes behind RLS and service RPCs', async () => {
   expect(contents).toMatch(/anonymized_at/);
 });
 
-test('account deletion preserves a paid period and delegates due work to a protected worker', async () => {
+test('account deletion offers immediate deletion or preserves a paid period', async () => {
   const request = await source('api/account/deletion-request.js');
   const helper = await source('api/_lib/account-deletion.js');
   const worker = await source('api/account/process-deletions.js');
+  const settings = await source('src/pages/Settings.jsx');
+  const deletionPage = await source('src/pages/AccountDeletion.jsx');
+  const publicPage = await source('public/delete-account.html');
   const migration = await source(
     'supabase/migrations/202608190001_secure_billing_and_account_lifecycle.sql'
   );
 
-  expect(request).toMatch(/request\.should_schedule/);
+  expect(request).toMatch(/typeof body\.delete_now !== 'boolean'/);
+  expect(request).toMatch(/request\.should_schedule && !deleteNow/);
   expect(request).toMatch(/status: 'scheduled', executeAt: request\.execute_at/);
+  expect(settings).toMatch(/delete_now: deleteNow/);
+  expect(deletionPage).toMatch(/delete_now: deleteNow/);
+  for (const page of [settings, deletionPage, publicPage]) {
+    expect(page).toMatch(/Eliminar ahora/);
+    expect(page).toMatch(/reembolso automático/);
+  }
   expect(helper).toMatch(/cancel_at_period_end: true/);
+  expect(helper).toMatch(/subscriptions\.cancel/);
   expect(worker).toMatch(/CRON_SECRET/);
   expect(worker).toMatch(/claim_due_account_deletions/);
   expect(worker).toMatch(/result\.failed > 0 \? 500 : 200/);

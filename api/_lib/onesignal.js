@@ -15,6 +15,25 @@ function deliveryError(code, retryable) {
   return Object.assign(new Error(code), { retryable });
 }
 
+function retryableStatus(status) {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+async function oneSignalRequest(url, options, fetcher, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.max(10, Math.min(timeoutMs, 15000)));
+  try {
+    return await fetcher(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted || error?.name === 'AbortError') {
+      throw deliveryError('onesignal_timeout', true);
+    }
+    throw deliveryError('onesignal_network_error', true);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function oneSignalExternalId(userId, {
   appId = process.env.ONESIGNAL_APP_ID,
   secret = process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -58,31 +77,17 @@ export async function sendOneSignalPush(notification, fetcher = fetch, timeoutMs
   const apiKey = required('ONESIGNAL_REST_API_KEY');
   const externalId = oneSignalExternalId(notification.userId, { appId });
   const payload = buildOneSignalPayload({ appId, externalId, ...notification });
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(10, Math.min(timeoutMs, 15000)));
-  let response;
-  try {
-    response = await fetcher('https://api.onesignal.com/notifications?c=push', {
-      method: 'POST',
-      headers: {
-        Authorization: `Key ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (controller.signal.aborted || error?.name === 'AbortError') {
-      throw deliveryError('onesignal_timeout', true);
-    }
-    throw deliveryError('onesignal_network_error', true);
-  } finally {
-    clearTimeout(timeout);
-  }
+  const response = await oneSignalRequest('https://api.onesignal.com/notifications?c=push', {
+    method: 'POST',
+    headers: {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  }, fetcher, timeoutMs);
   if (!response.ok) {
     const status = Number(response.status || 0);
-    const retryable = status === 408 || status === 425 || status === 429 || status >= 500;
-    throw deliveryError(`onesignal_http_${status || 'unknown'}`, retryable);
+    throw deliveryError(`onesignal_http_${status || 'unknown'}`, retryableStatus(status));
   }
   let result;
   try {
@@ -98,4 +103,24 @@ export async function sendOneSignalPush(notification, fetcher = fetch, timeoutMs
     return { sent: false, errorCode: 'no_subscribed_device' };
   }
   return { sent: true, providerMessageId: result.id };
+}
+
+export async function deleteOneSignalUser(userId, fetcher = fetch, timeoutMs = 8000) {
+  const appId = String(process.env.ONESIGNAL_APP_ID || '').trim();
+  const apiKey = String(process.env.ONESIGNAL_REST_API_KEY || '').trim();
+  if (!appId && !apiKey) return;
+  if (!appId || !apiKey) {
+    throw new HttpError(500, 'PUSH_NOT_CONFIGURED', 'Falta completar la configuración de OneSignal.');
+  }
+
+  const externalId = oneSignalExternalId(userId, { appId });
+  const response = await oneSignalRequest(
+    `https://api.onesignal.com/apps/${appId}/users/by/external_id/${encodeURIComponent(externalId)}`,
+    { method: 'DELETE', headers: { Authorization: `Key ${apiKey}` } },
+    fetcher,
+    timeoutMs,
+  );
+  const status = Number(response.status || 0);
+  if (status === 202 || status === 404) return;
+  throw deliveryError(`onesignal_http_${status || 'unknown'}`, retryableStatus(status));
 }

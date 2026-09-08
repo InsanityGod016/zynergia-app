@@ -424,7 +424,7 @@ export default function Settings() {
   const [deleteStep, setDeleteStep] = useState(0); // 0=oculto, 1=confirmar, 2=enviando, 3=programado
   const [deletePassword, setDeletePassword] = useState('');
   const [deletionDate, setDeletionDate] = useState(null);
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = async deleteNow => {
     setDeleteStep(2);
     try {
       const { error: reauthError } = await supabase.auth.signInWithPassword({
@@ -438,7 +438,7 @@ export default function Settings() {
       sessionStorage.setItem(operationKey, operationId);
       const data = await apiFetch('/api/account/deletion-request', {
         method: 'POST',
-        body: JSON.stringify({ confirmation: 'DELETE', operation_id: operationId }),
+        body: JSON.stringify({ confirmation: 'DELETE', operation_id: operationId, delete_now: deleteNow }),
       });
       sessionStorage.removeItem(operationKey);
       setDeletePassword('');
@@ -875,7 +875,7 @@ export default function Settings() {
               <>
                 <p className="text-[17px] font-bold text-red-700 mb-1.5">¿Eliminar tu cuenta?</p>
                 <p className="text-[15px] text-red-700 leading-relaxed mb-4">
-                  Cancelaremos la renovación. Si tienes tiempo pagado, conservarás acceso hasta que termine; después borraremos tus datos. No se puede deshacer.
+                  Cancelaremos la renovación. Puedes conservar el acceso hasta que termine tu periodo pagado o eliminar la cuenta de inmediato. No se puede deshacer.
                 </p>
                 <label htmlFor="delete-account-password" className="block text-[15px] font-semibold text-red-800 mb-2">Escribe tu contraseña para confirmar</label>
                 <input
@@ -886,20 +886,29 @@ export default function Settings() {
                   onChange={event => setDeletePassword(event.target.value)}
                   className="min-h-14 w-full rounded-xl border border-red-200 bg-white px-4 text-[17px] text-[#0F172A] outline-none focus:ring-2 focus:ring-red-500 mb-4"
                 />
-                <div className="flex gap-3">
+                <div className="grid gap-3">
+                  <button
+                    onClick={() => handleDeleteAccount(false)}
+                    disabled={deleteStep === 2 || !deletePassword}
+                    className="min-h-12 bg-white rounded-xl px-3 text-[15px] font-semibold text-red-700 border border-red-200 active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {deleteStep === 2 ? <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" /> : 'Eliminar al terminar mi periodo'}
+                  </button>
+                  <p className="text-[15px] text-red-700 leading-relaxed">Conservas el acceso pagado restante; si no hay un periodo vigente, se elimina ahora.</p>
+                  <button
+                    onClick={() => handleDeleteAccount(true)}
+                    disabled={deleteStep === 2 || !deletePassword}
+                    className="min-h-12 bg-red-600 rounded-xl px-3 text-[15px] font-semibold text-white active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {deleteStep === 2 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Eliminar ahora'}
+                  </button>
+                  <p className="text-[15px] font-semibold text-red-800 leading-relaxed">Tu acceso termina de inmediato. No hay reembolso automático.</p>
                   <button
                     onClick={() => { setDeleteStep(0); setDeletePassword(''); }}
                     disabled={deleteStep === 2}
-                    className="flex-1 min-h-12 bg-white rounded-xl text-[15px] font-semibold text-[#0F172A] border border-red-100 active:scale-95 transition-transform disabled:opacity-60"
+                    className="min-h-12 bg-white rounded-xl text-[15px] font-semibold text-[#0F172A] border border-red-100 active:scale-95 transition-transform disabled:opacity-60"
                   >
                     Cancelar
-                  </button>
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={deleteStep === 2 || !deletePassword}
-                    className="flex-1 min-h-12 bg-red-600 rounded-xl text-[15px] font-semibold text-white active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {deleteStep === 2 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Eliminar'}
                   </button>
                 </div>
               </>
