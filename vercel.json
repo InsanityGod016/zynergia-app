@@ -47,6 +47,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/billing/:action", "destination": "/api/billing/[action]?action=:action" },
     { "source": "/api/connect-create", "destination": "/api/retired" },
     { "source": "/api/create-checkout", "destination": "/api/retired" },
     { "source": "/api/delete-account", "destination": "/api/retired" },

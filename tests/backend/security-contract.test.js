@@ -142,11 +142,16 @@ test('web account separates card updates from guaranteed end-of-period cancellat
 
 test('billing URLs share one dynamic Vercel function without changing public actions', async () => {
   const route = await source('api/billing/[action].js');
+  const vercel = JSON.parse(await source('vercel.json'));
 
   for (const action of ['cancel', 'checkout', 'claim', 'portal', 'signup-status', 'status']) {
     expect(route).toMatch(new RegExp(`\\['${action}',`));
   }
   expect(route).toMatch(/ENDPOINT_NOT_FOUND/);
+  expect(vercel.rewrites[0]).toEqual({
+    source: '/api/billing/:action',
+    destination: '/api/billing/[action]?action=:action',
+  });
 });
 
 test('new checkout accepts only the monthly server price', async () => {
