@@ -106,7 +106,9 @@ test('native release configuration keeps push, permissions, stores and update ma
   expect(releaseManifestSource).not.toMatch(/(?:jwt|session_id|access_token|https?:\/\/)/i);
 
   expect(codemagic.match(/VITE_PLAY_STORE_URL: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.zynergia\.app/g)).toHaveLength(2);
-  expect(codemagic).toContain("expected_sha1='16:54:71:1F:4B:E5:93:99:AD:95:A7:4A:20:88:CF:BF:1C:65:CB:B7'");
+  expect(codemagic).toContain("expected_sha1='1A:27:A7:5C:C3:40:56:EA:A6:C9:C7:87:DA:D9:9A:52:77:44:3F:E5'");
+  expect(codemagic).toContain('ANDROID_PLAY_UPLOAD_KEYSTORE');
+  expect(codemagic).toContain('ANDROID_KEYSTORE_PASSWORD');
   expect(codemagic).toContain("Print :Entitlements:get-task-allow");
   expect(codemagic).toContain("Print :Entitlements:com.apple.developer.associated-domains");
   expect(codemagic).toContain("grep -Fq 'applinks:zynergia.pro'");
